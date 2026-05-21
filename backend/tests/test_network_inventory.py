@@ -23,6 +23,12 @@ class FakeVirtualNetworkClient:
     def list_security_lists(self, **kwargs):
         return kwargs
 
+    def list_network_security_groups(self, **kwargs):
+        return kwargs
+
+    def list_network_security_group_security_rules(self, network_security_group_id, **kwargs):
+        return {"network_security_group_id": network_security_group_id, **kwargs}
+
     def list_internet_gateways(self, **kwargs):
         return kwargs
 
@@ -40,7 +46,7 @@ class FakeClientFactory:
     def virtual_network_client(self, region=None):
         return FakeVirtualNetworkClient()
 
-    def list_all(self, list_func, **kwargs):
+    def list_all(self, list_func, *args, **kwargs):
         method_name = list_func.__name__
         if method_name == "list_vcns":
             return [
@@ -127,6 +133,43 @@ class FakeClientFactory:
                     time_created=None,
                 )
             ]
+        if method_name == "list_network_security_groups":
+            return [
+                OciObject(
+                    id="nsg-1",
+                    display_name="web-nsg",
+                    compartment_id="compartment-1",
+                    vcn_id="vcn-1",
+                    lifecycle_state="AVAILABLE",
+                    time_created=None,
+                )
+            ]
+        if method_name == "list_network_security_group_security_rules":
+            return [
+                OciObject(
+                    direction="INGRESS",
+                    protocol="6",
+                    source="0.0.0.0/0",
+                    source_type="CIDR_BLOCK",
+                    tcp_options=OciObject(
+                        destination_port_range=OciObject(min=443, max=443),
+                        source_port_range=None,
+                    ),
+                    udp_options=None,
+                    description="https",
+                    is_stateless=False,
+                ),
+                OciObject(
+                    direction="EGRESS",
+                    protocol="all",
+                    destination="0.0.0.0/0",
+                    destination_type="CIDR_BLOCK",
+                    tcp_options=None,
+                    udp_options=None,
+                    description="egress",
+                    is_stateless=False,
+                ),
+            ]
         if method_name == "list_internet_gateways":
             return [
                 OciObject(
@@ -210,6 +253,15 @@ def test_gateways_returns_empty_without_live_oci():
     assert response.json() == []
 
 
+def test_network_security_groups_returns_empty_without_live_oci():
+    client = TestClient(create_app())
+
+    response = client.get("/api/network-security-groups")
+
+    assert response.status_code == 200
+    assert response.json() == []
+
+
 def test_topology_returns_empty_graph_without_live_oci():
     client = TestClient(create_app())
 
@@ -272,6 +324,22 @@ def test_security_list_service_maps_security_rules():
     assert security_lists[0].egress_rules[0].destination == "0.0.0.0/0"
 
 
+def test_network_security_group_service_maps_rules():
+    settings = Settings(
+        enable_live_oci=True,
+        tenancy_ocid="compartment-1",
+        active_regions=["eu-frankfurt-1"],
+    )
+    service = NetworkInventoryService(settings=settings, client_factory=FakeClientFactory())
+
+    nsgs = service.list_network_security_groups(compartment_ids=["compartment-1"], regions=["eu-frankfurt-1"])
+
+    assert nsgs[0].id == "nsg-1"
+    assert nsgs[0].ingress_rules[0].source == "0.0.0.0/0"
+    assert nsgs[0].ingress_rules[0].min_port == 443
+    assert nsgs[0].egress_rules[0].destination == "0.0.0.0/0"
+
+
 def test_topology_service_builds_resource_graph():
     settings = Settings(
         enable_live_oci=True,
@@ -288,8 +356,10 @@ def test_topology_service_builds_resource_graph():
     assert node_types["subnet-1"] == "subnet"
     assert node_types["rt-1"] == "route_table"
     assert node_types["sl-1"] == "security_list"
+    assert node_types["nsg-1"] == "network_security_group"
     assert node_types["igw-1"] == "internet_gateway"
     assert ("vcn-1", "subnet-1", "contains_subnet") in edge_keys
     assert ("subnet-1", "rt-1", "uses_route_table") in edge_keys
     assert ("subnet-1", "sl-1", "uses_security_list") in edge_keys
+    assert ("vcn-1", "nsg-1", "has_network_security_group") in edge_keys
     assert ("rt-1", "igw-1", "routes_to") in edge_keys

@@ -611,6 +611,7 @@ tr:last-child td { border-bottom: 0; }
         <div class="kpi"><div class="kpi-label"><span class="status-dot ok"></span>Gateways</div><div class="kpi-value" id="kpiGateways">0</div><div class="kpi-sub" id="kpiGatewaySub">IGW / NAT / SGW / DRG</div></div>
         <div class="kpi"><div class="kpi-label"><span class="status-dot ok"></span>Route Tables</div><div class="kpi-value" id="kpiRoutes">0</div><div class="kpi-sub" id="kpiRouteSub">Route rule context</div></div>
         <div class="kpi"><div class="kpi-label"><span class="status-dot ok"></span>Security Lists</div><div class="kpi-value" id="kpiSecLists">0</div><div class="kpi-sub" id="kpiSecListSub">Ingress / egress rules</div></div>
+        <div class="kpi"><div class="kpi-label"><span class="status-dot ok"></span>NSGs</div><div class="kpi-value" id="kpiNsgs">0</div><div class="kpi-sub" id="kpiNsgSub">Network Security Groups</div></div>
         <div class="kpi"><div class="kpi-label"><span class="status-dot warn"></span>Findings</div><div class="kpi-value" id="kpiFindings">0</div><div class="kpi-sub" id="kpiFindingSub">Security posture</div></div>
         <div class="kpi"><div class="kpi-label"><span class="status-dot neutral" id="preflightDot"></span>Preflight</div><div class="kpi-value" id="kpiPreflight">-</div><div class="kpi-sub" id="kpiPreflightSub">OCI readiness</div></div>
       </div>
@@ -669,6 +670,14 @@ tr:last-child td { border-bottom: 0; }
         </summary>
         <div class="resource-list" id="securityList"></div>
       </details>
+
+      <details class="card expander">
+        <summary class="card-header">
+          <div class="card-title">Network Security Groups</div>
+          <span class="badge neutral" id="nsgBadge">0</span>
+        </summary>
+        <div class="resource-list" id="nsgList"></div>
+      </details>
     </section>
 
     <details class="card expander" open>
@@ -712,6 +721,7 @@ const API_PATHS = {
   gateways: '/api/gateways',
   routeTables: '/api/route-tables',
   securityLists: '/api/security-lists',
+  networkSecurityGroups: '/api/network-security-groups',
   topology: '/api/topology',
   securityPosture: '/api/security/posture',
 };
@@ -764,15 +774,20 @@ const DEMO_DATA = {
     { id: 'sl-public', name: 'public-security-list', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', lifecycle_state: 'AVAILABLE', ingress_rules: [{ protocol: '6', source: '0.0.0.0/0', min_port: 443, max_port: 443 }], egress_rules: [{ protocol: 'all', destination: '0.0.0.0/0' }] },
     { id: 'sl-admin-risk', name: 'admin-risk-review', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', lifecycle_state: 'AVAILABLE', ingress_rules: [{ protocol: '6', source: '0.0.0.0/0', min_port: 22, max_port: 22 }], egress_rules: [] },
   ],
+  networkSecurityGroups: [
+    { id: 'nsg-web', name: 'web-tier-nsg', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', lifecycle_state: 'AVAILABLE', ingress_rules: [{ protocol: '6', source: '0.0.0.0/0', min_port: 443, max_port: 443 }], egress_rules: [{ protocol: 'all', destination: '0.0.0.0/0' }] },
+    { id: 'nsg-admin-risk', name: 'admin-risk-nsg', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', lifecycle_state: 'AVAILABLE', ingress_rules: [{ protocol: '6', source: '0.0.0.0/0', min_port: 3389, max_port: 3389 }], egress_rules: [] },
+  ],
   securityPosture: {
     status: 'high',
-    total_findings: 1,
+    total_findings: 2,
     critical_findings: 0,
-    high_findings: 1,
+    high_findings: 2,
     medium_findings: 0,
     low_findings: 0,
     findings: [
-      { severity: 'high', rule_type: 'public_ssh', resource_name: 'admin-risk-review', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', description: 'Ingress allows SSH from 0.0.0.0/0.', recommendation: 'Restrict SSH to VPN, Bastion, or administrator CIDR.' }
+      { severity: 'high', rule_type: 'public_ssh', resource_name: 'admin-risk-review', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', description: 'Ingress allows SSH from 0.0.0.0/0.', recommendation: 'Restrict SSH to VPN, Bastion, or administrator CIDR.' },
+      { severity: 'high', rule_type: 'nsg_public_rdp', resource_name: 'admin-risk-nsg', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', description: 'NSG ingress allows RDP from 0.0.0.0/0.', recommendation: 'Restrict RDP to VPN, Bastion, or administrator CIDR.' }
     ]
   }
 };
@@ -842,7 +857,19 @@ async function getJson(path) {
 }
 
 async function loadApiData() {
-  const [activeRegions, preflight, compartments, vcns, subnets, gateways, routeTables, securityLists, topology, securityPosture] = await Promise.all([
+  const [
+    activeRegions,
+    preflight,
+    compartments,
+    vcns,
+    subnets,
+    gateways,
+    routeTables,
+    securityLists,
+    networkSecurityGroups,
+    topology,
+    securityPosture,
+  ] = await Promise.all([
     getJson(API_PATHS.activeRegions),
     getJson(API_PATHS.preflight),
     getJson(API_PATHS.compartments),
@@ -851,10 +878,23 @@ async function loadApiData() {
     getJson(API_PATHS.gateways),
     getJson(API_PATHS.routeTables),
     getJson(API_PATHS.securityLists),
+    getJson(API_PATHS.networkSecurityGroups),
     getJson(API_PATHS.topology),
     getJson(API_PATHS.securityPosture),
   ]);
-  return { activeRegions, preflight, compartments, vcns, subnets, gateways, routeTables, securityLists, topology, securityPosture };
+  return {
+    activeRegions,
+    preflight,
+    compartments,
+    vcns,
+    subnets,
+    gateways,
+    routeTables,
+    securityLists,
+    networkSecurityGroups,
+    topology,
+    securityPosture,
+  };
 }
 
 async function refreshDashboard({ showLoading = false } = {}) {
@@ -888,12 +928,14 @@ function renderDashboard(data, mode) {
   data.gateways = data.gateways || [];
   data.routeTables = data.routeTables || [];
   data.securityLists = data.securityLists || [];
+  data.networkSecurityGroups = data.networkSecurityGroups || [];
   data.securityPosture = data.securityPosture || { status: 'ok', total_findings: 0, findings: [] };
   data.topology = data.topology || buildInventoryTopology(data);
   const observedRegions = new Set([
     ...data.vcns.map((item) => item.region),
     ...data.subnets.map((item) => item.region),
     ...data.gateways.map((item) => item.region),
+    ...data.networkSecurityGroups.map((item) => item.region),
   ].filter(Boolean));
   const activeRegionIds = data.activeRegions.map((item) => item.id).filter(Boolean);
   const regions = new Set([...activeRegionIds, ...observedRegions]);
@@ -907,6 +949,7 @@ function renderDashboard(data, mode) {
   text('kpiGateways', data.gateways.length);
   text('kpiRoutes', data.routeTables.length);
   text('kpiSecLists', data.securityLists.length);
+  text('kpiNsgs', data.networkSecurityGroups.length);
   text('kpiFindings', data.securityPosture.total_findings || 0);
   text('kpiPreflight', data.preflight.status || 'skipped');
   text('kpiVcnSub', `${regions.size || 0} active regions`);
@@ -915,6 +958,7 @@ function renderDashboard(data, mode) {
   text('kpiGatewaySub', gatewayTypeSummary(data.gateways));
   text('kpiRouteSub', `${sum(data.routeTables, (item) => item.route_rules?.length || 0)} rules`);
   text('kpiSecListSub', `${sum(data.securityLists, (item) => item.ingress_rules?.length || 0)} ingress rules`);
+  text('kpiNsgSub', `${sum(data.networkSecurityGroups, (item) => item.ingress_rules?.length || 0)} ingress rules`);
   text('kpiFindingSub', `${data.securityPosture.status || 'ok'} posture`);
   text('kpiPreflightSub', `${data.preflight.checks?.length || 0} checks / ${data.preflight.auth_mode || 'auth pending'}`);
   text('dataModeBadge', mode);
@@ -935,6 +979,7 @@ function renderDashboard(data, mode) {
   renderGateways(data.gateways, compartmentMap);
   renderRouteTables(data.routeTables, compartmentMap);
   renderSecurityLists(data.securityLists, compartmentMap);
+  renderNetworkSecurityGroups(data.networkSecurityGroups, compartmentMap);
   renderPreflight(data.preflight);
   renderFindings(data.securityPosture.findings || []);
   renderNetworkTable(data.vcns, data.subnets, compartmentMap);
@@ -946,7 +991,14 @@ function buildCompartmentMap(data) {
   (data.compartments || []).forEach((item) => {
     map[item.id] = item.name || item.id;
   });
-  [...data.vcns, ...data.subnets, ...data.gateways, ...data.routeTables, ...data.securityLists].forEach((item) => {
+  [
+    ...data.vcns,
+    ...data.subnets,
+    ...data.gateways,
+    ...data.routeTables,
+    ...data.securityLists,
+    ...data.networkSecurityGroups,
+  ].forEach((item) => {
     if (item.compartment_id && !map[item.compartment_id]) {
       map[item.compartment_id] = item.compartment_id;
     }
@@ -1142,6 +1194,22 @@ function buildInventoryTopology(data) {
     });
     addEdge(item.vcn_id, item.id, 'has_security_list');
   });
+  data.networkSecurityGroups.forEach((item) => {
+    nodes.push({
+      id: item.id,
+      name: item.name,
+      resource_type: 'network_security_group',
+      region: item.region,
+      compartment_id: item.compartment_id,
+      vcn_id: item.vcn_id,
+      lifecycle_state: item.lifecycle_state,
+      metadata: {
+        ingress_rules: String(item.ingress_rules?.length || 0),
+        egress_rules: String(item.egress_rules?.length || 0),
+      },
+    });
+    addEdge(item.vcn_id, item.id, 'has_network_security_group');
+  });
 
   const nodeIds = new Set(nodes.map((node) => node.id));
   return { nodes, edges: edges.filter((edge) => nodeIds.has(edge.source_id) && nodeIds.has(edge.target_id)) };
@@ -1153,7 +1221,7 @@ function topologyLayout(nodes) {
       x: 18,
       y1: 20,
       y2: 82,
-      types: new Set(['subnet', 'security_list']),
+      types: new Set(['subnet', 'security_list', 'network_security_group']),
     },
     center: {
       x: 50,
@@ -1192,6 +1260,7 @@ function topologyIcon(type) {
     subnet: 'SUB',
     route_table: 'RT',
     security_list: 'SL',
+    network_security_group: 'NSG',
     internet_gateway: 'IGW',
     nat_gateway: 'NAT',
     service_gateway: 'SGW',
@@ -1324,6 +1393,7 @@ function topologyEdgeColor(relationship) {
     has_route_table: '#8a5a00',
     routes_to: '#534ab7',
     has_security_list: '#a32d2d',
+    has_network_security_group: '#a32d2d',
     uses_route_table: '#8a5a00',
     uses_security_list: '#a32d2d',
   }[relationship] || '#66717f';
@@ -1362,6 +1432,16 @@ function renderRouteTables(routeTables, compartmentMap) {
 function renderSecurityLists(securityLists, compartmentMap) {
   text('securityListBadge', securityLists.length);
   renderResourceList('securityList', securityLists.slice(0, 8), (item) => ({
+    title: item.name,
+    meta: `${compartmentName(compartmentMap, item.compartment_id)} / ${item.region} / ${item.ingress_rules?.length || 0} ingress / ${item.egress_rules?.length || 0} egress`,
+    badge: item.lifecycle_state || 'unknown',
+    badgeClass: badgeClass(item.lifecycle_state === 'AVAILABLE'),
+  }));
+}
+
+function renderNetworkSecurityGroups(networkSecurityGroups, compartmentMap) {
+  text('nsgBadge', networkSecurityGroups.length);
+  renderResourceList('nsgList', networkSecurityGroups.slice(0, 8), (item) => ({
     title: item.name,
     meta: `${compartmentName(compartmentMap, item.compartment_id)} / ${item.region} / ${item.ingress_rules?.length || 0} ingress / ${item.egress_rules?.length || 0} egress`,
     badge: item.lifecycle_state || 'unknown',

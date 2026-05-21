@@ -23,7 +23,8 @@ console_url
 
 ## NetworkResource
 
-Used for VCNs, subnets, gateways, route tables, DRGs, and related network objects.
+Used for VCNs, subnets, gateways, route tables, Security Lists, Network Security Groups, DRGs, and related network
+objects.
 
 ```text
 id
@@ -36,6 +37,20 @@ cidr_blocks
 lifecycle_state
 relationships
 risk_summary
+```
+
+## NetworkSecurityGroup
+
+```text
+id
+name
+region
+compartment_id
+vcn_id
+lifecycle_state
+ingress_rules[]
+egress_rules[]
+time_created
 ```
 
 ## TopologyGraph

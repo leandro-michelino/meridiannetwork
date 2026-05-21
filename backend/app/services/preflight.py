@@ -174,26 +174,59 @@ class PreflightService:
                         )
                     )
                     continue
-                checks.append(
-                    self._checked_call(
-                        name=f"{region} / {label}",
-                        action=action,
-                        call=method,
-                        compartment_id=compartment_id,
-                        limit=1,
-                    ).check
+                result = self._checked_call(
+                    name=f"{region} / {label}",
+                    action=action,
+                    call=method,
+                    compartment_id=compartment_id,
+                    limit=1,
                 )
+                checks.append(result.check)
+                if method_name == "list_network_security_groups":
+                    checks.extend(self._network_security_group_rule_check(region, client, result.result, action))
         return checks
+
+    def _network_security_group_rule_check(
+        self,
+        region: str,
+        client: object,
+        result: object | None,
+        action: str,
+    ) -> list[PreflightCheck]:
+        nsg_id = self._first_resource_id(result)
+        if not nsg_id:
+            return []
+
+        method = getattr(client, "list_network_security_group_security_rules", None)
+        if method is None:
+            return [
+                PreflightCheck(
+                    name=f"{region} / Network Security Group rule inventory",
+                    status="skipped",
+                    message="The OCI SDK client does not expose list_network_security_group_security_rules.",
+                    action="Upgrade the OCI SDK package if NSG rule inventory is needed.",
+                )
+            ]
+        return [
+            self._checked_call(
+                f"{region} / Network Security Group rule inventory",
+                action,
+                method,
+                nsg_id,
+                limit=1,
+            ).check
+        ]
 
     def _checked_call(
         self,
         name: str,
         action: str,
         call: Callable[..., Any],
+        *args: Any,
         **kwargs: Any,
     ) -> "_CheckedCall":
         try:
-            result = call(**kwargs)
+            result = call(*args, **kwargs)
         except Exception as exc:
             return _CheckedCall(
                 check=PreflightCheck(
@@ -223,6 +256,14 @@ class PreflightService:
     def _target_compartments(self) -> list[str]:
         selected = self.settings.compartment_ids or ([self.settings.tenancy_ocid] if self.settings.tenancy_ocid else [])
         return list(dict.fromkeys(selected))
+
+    def _first_resource_id(self, result: object | None) -> str | None:
+        data = getattr(result, "data", result)
+        if not data:
+            return None
+        if isinstance(data, list) and data:
+            return getattr(data[0], "id", None)
+        return None
 
     def _summary_status(self, checks: list[PreflightCheck]) -> str:
         if not self.settings.enable_live_oci:

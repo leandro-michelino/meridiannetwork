@@ -13,14 +13,25 @@ class FakeServiceError(Exception):
         super().__init__(message)
 
 
+class FakeOciObject:
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
+
+
+class FakeOciResponse:
+    def __init__(self, data):
+        self.data = data
+
+
 class FakeIdentityClient:
     def list_compartments(self, **kwargs):
         return []
 
 
 class FakeVirtualNetworkClient:
-    def __init__(self, denied_method=None):
+    def __init__(self, denied_method=None, include_nsg=False):
         self.denied_method = denied_method
+        self.include_nsg = include_nsg
 
     def _response(self, method_name):
         if method_name == self.denied_method:
@@ -52,18 +63,26 @@ class FakeVirtualNetworkClient:
         return self._response("list_drgs")
 
     def list_network_security_groups(self, **kwargs):
+        if self.denied_method == "list_network_security_groups":
+            raise FakeServiceError()
+        if self.include_nsg:
+            return FakeOciResponse([FakeOciObject(id="nsg-1")])
         return self._response("list_network_security_groups")
+
+    def list_network_security_group_security_rules(self, network_security_group_id, **kwargs):
+        return self._response("list_network_security_group_security_rules")
 
 
 class FakeClientFactory:
-    def __init__(self, denied_method=None):
+    def __init__(self, denied_method=None, include_nsg=False):
         self.denied_method = denied_method
+        self.include_nsg = include_nsg
 
     def identity_client(self):
         return FakeIdentityClient()
 
     def virtual_network_client(self, region=None):
-        return FakeVirtualNetworkClient(denied_method=self.denied_method)
+        return FakeVirtualNetworkClient(denied_method=self.denied_method, include_nsg=self.include_nsg)
 
 
 def test_preflight_endpoint_is_skipped_without_live_oci():
@@ -95,6 +114,23 @@ def test_preflight_passes_with_required_identity_and_network_reads():
     assert summary.compartment_ids == ["ocid1.compartment.oc1..app"]
     assert any(check.name == "Compartment discovery permission" for check in summary.checks)
     assert any(check.name == "eu-frankfurt-1 / Subnet inventory" for check in summary.checks)
+
+
+def test_preflight_validates_nsg_rules_when_an_nsg_exists():
+    settings = Settings(
+        enable_live_oci=True,
+        tenancy_ocid="ocid1.tenancy.oc1..test",
+        compartment_ids=["ocid1.compartment.oc1..app"],
+    )
+    service = PreflightService(settings=settings, client_factory=FakeClientFactory(include_nsg=True))
+
+    summary = service.summarize()
+    nsg_rule_check = next(
+        check for check in summary.checks if check.name == "eu-frankfurt-1 / Network Security Group rule inventory"
+    )
+
+    assert summary.status == "pass"
+    assert nsg_rule_check.status == "pass"
 
 
 def test_preflight_fails_when_network_permission_is_missing():

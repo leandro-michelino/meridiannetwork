@@ -8,6 +8,7 @@
 - Add VCN and subnet inventory API endpoints.
 - Add gateway inventory API endpoint.
 - Add route table and security list inventory API endpoints.
+- Add Network Security Group inventory API endpoint, topology nodes, dashboard panel, and security posture checks.
 - Add topology graph API endpoint and dashboard graph rendering from live inventory relationships.
 - Add draggable, keyboard-navigable topology nodes with persisted browser layout positions.
 - Add OCI preflight API endpoint and dashboard expander for IAM, region, compartment, and network read validation.

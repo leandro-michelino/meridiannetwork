@@ -41,6 +41,7 @@ curl http://127.0.0.1:8080/api/subnets
 curl http://127.0.0.1:8080/api/gateways
 curl http://127.0.0.1:8080/api/route-tables
 curl http://127.0.0.1:8080/api/security-lists
+curl http://127.0.0.1:8080/api/network-security-groups
 curl http://127.0.0.1:8080/api/topology
 curl http://127.0.0.1:8080/api/security/posture
 ```

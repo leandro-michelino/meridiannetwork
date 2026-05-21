@@ -4,6 +4,7 @@ from datetime import datetime
 from app.config import Settings
 from app.models import (
     GatewaySummary,
+    NetworkSecurityGroupSummary,
     RouteRuleSummary,
     RouteTableSummary,
     SecurityListSummary,
@@ -114,6 +115,11 @@ class NetworkInventoryService:
         gateways = self.list_gateways(regions=regions, compartment_ids=compartment_ids, vcn_id=vcn_id)
         route_tables = self.list_route_tables(regions=regions, compartment_ids=compartment_ids, vcn_id=vcn_id)
         security_lists = self.list_security_lists(regions=regions, compartment_ids=compartment_ids, vcn_id=vcn_id)
+        network_security_groups = self.list_network_security_groups(
+            regions=regions,
+            compartment_ids=compartment_ids,
+            vcn_id=vcn_id,
+        )
 
         selected_vcn_ids = {vcn_id} if vcn_id else {vcn.id for vcn in vcns}
         nodes: list[TopologyNode] = []
@@ -230,6 +236,26 @@ class NetworkInventoryService:
             )
             self._add_topology_edge(edges, edge_keys, security_list.vcn_id, security_list.id, "has_security_list")
 
+        for nsg in network_security_groups:
+            if selected_vcn_ids and nsg.vcn_id not in selected_vcn_ids:
+                continue
+            nodes.append(
+                TopologyNode(
+                    id=nsg.id,
+                    name=nsg.name,
+                    resource_type="network_security_group",
+                    region=nsg.region,
+                    compartment_id=nsg.compartment_id,
+                    vcn_id=nsg.vcn_id,
+                    lifecycle_state=nsg.lifecycle_state,
+                    metadata={
+                        "ingress_rules": str(len(nsg.ingress_rules)),
+                        "egress_rules": str(len(nsg.egress_rules)),
+                    },
+                )
+            )
+            self._add_topology_edge(edges, edge_keys, nsg.vcn_id, nsg.id, "has_network_security_group")
+
         node_ids = {node.id for node in nodes}
         return TopologyGraph(
             nodes=nodes,
@@ -339,6 +365,57 @@ class NetworkInventoryService:
                                 self._security_rule("ingress", rule) for rule in item.ingress_security_rules
                             ],
                             egress_rules=[self._security_rule("egress", rule) for rule in item.egress_security_rules],
+                            time_created=_timestamp(item.time_created),
+                        )
+                    )
+        return results
+
+    def list_network_security_groups(
+        self,
+        regions: list[str] | None = None,
+        compartment_ids: list[str] | None = None,
+        vcn_id: str | None = None,
+    ) -> list[NetworkSecurityGroupSummary]:
+        if not self.settings.enable_live_oci:
+            return []
+
+        selected_compartments = self._compartment_scope(compartment_ids)
+        selected_regions = self._region_scope(regions)
+        results: list[NetworkSecurityGroupSummary] = []
+
+        for region in selected_regions:
+            client = self.client_factory.virtual_network_client(region=region)
+            for compartment_id in selected_compartments:
+                kwargs: dict[str, str] = {"compartment_id": compartment_id}
+                if vcn_id:
+                    kwargs["vcn_id"] = vcn_id
+                network_security_groups = self.client_factory.list_all(
+                    client.list_network_security_groups,
+                    **kwargs,
+                )
+                for item in network_security_groups:
+                    security_rules = self.client_factory.list_all(
+                        client.list_network_security_group_security_rules,
+                        item.id,
+                    )
+                    results.append(
+                        NetworkSecurityGroupSummary(
+                            id=item.id,
+                            name=item.display_name,
+                            region=region,
+                            compartment_id=item.compartment_id,
+                            vcn_id=item.vcn_id,
+                            lifecycle_state=item.lifecycle_state,
+                            ingress_rules=[
+                                self._security_rule(str(rule.direction).lower(), rule)
+                                for rule in security_rules
+                                if str(rule.direction).upper() == "INGRESS"
+                            ],
+                            egress_rules=[
+                                self._security_rule(str(rule.direction).lower(), rule)
+                                for rule in security_rules
+                                if str(rule.direction).upper() == "EGRESS"
+                            ],
                             time_created=_timestamp(item.time_created),
                         )
                     )

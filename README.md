@@ -16,7 +16,7 @@ The product vision is captured in [Meridian_OCI_Network_Monitor.md](Meridian_OCI
 - Terraform for OCI VCN, public subnet, internet gateway, route table, security list, and Compute host.
 - Optional OCI dynamic group and IAM policy for instance principal access.
 - FastAPI backend foundation with health, readiness, preflight, regions, and compartments endpoints.
-- API-aware static dashboard prototype with fallback demo data, 5-second live refresh, compartment-aware inventory, draggable topology, subnet access labels, resource IDs, expanders, and pinned home-region navigation.
+- API-aware static dashboard prototype with fallback demo data, 5-second live refresh, compartment-aware inventory, draggable topology, subnet access labels, NSG context, resource IDs, expanders, and pinned home-region navigation.
 - Dashboard OCI preflight panel for runtime IAM, region, compartment, and network read validation.
 - Ansible bootstrap to configure Oracle Linux with Nginx, Podman-ready packages, firewall rules, the static dashboard, and the backend API service.
 - Inventory generation from Terraform outputs.
@@ -138,6 +138,7 @@ Local endpoints:
 - `GET /api/gateways`
 - `GET /api/route-tables`
 - `GET /api/security-lists`
+- `GET /api/network-security-groups`
 - `GET /api/topology`
 - `GET /api/security/posture`
 - `GET /docs`

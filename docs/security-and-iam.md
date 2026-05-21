@@ -48,7 +48,7 @@ The preflight endpoint validates:
 - `MERIDIAN_COMPARTMENT_IDS`, or tenancy root when no explicit monitored compartments are configured.
 - OCI SDK and signer creation.
 - Compartment discovery permission.
-- Virtual Networking read access for the resource types used by the dashboard.
+- Virtual Networking read access for the resource types used by the dashboard, including NSG rules when NSGs exist.
 
 The static dashboard also shows this checklist in the `OCI Preflight` expander.
 

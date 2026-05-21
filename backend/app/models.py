@@ -136,6 +136,18 @@ class SecurityListSummary(BaseModel):
     time_created: str | None = None
 
 
+class NetworkSecurityGroupSummary(BaseModel):
+    id: str
+    name: str
+    region: str
+    compartment_id: str
+    vcn_id: str
+    lifecycle_state: str | None = None
+    ingress_rules: list[SecurityRuleSummary]
+    egress_rules: list[SecurityRuleSummary]
+    time_created: str | None = None
+
+
 class SecurityFinding(BaseModel):
     severity: str
     rule_type: str

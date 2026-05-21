@@ -1,6 +1,12 @@
 from dataclasses import dataclass
 
-from app.models import SecurityFinding, SecurityListSummary, SecurityPostureSummary, SecurityRuleSummary
+from app.models import (
+    NetworkSecurityGroupSummary,
+    SecurityFinding,
+    SecurityListSummary,
+    SecurityPostureSummary,
+    SecurityRuleSummary,
+)
 from app.services.network_inventory import NetworkInventoryService
 
 
@@ -24,9 +30,16 @@ class SecurityPostureService:
             compartment_ids=compartment_ids,
             vcn_id=vcn_id,
         )
+        network_security_groups = self.network_inventory.list_network_security_groups(
+            regions=regions,
+            compartment_ids=compartment_ids,
+            vcn_id=vcn_id,
+        )
         findings: list[SecurityFinding] = []
         for security_list in security_lists:
             findings.extend(self._findings_for_security_list(security_list))
+        for nsg in network_security_groups:
+            findings.extend(self._findings_for_network_security_group(nsg))
 
         critical = sum(1 for finding in findings if finding.severity == "critical")
         high = sum(1 for finding in findings if finding.severity == "high")
@@ -61,7 +74,7 @@ class SecurityPostureService:
                 continue
             if rule.protocol in ALL_PROTOCOLS:
                 findings.append(
-                    self._finding(
+                    self._security_list_finding(
                         security_list=security_list,
                         severity="critical",
                         rule_type="public_all_protocols",
@@ -71,7 +84,7 @@ class SecurityPostureService:
                 )
             elif self._port_in_rule(rule, 22):
                 findings.append(
-                    self._finding(
+                    self._security_list_finding(
                         security_list=security_list,
                         severity="high",
                         rule_type="public_ssh",
@@ -81,7 +94,7 @@ class SecurityPostureService:
                 )
             elif self._port_in_rule(rule, 3389):
                 findings.append(
-                    self._finding(
+                    self._security_list_finding(
                         security_list=security_list,
                         severity="high",
                         rule_type="public_rdp",
@@ -91,9 +104,62 @@ class SecurityPostureService:
                 )
         return findings
 
+    def _findings_for_network_security_group(self, nsg: NetworkSecurityGroupSummary) -> list[SecurityFinding]:
+        findings: list[SecurityFinding] = []
+        for rule in nsg.ingress_rules:
+            if rule.source != PUBLIC_IPV4:
+                continue
+            if rule.protocol in ALL_PROTOCOLS:
+                findings.append(
+                    self._finding(
+                        resource_id=nsg.id,
+                        resource_name=nsg.name,
+                        region=nsg.region,
+                        compartment_id=nsg.compartment_id,
+                        vcn_id=nsg.vcn_id,
+                        severity="critical",
+                        rule_type="nsg_public_all_protocols",
+                        description="NSG ingress allows all protocols from 0.0.0.0/0.",
+                        recommendation="Restrict the NSG source CIDR and protocol to the minimum required access.",
+                    )
+                )
+            elif self._port_in_rule(rule, 22):
+                findings.append(
+                    self._finding(
+                        resource_id=nsg.id,
+                        resource_name=nsg.name,
+                        region=nsg.region,
+                        compartment_id=nsg.compartment_id,
+                        vcn_id=nsg.vcn_id,
+                        severity="high",
+                        rule_type="nsg_public_ssh",
+                        description="NSG ingress allows SSH from 0.0.0.0/0.",
+                        recommendation="Restrict SSH to a VPN, Bastion, or administrator source CIDR.",
+                    )
+                )
+            elif self._port_in_rule(rule, 3389):
+                findings.append(
+                    self._finding(
+                        resource_id=nsg.id,
+                        resource_name=nsg.name,
+                        region=nsg.region,
+                        compartment_id=nsg.compartment_id,
+                        vcn_id=nsg.vcn_id,
+                        severity="high",
+                        rule_type="nsg_public_rdp",
+                        description="NSG ingress allows RDP from 0.0.0.0/0.",
+                        recommendation="Restrict RDP to a VPN, Bastion, or administrator source CIDR.",
+                    )
+                )
+        return findings
+
     def _finding(
         self,
-        security_list: SecurityListSummary,
+        resource_id: str,
+        resource_name: str,
+        region: str,
+        compartment_id: str,
+        vcn_id: str,
         severity: str,
         rule_type: str,
         description: str,
@@ -102,11 +168,31 @@ class SecurityPostureService:
         return SecurityFinding(
             severity=severity,
             rule_type=rule_type,
+            resource_id=resource_id,
+            resource_name=resource_name,
+            region=region,
+            compartment_id=compartment_id,
+            vcn_id=vcn_id,
+            description=description,
+            recommendation=recommendation,
+        )
+
+    def _security_list_finding(
+        self,
+        security_list: SecurityListSummary,
+        severity: str,
+        rule_type: str,
+        description: str,
+        recommendation: str,
+    ) -> SecurityFinding:
+        return self._finding(
             resource_id=security_list.id,
             resource_name=security_list.name,
             region=security_list.region,
             compartment_id=security_list.compartment_id,
             vcn_id=security_list.vcn_id,
+            severity=severity,
+            rule_type=rule_type,
             description=description,
             recommendation=recommendation,
         )
@@ -117,4 +203,3 @@ class SecurityPostureService:
         if rule.min_port is None or rule.max_port is None:
             return True
         return rule.min_port <= port <= rule.max_port
-
