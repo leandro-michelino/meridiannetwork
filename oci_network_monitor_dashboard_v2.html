@@ -1,353 +1,888 @@
-
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-.dash { background: #fff; font-family: var(--font-sans); }
-.topbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 0.5px solid var(--color-border-tertiary); background: #fff; flex-wrap: wrap; gap: 10px; }
-.topbar-left { display: flex; align-items: center; gap: 10px; }
-.logo-badge { width: 28px; height: 28px; border-radius: 7px; background: #C94D20; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.logo-badge span { color: #fff; font-size: 12px; font-weight: 500; }
-.topbar-title { font-size: 15px; font-weight: 500; color: var(--color-text-primary); }
-.topbar-sub { font-size: 12px; color: var(--color-text-secondary); }
-.topbar-right { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+:root {
+  --mn-bg: #f7f8fa;
+  --mn-surface: #ffffff;
+  --mn-surface-soft: #f1f4f7;
+  --mn-border: #d9dee7;
+  --mn-border-soft: #e8ebf0;
+  --mn-text: #1f2933;
+  --mn-muted: #66717f;
+  --mn-orange: #c94d20;
+  --mn-blue: #185fa5;
+  --mn-green: #2f6b2f;
+  --mn-amber: #8a5a00;
+  --mn-red: #a32d2d;
+  --mn-violet: #534ab7;
+}
 
-.region-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.region-divider { width: 1px; height: 18px; background: var(--color-border-tertiary); margin: 0 2px; }
+* { box-sizing: border-box; }
 
-.pill { font-size: 12px; padding: 4px 10px; border: 0.5px solid var(--color-border-secondary); border-radius: 20px; color: var(--color-text-secondary); background: var(--color-background-secondary); cursor: pointer; user-select: none; display: flex; align-items: center; gap: 5px; transition: all 0.15s; white-space: nowrap; }
-.pill:hover { border-color: var(--color-border-primary); }
-.pill.active { border-color: #C94D20; color: #C94D20; background: #FFF0EB; }
-.pill.home { border-color: #C94D20; color: #C94D20; background: #FFF0EB; font-weight: 500; }
-.pill.home .home-dot { width: 6px; height: 6px; border-radius: 50%; background: #C94D20; display: inline-block; }
-.pill.extra { position: relative; }
-.pill.extra .remove-x { font-size: 11px; color: var(--color-text-secondary); margin-left: 2px; cursor: pointer; opacity: 0.6; }
-.pill.extra .remove-x:hover { opacity: 1; color: #A32D2D; }
-.pill.extra.active .remove-x { color: #C94D20; opacity: 0.7; }
-.pill.extra.active .remove-x:hover { opacity: 1; color: #A32D2D; }
+body {
+  margin: 0;
+  background: var(--mn-bg);
+  color: var(--mn-text);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
 
-.add-btn { font-size: 12px; padding: 4px 10px; border: 0.5px dashed var(--color-border-secondary); border-radius: 20px; color: var(--color-text-secondary); background: transparent; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.15s; white-space: nowrap; }
-.add-btn:hover { border-color: var(--color-border-primary); color: var(--color-text-primary); background: var(--color-background-secondary); }
+.dash {
+  min-height: 100vh;
+  background: var(--mn-bg);
+}
 
-.dropdown-wrap { position: relative; }
-.region-dropdown { position: absolute; top: calc(100% + 6px); right: 0; background: #fff; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-lg); min-width: 220px; z-index: 100; box-shadow: 0 4px 16px rgba(0,0,0,0.08); overflow: hidden; }
-.dd-header { padding: 10px 12px 6px; font-size: 11px; color: var(--color-text-secondary); font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 0.5px solid var(--color-border-tertiary); }
-.dd-search { padding: 8px 12px; border-bottom: 0.5px solid var(--color-border-tertiary); }
-.dd-search input { width: 100%; font-size: 12px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 5px 8px; color: var(--color-text-primary); background: var(--color-background-secondary); outline: none; }
-.dd-search input:focus { border-color: #C94D20; }
-.dd-list { max-height: 200px; overflow-y: auto; }
-.dd-item { padding: 8px 12px; font-size: 12px; color: var(--color-text-primary); cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 8px; transition: background 0.1s; }
-.dd-item:hover { background: var(--color-background-secondary); }
-.dd-item.added { color: var(--color-text-secondary); cursor: default; }
-.dd-item.added:hover { background: transparent; }
-.dd-item-region { font-weight: 500; }
-.dd-item-geo { font-size: 10px; color: var(--color-text-secondary); }
-.dd-check { font-size: 13px; color: #3B6D11; }
-.dd-empty { padding: 12px; font-size: 12px; color: var(--color-text-secondary); text-align: center; }
+.topbar {
+  min-height: 58px;
+  padding: 10px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--mn-surface);
+  border-bottom: 1px solid var(--mn-border-soft);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
 
-.refresh-btn { display: flex; align-items: center; gap: 5px; font-size: 12px; padding: 5px 10px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); color: var(--color-text-secondary); cursor: pointer; background: transparent; white-space: nowrap; }
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 220px;
+}
 
-.content { padding: 16px 20px; }
-.section-label { font-size: 11px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
-.kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 16px; }
-.kpi { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 12px 14px; }
-.kpi-label { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 4px; display: flex; align-items: center; gap: 5px; }
-.kpi-value { font-size: 22px; font-weight: 500; color: var(--color-text-primary); line-height: 1; }
-.kpi-sub { font-size: 11px; color: var(--color-text-secondary); margin-top: 3px; }
-.dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
-.dot-green { background: #3B6D11; } .dot-red { background: #A32D2D; } .dot-amber { background: #854F0B; }
-.mid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-.card { background: #fff; border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 14px 16px; }
-.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-.card-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); display: flex; align-items: center; gap: 6px; }
-.card-badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; }
-.badge-ok { background: #EAF3DE; color: #3B6D11; } .badge-warn { background: #FAEEDA; color: #854F0B; } .badge-err { background: #FCEBEB; color: #A32D2D; }
-.gw-list { display: flex; flex-direction: column; gap: 8px; }
-.gw-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-tertiary); background: var(--color-background-secondary); }
-.gw-left { display: flex; align-items: center; gap: 8px; }
-.gw-name { font-size: 12px; font-weight: 500; color: var(--color-text-primary); }
-.gw-sub { font-size: 11px; color: var(--color-text-secondary); }
-.gw-right { text-align: right; }
-.gw-metric { font-size: 12px; font-weight: 500; color: var(--color-text-primary); }
-.gw-unit { font-size: 10px; color: var(--color-text-secondary); }
-.status-tag { font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 20px; }
-.st-up { background: #EAF3DE; color: #3B6D11; } .st-warn { background: #FAEEDA; color: #854F0B; }
-.mini-chart { height: 52px; display: flex; align-items: flex-end; gap: 3px; padding-top: 4px; }
-.bar { border-radius: 3px 3px 0 0; flex: 1; }
-.bottom-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
-.alarm-list { display: flex; flex-direction: column; gap: 6px; }
-.alarm-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-tertiary); }
-.alarm-item.crit { border-left: 3px solid #A32D2D; } .alarm-item.warn { border-left: 3px solid #854F0B; } .alarm-item.info { border-left: 3px solid #185FA5; }
-.alarm-name { font-size: 12px; font-weight: 500; color: var(--color-text-primary); }
-.alarm-res { font-size: 11px; color: var(--color-text-secondary); }
-.alarm-time { font-size: 10px; color: var(--color-text-secondary); margin-top: 2px; }
-.topology { position: relative; height: 180px; }
-.topo-node { position: absolute; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; }
-.topo-icon { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; border: 0.5px solid var(--color-border-tertiary); }
-.topo-label { font-size: 9px; color: var(--color-text-secondary); text-align: center; max-width: 52px; }
-svg.topo-lines { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
-.latency-grid { display: flex; flex-direction: column; gap: 6px; }
-.lat-row { display: flex; align-items: center; gap: 8px; }
-.lat-from { font-size: 11px; color: var(--color-text-secondary); width: 64px; text-align: right; }
-.lat-bar-wrap { flex: 1; height: 6px; background: var(--color-background-secondary); border-radius: 3px; overflow: hidden; }
-.lat-bar-fill { height: 100%; border-radius: 3px; }
-.lat-val { font-size: 11px; font-weight: 500; color: var(--color-text-primary); width: 40px; }
-.flow-table { width: 100%; border-collapse: collapse; }
-.flow-table th { font-size: 10px; color: var(--color-text-secondary); font-weight: 500; text-align: left; padding: 4px 6px; border-bottom: 0.5px solid var(--color-border-tertiary); }
-.flow-table td { font-size: 11px; color: var(--color-text-primary); padding: 5px 6px; border-bottom: 0.5px solid var(--color-border-tertiary); }
-.flow-table tr:last-child td { border-bottom: none; }
-.accept { color: #3B6D11; font-weight: 500; } .reject { color: #A32D2D; font-weight: 500; }
+.brand-mark {
+  width: 32px;
+  height: 32px;
+  border-radius: 7px;
+  background: var(--mn-orange);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.brand-title {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.brand-subtitle {
+  color: var(--mn-muted);
+  font-size: 12px;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.region-strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.pill,
+.button {
+  min-height: 30px;
+  border: 1px solid var(--mn-border);
+  background: var(--mn-surface);
+  color: var(--mn-text);
+  border-radius: 6px;
+  padding: 5px 9px;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.pill.home {
+  border-color: #e1a58f;
+  background: #fff2ed;
+  color: var(--mn-orange);
+  font-weight: 700;
+}
+
+.pill.active {
+  border-color: #e1a58f;
+  background: #fff2ed;
+  color: var(--mn-orange);
+}
+
+.home-dot,
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--mn-orange);
+  flex: 0 0 auto;
+}
+
+.status-dot.ok { background: var(--mn-green); }
+.status-dot.warn { background: var(--mn-amber); }
+.status-dot.err { background: var(--mn-red); }
+.status-dot.neutral { background: var(--mn-muted); }
+
+.button {
+  cursor: pointer;
+  font-weight: 650;
+}
+
+.button:hover {
+  border-color: #aeb7c4;
+  background: var(--mn-surface-soft);
+}
+
+.button.primary {
+  background: var(--mn-orange);
+  color: #fff;
+  border-color: var(--mn-orange);
+}
+
+.content {
+  padding: 16px 18px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.section-title {
+  color: var(--mn-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.kpi {
+  background: var(--mn-surface);
+  border: 1px solid var(--mn-border-soft);
+  border-radius: 7px;
+  padding: 12px;
+  min-height: 82px;
+}
+
+.kpi-label {
+  color: var(--mn-muted);
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kpi-value {
+  margin-top: 6px;
+  font-size: 25px;
+  line-height: 1;
+  font-weight: 750;
+}
+
+.kpi-sub {
+  margin-top: 5px;
+  color: var(--mn-muted);
+  font-size: 11px;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: minmax(360px, 1.1fr) minmax(360px, 0.9fr);
+  gap: 12px;
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.card {
+  background: var(--mn-surface);
+  border: 1px solid var(--mn-border-soft);
+  border-radius: 7px;
+  padding: 13px;
+  min-width: 0;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.card-title {
+  font-size: 13px;
+  font-weight: 750;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.badge {
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.badge.ok { background: #e8f3e8; color: var(--mn-green); }
+.badge.warn { background: #fff2d8; color: var(--mn-amber); }
+.badge.err { background: #f9e7e7; color: var(--mn-red); }
+.badge.neutral { background: var(--mn-surface-soft); color: var(--mn-muted); }
+
+.resource-list,
+.finding-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.resource-row,
+.finding-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 9px 10px;
+  border: 1px solid var(--mn-border-soft);
+  background: var(--mn-surface-soft);
+  border-radius: 6px;
+}
+
+.resource-name,
+.finding-name {
+  font-size: 12px;
+  font-weight: 750;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resource-meta,
+.finding-meta {
+  margin-top: 2px;
+  color: var(--mn-muted);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-wrap {
+  overflow: auto;
+  border: 1px solid var(--mn-border-soft);
+  border-radius: 6px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 620px;
+}
+
+th,
+td {
+  padding: 8px 9px;
+  border-bottom: 1px solid var(--mn-border-soft);
+  text-align: left;
+  font-size: 11px;
+  vertical-align: top;
+}
+
+th {
+  color: var(--mn-muted);
+  font-weight: 800;
+  background: var(--mn-surface-soft);
+}
+
+tr:last-child td { border-bottom: 0; }
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.muted { color: var(--mn-muted); }
+.red { color: var(--mn-red); }
+.amber { color: var(--mn-amber); }
+.green { color: var(--mn-green); }
+.blue { color: var(--mn-blue); }
+
+.topology {
+  min-height: 240px;
+  position: relative;
+  border: 1px solid var(--mn-border-soft);
+  border-radius: 7px;
+  background: linear-gradient(180deg, #ffffff 0%, #f5f7fa 100%);
+  overflow: hidden;
+}
+
+.topology svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.topo-node {
+  position: absolute;
+  width: 86px;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.topo-icon {
+  width: 38px;
+  height: 38px;
+  margin: 0 auto 4px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--mn-border);
+  background: #fff;
+  color: var(--mn-blue);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.topo-label {
+  font-size: 10px;
+  font-weight: 750;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topo-meta {
+  color: var(--mn-muted);
+  font-size: 9px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.empty {
+  color: var(--mn-muted);
+  font-size: 12px;
+  padding: 14px;
+  border: 1px dashed var(--mn-border);
+  border-radius: 6px;
+  background: #fbfcfd;
+}
+
+.footer-note {
+  color: var(--mn-muted);
+  font-size: 11px;
+  text-align: right;
+}
+
+@media (max-width: 1100px) {
+  .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+  .grid-2,
+  .grid-3 { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 720px) {
+  .topbar { align-items: flex-start; }
+  .brand { width: 100%; }
+  .topbar-actions { justify-content: flex-start; }
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .content { padding: 12px; }
+}
 </style>
 
 <div class="dash">
   <div class="topbar">
-    <div class="topbar-left">
-      <div class="logo-badge"><span>OCI</span></div>
+    <div class="brand">
+      <div class="brand-mark">OCI</div>
       <div>
-        <div class="topbar-title">Network Monitor</div>
-        <div class="topbar-sub">Consolidated Dashboard</div>
+        <div class="brand-title">Meridian Network</div>
+        <div class="brand-subtitle">OCI network observability</div>
       </div>
     </div>
-    <div class="topbar-right">
-      <div class="region-group" id="regionGroup">
-        <div class="pill home" title="Home Region - fixed">
-          <span class="home-dot"></span> eu-frankfurt-1
-          <span style="font-size:10px;background:#C94D20;color:#fff;padding:1px 5px;border-radius:20px;margin-left:2px">home</span>
+    <div class="topbar-actions">
+      <div class="region-strip" id="regionStrip">
+        <div class="pill home"><span class="home-dot"></span><span>eu-frankfurt-1</span><span>home</span></div>
+      </div>
+      <button class="button" id="demoToggle" type="button">Demo data</button>
+      <button class="button primary" id="refreshBtn" type="button">Refresh</button>
+    </div>
+  </div>
+
+  <main class="content">
+    <section>
+      <div class="section-title">Live inventory</div>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="kpi-label"><span class="status-dot ok"></span>VCNs</div><div class="kpi-value" id="kpiVcns">0</div><div class="kpi-sub" id="kpiVcnSub">Waiting for API</div></div>
+        <div class="kpi"><div class="kpi-label"><span class="status-dot ok"></span>Subnets</div><div class="kpi-value" id="kpiSubnets">0</div><div class="kpi-sub" id="kpiSubnetSub">CIDR inventory</div></div>
+        <div class="kpi"><div class="kpi-label"><span class="status-dot ok"></span>Gateways</div><div class="kpi-value" id="kpiGateways">0</div><div class="kpi-sub" id="kpiGatewaySub">IGW / NAT / SGW / DRG</div></div>
+        <div class="kpi"><div class="kpi-label"><span class="status-dot ok"></span>Route Tables</div><div class="kpi-value" id="kpiRoutes">0</div><div class="kpi-sub" id="kpiRouteSub">Route rule context</div></div>
+        <div class="kpi"><div class="kpi-label"><span class="status-dot ok"></span>Security Lists</div><div class="kpi-value" id="kpiSecLists">0</div><div class="kpi-sub" id="kpiSecListSub">Ingress / egress rules</div></div>
+        <div class="kpi"><div class="kpi-label"><span class="status-dot warn"></span>Findings</div><div class="kpi-value" id="kpiFindings">0</div><div class="kpi-sub" id="kpiFindingSub">Security posture</div></div>
+      </div>
+    </section>
+
+    <section class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Network Topology</div>
+          <span class="badge neutral" id="topologyBadge">inventory</span>
         </div>
-        <div class="region-divider"></div>
-        <div id="extraRegions"></div>
-        <div class="dropdown-wrap" id="ddWrap">
-          <button class="add-btn" id="addBtn">
-            <i class="ti ti-plus" style="font-size:13px" aria-hidden="true"></i> add region
-          </button>
-          <div class="region-dropdown" id="regionDropdown" style="display:none">
-            <div class="dd-header">Select region</div>
-            <div class="dd-search"><input type="text" placeholder="Filter..." id="regionSearch"></div>
-            <div class="dd-list" id="regionList"></div>
+        <div class="topology" id="topology">
+          <svg id="topologyLines" aria-hidden="true"></svg>
+          <div class="topo-node" id="nodeVcn" style="left:50%;top:48%;">
+            <div class="topo-icon">VCN</div>
+            <div class="topo-label" id="nodeVcnName">No VCN</div>
+            <div class="topo-meta" id="nodeVcnMeta">API pending</div>
+          </div>
+          <div class="topo-node" id="nodeIgw" style="left:18%;top:24%;">
+            <div class="topo-icon">IGW</div>
+            <div class="topo-label">Internet</div>
+            <div class="topo-meta" id="nodeIgwMeta">0</div>
+          </div>
+          <div class="topo-node" id="nodeNat" style="left:18%;top:74%;">
+            <div class="topo-icon">NAT</div>
+            <div class="topo-label">NAT</div>
+            <div class="topo-meta" id="nodeNatMeta">0</div>
+          </div>
+          <div class="topo-node" id="nodeSgw" style="left:82%;top:24%;">
+            <div class="topo-icon">SGW</div>
+            <div class="topo-label">Service</div>
+            <div class="topo-meta" id="nodeSgwMeta">0</div>
+          </div>
+          <div class="topo-node" id="nodeDrg" style="left:82%;top:74%;">
+            <div class="topo-icon">DRG</div>
+            <div class="topo-label">DRG</div>
+            <div class="topo-meta" id="nodeDrgMeta">0</div>
           </div>
         </div>
       </div>
-      <div class="region-divider"></div>
-      <button class="refresh-btn"><i class="ti ti-refresh" aria-hidden="true"></i> Refresh</button>
-    </div>
-  </div>
 
-  <div class="content">
-    <div class="section-label">overview</div>
-    <div class="kpi-row">
-      <div class="kpi"><div class="kpi-label"><span class="dot dot-green"></span> VCNs</div><div class="kpi-value">7</div><div class="kpi-sub">3 regions</div></div>
-      <div class="kpi"><div class="kpi-label"><span class="dot dot-green"></span> Gateways</div><div class="kpi-value">14</div><div class="kpi-sub">13 UP / 1 WARN</div></div>
-      <div class="kpi"><div class="kpi-label"><span class="dot dot-amber"></span> Alarms</div><div class="kpi-value">3</div><div class="kpi-sub">1 critical / 2 warn</div></div>
-      <div class="kpi"><div class="kpi-label"><span class="dot dot-green"></span> FastConnect</div><div class="kpi-value">2</div><div class="kpi-sub">Both UP</div></div>
-      <div class="kpi"><div class="kpi-label"><span class="dot dot-green"></span> VPN Tunnels</div><div class="kpi-value">4</div><div class="kpi-sub">4/4 UP</div></div>
-    </div>
-
-    <div class="mid-row">
       <div class="card">
         <div class="card-header">
-          <div class="card-title"><i class="ti ti-router" style="font-size:15px;color:#C94D20" aria-hidden="true"></i> Gateway Status</div>
-          <span class="card-badge badge-warn">1 warning</span>
+          <div class="card-title">Security Posture</div>
+          <span class="badge ok" id="postureBadge">ok</span>
         </div>
-        <div class="gw-list">
-          <div class="gw-row"><div class="gw-left"><span class="dot dot-green"></span><div><div class="gw-name">Internet Gateway</div><div class="gw-sub">vcn-prod-fra · igw-01</div></div></div><div class="gw-right"><div class="gw-metric">2.4 <span class="gw-unit">Gbps in</span></div><span class="status-tag st-up">UP</span></div></div>
-          <div class="gw-row"><div class="gw-left"><span class="dot dot-green"></span><div><div class="gw-name">NAT Gateway</div><div class="gw-sub">vcn-prod-fra · nat-01</div></div></div><div class="gw-right"><div class="gw-metric">0 <span class="gw-unit">dropped pkts</span></div><span class="status-tag st-up">UP</span></div></div>
-          <div class="gw-row"><div class="gw-left"><span class="dot dot-amber"></span><div><div class="gw-name">DRG Attachment</div><div class="gw-sub">vcn-dr-ams · drg-attach-02</div></div></div><div class="gw-right"><div class="gw-metric">142 <span class="gw-unit">routes</span></div><span class="status-tag st-warn">WARN</span></div></div>
-          <div class="gw-row"><div class="gw-left"><span class="dot dot-green"></span><div><div class="gw-name">FastConnect</div><div class="gw-sub">fc-circuit-01 · 10G</div></div></div><div class="gw-right"><div class="gw-metric">6.2 <span class="gw-unit">Gbps</span></div><span class="status-tag st-up">UP</span></div></div>
-        </div>
+        <div class="finding-list" id="findingList"></div>
       </div>
+    </section>
+
+    <section class="grid-3">
       <div class="card">
         <div class="card-header">
-          <div class="card-title"><i class="ti ti-chart-line" style="font-size:15px;color:#185FA5" aria-hidden="true"></i> VCN Traffic / prod-fra</div>
-          <span style="font-size:11px;color:var(--color-text-secondary)">last 12h</span>
+          <div class="card-title">Gateways</div>
+          <span class="badge neutral" id="gatewayCountBadge">0</span>
         </div>
-        <div style="display:flex;gap:12px;margin-bottom:10px">
-          <div class="kpi" style="flex:1;padding:8px 10px"><div class="kpi-label">In (avg)</div><div class="kpi-value" style="font-size:16px">3.1 <span style="font-size:12px;font-weight:400;color:var(--color-text-secondary)">Gbps</span></div></div>
-          <div class="kpi" style="flex:1;padding:8px 10px"><div class="kpi-label">Out (avg)</div><div class="kpi-value" style="font-size:16px">1.8 <span style="font-size:12px;font-weight:400;color:var(--color-text-secondary)">Gbps</span></div></div>
-          <div class="kpi" style="flex:1;padding:8px 10px"><div class="kpi-label">Drops</div><div class="kpi-value" style="font-size:16px;color:#A32D2D">24 <span style="font-size:12px;font-weight:400;color:var(--color-text-secondary)">/min</span></div></div>
-        </div>
-        <div style="margin-bottom:6px">
-          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--color-text-secondary);margin-bottom:4px"><span>00h</span><span>04h</span><span>08h</span><span>12h</span></div>
-          <div class="mini-chart" id="trafficChart"></div>
-        </div>
-        <div style="display:flex;gap:10px;font-size:10px;color:var(--color-text-secondary)">
-          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#185FA5;display:inline-block"></span> In</span>
-          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#9FE1CB;display:inline-block"></span> Out</span>
-        </div>
+        <div class="resource-list" id="gatewayList"></div>
       </div>
-    </div>
 
-    <div class="bottom-row">
       <div class="card">
-        <div class="card-header"><div class="card-title"><i class="ti ti-bell" style="font-size:15px;color:#A32D2D" aria-hidden="true"></i> Active Alarms</div><span class="card-badge badge-err">3</span></div>
-        <div class="alarm-list">
-          <div class="alarm-item crit"><div><div class="alarm-name">DRG route limit</div><div class="alarm-res">drg-attach-02 / ams</div><div class="alarm-time">8 min ago</div></div></div>
-          <div class="alarm-item warn"><div><div class="alarm-name">VPN packet loss &gt; 1%</div><div class="alarm-res">vpn-tunnel-03 / fra</div><div class="alarm-time">23 min ago</div></div></div>
-          <div class="alarm-item info"><div><div class="alarm-name">Egress spike detected</div><div class="alarm-res">igw-01 / vcn-prod-fra</div><div class="alarm-time">41 min ago</div></div></div>
+        <div class="card-header">
+          <div class="card-title">Route Tables</div>
+          <span class="badge neutral" id="routeCountBadge">0</span>
         </div>
+        <div class="resource-list" id="routeList"></div>
       </div>
+
       <div class="card">
-        <div class="card-header"><div class="card-title"><i class="ti ti-topology-ring-3" style="font-size:15px;color:#0F6E56" aria-hidden="true"></i> VCN Topology</div></div>
-        <div class="topology" id="topoArea">
-          <svg class="topo-lines" id="topoSvg"></svg>
-          <div class="topo-node" style="top:10px;left:50%;transform:translateX(-50%)" id="tn-igw"><div class="topo-icon" style="background:#E6F1FB"><i class="ti ti-world" style="font-size:16px;color:#185FA5" aria-hidden="true"></i></div><div class="topo-label">Internet GW</div></div>
-          <div class="topo-node" style="top:70px;left:50%;transform:translateX(-50%)" id="tn-vcn"><div class="topo-icon" style="background:#F0997B;border-color:#D85A30"><i class="ti ti-cloud" style="font-size:16px;color:#C94D20" aria-hidden="true"></i></div><div class="topo-label" style="font-weight:500;color:var(--color-text-primary)">VCN prod-fra</div></div>
-          <div class="topo-node" style="top:130px;left:15%" id="tn-nat"><div class="topo-icon" style="background:#EAF3DE"><i class="ti ti-arrows-exchange" style="font-size:14px;color:#3B6D11" aria-hidden="true"></i></div><div class="topo-label">NAT GW</div></div>
-          <div class="topo-node" style="top:130px;left:40%" id="tn-sgw"><div class="topo-icon" style="background:#EEEDFE"><i class="ti ti-shield" style="font-size:14px;color:#534AB7" aria-hidden="true"></i></div><div class="topo-label">Service GW</div></div>
-          <div class="topo-node" style="top:130px;right:15%" id="tn-drg"><div class="topo-icon" style="background:#FAEEDA;border-color:#EF9F27"><i class="ti ti-git-branch" style="font-size:14px;color:#854F0B" aria-hidden="true"></i></div><div class="topo-label">DRG</div></div>
+        <div class="card-header">
+          <div class="card-title">Security Lists</div>
+          <span class="badge neutral" id="securityListBadge">0</span>
         </div>
+        <div class="resource-list" id="securityList"></div>
       </div>
-      <div class="card">
-        <div class="card-header"><div class="card-title"><i class="ti ti-wave-sine" style="font-size:15px;color:#534AB7" aria-hidden="true"></i> Inter-Region Latency</div></div>
-        <div class="latency-grid">
-          <div class="lat-row"><div class="lat-from">FRA -> AMS</div><div class="lat-bar-wrap"><div class="lat-bar-fill" style="width:18%;background:#185FA5"></div></div><div class="lat-val">8 ms</div></div>
-          <div class="lat-row"><div class="lat-from">FRA -> JNB</div><div class="lat-bar-wrap"><div class="lat-bar-fill" style="width:72%;background:#854F0B"></div></div><div class="lat-val">142 ms</div></div>
-          <div class="lat-row"><div class="lat-from">AMS -> JNB</div><div class="lat-bar-wrap"><div class="lat-bar-fill" style="width:68%;background:#854F0B"></div></div><div class="lat-val">133 ms</div></div>
-          <div class="lat-row"><div class="lat-from">FRA -> LHR</div><div class="lat-bar-wrap"><div class="lat-bar-fill" style="width:12%;background:#185FA5"></div></div><div class="lat-val">6 ms</div></div>
-        </div>
-        <div style="margin-top:14px">
-          <div class="card-title" style="margin-bottom:8px;font-size:12px"><i class="ti ti-filter" style="font-size:13px" aria-hidden="true"></i> VCN Flow Logs / top sources</div>
-          <table class="flow-table">
-            <thead><tr><th>Source IP</th><th>Destination</th><th>Pkts</th><th>Action</th></tr></thead>
-            <tbody>
-              <tr><td>10.0.1.42</td><td>10.0.2.10</td><td>4.2K</td><td class="accept">ACCEPT</td></tr>
-              <tr><td>185.42.10.3</td><td>10.0.1.80</td><td>892</td><td class="reject">REJECT</td></tr>
-              <tr><td>10.0.3.11</td><td>10.0.1.22</td><td>3.1K</td><td class="accept">ACCEPT</td></tr>
-              <tr><td>91.108.4.15</td><td>10.0.2.5</td><td>241</td><td class="reject">REJECT</td></tr>
-            </tbody>
-          </table>
-        </div>
+    </section>
+
+    <section class="card">
+      <div class="card-header">
+        <div class="card-title">VCNs and Subnets</div>
+        <span class="badge neutral" id="dataModeBadge">api</span>
       </div>
-    </div>
-  </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Name</th>
+              <th>Region</th>
+              <th>CIDR</th>
+              <th>VCN</th>
+              <th>State</th>
+            </tr>
+          </thead>
+          <tbody id="networkTable"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="footer-note" id="lastUpdated">Not refreshed yet</div>
+  </main>
 </div>
 
 <script>
-const ALL_REGIONS = [
-  { id: 'eu-amsterdam-1',      geo: 'Europe' },
-  { id: 'eu-london-1',         geo: 'Europe' },
-  { id: 'eu-paris-1',          geo: 'Europe' },
-  { id: 'eu-milan-1',          geo: 'Europe' },
-  { id: 'eu-stockholm-1',      geo: 'Europe' },
-  { id: 'eu-madrid-1',         geo: 'Europe' },
-  { id: 'us-ashburn-1',        geo: 'North America' },
-  { id: 'us-phoenix-1',        geo: 'North America' },
-  { id: 'us-chicago-1',        geo: 'North America' },
-  { id: 'ca-toronto-1',        geo: 'North America' },
-  { id: 'af-johannesburg-1',   geo: 'Africa' },
-  { id: 'me-dubai-1',          geo: 'Middle East' },
-  { id: 'me-jeddah-1',         geo: 'Middle East' },
-  { id: 'ap-tokyo-1',          geo: 'Asia Pacific' },
-  { id: 'ap-singapore-1',      geo: 'Asia Pacific' },
-  { id: 'ap-sydney-1',         geo: 'Asia Pacific' },
-  { id: 'ap-mumbai-1',         geo: 'Asia Pacific' },
-  { id: 'sa-saopaulo-1',       geo: 'South America' },
-  { id: 'sa-vinhedo-1',        geo: 'South America' },
-];
+const API_PATHS = {
+  health: '/healthz',
+  vcns: '/api/vcns',
+  subnets: '/api/subnets',
+  gateways: '/api/gateways',
+  routeTables: '/api/route-tables',
+  securityLists: '/api/security-lists',
+  securityPosture: '/api/security/posture',
+};
 
-let activeRegions = [];
-let ddOpen = false;
+const DEMO_DATA = {
+  vcns: [
+    { id: 'vcn-prod-fra', name: 'vcn-prod-fra', region: 'eu-frankfurt-1', compartment_id: 'prod', cidr_blocks: ['10.0.0.0/16'], lifecycle_state: 'AVAILABLE' },
+    { id: 'vcn-dr-ams', name: 'vcn-dr-ams', region: 'eu-amsterdam-1', compartment_id: 'dr', cidr_blocks: ['10.20.0.0/16'], lifecycle_state: 'AVAILABLE' },
+  ],
+  subnets: [
+    { id: 'subnet-web', name: 'web-public', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', cidr_block: '10.0.10.0/24', lifecycle_state: 'AVAILABLE' },
+    { id: 'subnet-app', name: 'app-private', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', cidr_block: '10.0.20.0/24', lifecycle_state: 'AVAILABLE' },
+    { id: 'subnet-dr', name: 'dr-private', region: 'eu-amsterdam-1', compartment_id: 'dr', vcn_id: 'vcn-dr-ams', cidr_block: '10.20.10.0/24', lifecycle_state: 'AVAILABLE' },
+  ],
+  gateways: [
+    { id: 'igw-01', name: 'prod-internet-gateway', gateway_type: 'internet_gateway', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', lifecycle_state: 'AVAILABLE', is_enabled: true },
+    { id: 'nat-01', name: 'prod-nat-gateway', gateway_type: 'nat_gateway', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', lifecycle_state: 'AVAILABLE', is_enabled: true },
+    { id: 'sgw-01', name: 'prod-service-gateway', gateway_type: 'service_gateway', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', lifecycle_state: 'AVAILABLE', is_enabled: true },
+    { id: 'drg-01', name: 'core-drg', gateway_type: 'dynamic_routing_gateway', region: 'eu-frankfurt-1', compartment_id: 'prod', lifecycle_state: 'AVAILABLE' },
+  ],
+  routeTables: [
+    { id: 'rt-public', name: 'public-route-table', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', lifecycle_state: 'AVAILABLE', route_rules: [{ destination: '0.0.0.0/0', destination_type: 'CIDR_BLOCK', network_entity_id: 'igw-01' }] },
+    { id: 'rt-private', name: 'private-route-table', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', lifecycle_state: 'AVAILABLE', route_rules: [{ destination: '0.0.0.0/0', destination_type: 'CIDR_BLOCK', network_entity_id: 'nat-01' }] },
+  ],
+  securityLists: [
+    { id: 'sl-public', name: 'public-security-list', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', lifecycle_state: 'AVAILABLE', ingress_rules: [{ protocol: '6', source: '0.0.0.0/0', min_port: 443, max_port: 443 }], egress_rules: [{ protocol: 'all', destination: '0.0.0.0/0' }] },
+    { id: 'sl-admin-risk', name: 'admin-risk-review', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', lifecycle_state: 'AVAILABLE', ingress_rules: [{ protocol: '6', source: '0.0.0.0/0', min_port: 22, max_port: 22 }], egress_rules: [] },
+  ],
+  securityPosture: {
+    status: 'high',
+    total_findings: 1,
+    critical_findings: 0,
+    high_findings: 1,
+    medium_findings: 0,
+    low_findings: 0,
+    findings: [
+      { severity: 'high', rule_type: 'public_ssh', resource_name: 'admin-risk-review', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', description: 'Ingress allows SSH from 0.0.0.0/0.', recommendation: 'Restrict SSH to VPN, Bastion, or administrator CIDR.' }
+    ]
+  }
+};
 
-const extraEl = document.getElementById('extraRegions');
-const ddEl = document.getElementById('regionDropdown');
-const addBtn = document.getElementById('addBtn');
-const listEl = document.getElementById('regionList');
-const searchEl = document.getElementById('regionSearch');
+let useDemoData = false;
 
-function renderExtra() {
-  extraEl.innerHTML = '';
-  activeRegions.forEach(r => {
+function byId(id) {
+  return document.getElementById(id);
+}
+
+function text(id, value) {
+  const el = byId(id);
+  if (el) el.textContent = String(value);
+}
+
+function badgeClass(status) {
+  if (status === 'critical' || status === 'high') return 'badge err';
+  if (status === 'medium' || status === 'low') return 'badge warn';
+  if (status === 'ok' || status === 'AVAILABLE' || status === true) return 'badge ok';
+  return 'badge neutral';
+}
+
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  }[char]));
+}
+
+async function getJson(path) {
+  const response = await fetch(path, { headers: { Accept: 'application/json' } });
+  if (!response.ok) throw new Error(`${path} returned ${response.status}`);
+  return response.json();
+}
+
+async function loadApiData() {
+  const [vcns, subnets, gateways, routeTables, securityLists, securityPosture] = await Promise.all([
+    getJson(API_PATHS.vcns),
+    getJson(API_PATHS.subnets),
+    getJson(API_PATHS.gateways),
+    getJson(API_PATHS.routeTables),
+    getJson(API_PATHS.securityLists),
+    getJson(API_PATHS.securityPosture),
+  ]);
+  return { vcns, subnets, gateways, routeTables, securityLists, securityPosture };
+}
+
+async function refreshDashboard() {
+  text('lastUpdated', 'Refreshing...');
+  byId('refreshBtn').disabled = true;
+
+  let data;
+  let mode = 'api';
+  try {
+    data = useDemoData ? DEMO_DATA : await loadApiData();
+  } catch (error) {
+    data = DEMO_DATA;
+    mode = 'demo fallback';
+    useDemoData = true;
+  }
+
+  renderDashboard(data, mode);
+  byId('refreshBtn').disabled = false;
+}
+
+function renderDashboard(data, mode) {
+  const regions = new Set([
+    ...data.vcns.map((item) => item.region),
+    ...data.subnets.map((item) => item.region),
+    ...data.gateways.map((item) => item.region),
+  ].filter(Boolean));
+
+  text('kpiVcns', data.vcns.length);
+  text('kpiSubnets', data.subnets.length);
+  text('kpiGateways', data.gateways.length);
+  text('kpiRoutes', data.routeTables.length);
+  text('kpiSecLists', data.securityLists.length);
+  text('kpiFindings', data.securityPosture.total_findings || 0);
+  text('kpiVcnSub', `${regions.size || 0} active regions`);
+  text('kpiSubnetSub', `${uniqueCount(data.subnets, 'vcn_id')} VCN links`);
+  text('kpiGatewaySub', gatewayTypeSummary(data.gateways));
+  text('kpiRouteSub', `${sum(data.routeTables, (item) => item.route_rules?.length || 0)} rules`);
+  text('kpiSecListSub', `${sum(data.securityLists, (item) => item.ingress_rules?.length || 0)} ingress rules`);
+  text('kpiFindingSub', `${data.securityPosture.status || 'ok'} posture`);
+  text('dataModeBadge', mode);
+  text('topologyBadge', `${data.vcns.length} VCN / ${data.gateways.length} gateways`);
+
+  const postureBadge = byId('postureBadge');
+  postureBadge.textContent = data.securityPosture.status || 'ok';
+  postureBadge.className = badgeClass(data.securityPosture.status || 'ok');
+
+  renderRegionStrip(regions);
+  renderTopology(data);
+  renderGateways(data.gateways);
+  renderRouteTables(data.routeTables);
+  renderSecurityLists(data.securityLists);
+  renderFindings(data.securityPosture.findings || []);
+  renderNetworkTable(data.vcns, data.subnets);
+  text('lastUpdated', `Last refresh: ${new Date().toLocaleString()} / ${mode}`);
+}
+
+function uniqueCount(items, field) {
+  return new Set(items.map((item) => item[field]).filter(Boolean)).size;
+}
+
+function sum(items, getValue) {
+  return items.reduce((total, item) => total + getValue(item), 0);
+}
+
+function gatewayTypeSummary(gateways) {
+  if (!gateways.length) return 'No gateways';
+  const counts = gateways.reduce((acc, item) => {
+    acc[item.gateway_type] = (acc[item.gateway_type] || 0) + 1;
+    return acc;
+  }, {});
+  return Object.entries(counts).map(([key, value]) => `${value} ${shortGatewayType(key)}`).join(' / ');
+}
+
+function shortGatewayType(type) {
+  return {
+    internet_gateway: 'IGW',
+    nat_gateway: 'NAT',
+    service_gateway: 'SGW',
+    dynamic_routing_gateway: 'DRG',
+  }[type] || type;
+}
+
+function renderRegionStrip(regions) {
+  const strip = byId('regionStrip');
+  const extras = [...regions].filter((region) => region !== 'eu-frankfurt-1').sort();
+  strip.innerHTML = '<div class="pill home"><span class="home-dot"></span><span>eu-frankfurt-1</span><span>home</span></div>';
+  extras.forEach((region) => {
     const pill = document.createElement('div');
-    pill.className = 'pill extra active';
-    pill.innerHTML = `${r.id}<span class="remove-x" data-id="${r.id}" title="Remove">x</span>`;
-    pill.querySelector('.remove-x').addEventListener('click', (e) => {
-      e.stopPropagation();
-      activeRegions = activeRegions.filter(x => x.id !== r.id);
-      renderExtra();
-      renderDropdownList(searchEl.value);
-    });
-    extraEl.appendChild(pill);
+    pill.className = 'pill active';
+    pill.textContent = region;
+    strip.appendChild(pill);
   });
 }
 
-function renderDropdownList(filter) {
-  const q = (filter || '').toLowerCase();
-  const filtered = ALL_REGIONS.filter(r => r.id.includes(q) || r.geo.toLowerCase().includes(q));
-  if (filtered.length === 0) {
-    listEl.innerHTML = '<div class="dd-empty">No region found</div>';
-    return;
-  }
-  listEl.innerHTML = '';
-  filtered.forEach(r => {
-    const added = activeRegions.some(x => x.id === r.id);
-    const item = document.createElement('div');
-    item.className = 'dd-item' + (added ? ' added' : '');
-    item.innerHTML = `<div><div class="dd-item-region">${r.id}</div><div class="dd-item-geo">${r.geo}</div></div>${added ? '<i class="ti ti-check dd-check" aria-hidden="true"></i>' : ''}`;
-    if (!added) {
-      item.addEventListener('click', () => {
-        activeRegions.push(r);
-        renderExtra();
-        renderDropdownList(searchEl.value);
-      });
-    }
-    listEl.appendChild(item);
-  });
+function renderTopology(data) {
+  const primaryVcn = data.vcns[0];
+  text('nodeVcnName', primaryVcn?.name || 'No VCN');
+  text('nodeVcnMeta', primaryVcn?.cidr_blocks?.join(', ') || 'API pending');
+  text('nodeIgwMeta', countGateways(data.gateways, 'internet_gateway'));
+  text('nodeNatMeta', countGateways(data.gateways, 'nat_gateway'));
+  text('nodeSgwMeta', countGateways(data.gateways, 'service_gateway'));
+  text('nodeDrgMeta', countGateways(data.gateways, 'dynamic_routing_gateway'));
+  drawTopologyLines();
 }
 
-addBtn.addEventListener('click', (e) => {
-  e.stopPropagation();
-  ddOpen = !ddOpen;
-  ddEl.style.display = ddOpen ? 'block' : 'none';
-  if (ddOpen) { renderDropdownList(''); searchEl.value = ''; searchEl.focus(); }
-});
+function countGateways(gateways, type) {
+  return gateways.filter((item) => item.gateway_type === type).length;
+}
 
-searchEl.addEventListener('input', () => renderDropdownList(searchEl.value));
-
-document.addEventListener('click', (e) => {
-  if (!document.getElementById('ddWrap').contains(e.target)) {
-    ddOpen = false;
-    ddEl.style.display = 'none';
-  }
-});
-
-const inData = [28,35,31,45,52,48,60,55,42,38,41,50];
-const outData = [14,18,16,22,28,25,32,29,20,19,22,27];
-const maxVal = Math.max(...inData,...outData);
-const chart = document.getElementById('trafficChart');
-inData.forEach((v,i) => {
-  const wrap = document.createElement('div');
-  wrap.style.cssText = 'flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;height:52px;justify-content:flex-end';
-  const bIn = document.createElement('div');
-  bIn.className = 'bar';
-  bIn.style.cssText = `height:${Math.round((v/maxVal)*46)}px;background:#185FA5;width:100%`;
-  const bOut = document.createElement('div');
-  bOut.className = 'bar';
-  bOut.style.cssText = `height:${Math.round((outData[i]/maxVal)*46)}px;background:#9FE1CB;width:100%`;
-  wrap.appendChild(bIn);
-  wrap.appendChild(bOut);
-  chart.appendChild(wrap);
-});
-
-function drawLines() {
-  const area = document.getElementById('topoArea');
-  const svg = document.getElementById('topoSvg');
+function drawTopologyLines() {
+  const svg = byId('topologyLines');
+  const area = byId('topology');
   const rect = area.getBoundingClientRect();
-  const getCenter = (id) => {
-    const el = document.getElementById(id);
-    if (!el) return null;
-    const r = el.getBoundingClientRect();
-    return { x: r.left - rect.left + r.width/2, y: r.top - rect.top + r.height/2 };
-  };
-  const pairs = [['tn-igw','tn-vcn'],['tn-vcn','tn-nat'],['tn-vcn','tn-sgw'],['tn-vcn','tn-drg']];
-  const colors = ['#185FA5','#3B6D11','#534AB7','#854F0B'];
+  const pairs = [
+    ['nodeVcn', 'nodeIgw', '#185fa5'],
+    ['nodeVcn', 'nodeNat', '#2f6b2f'],
+    ['nodeVcn', 'nodeSgw', '#534ab7'],
+    ['nodeVcn', 'nodeDrg', '#8a5a00'],
+  ];
   svg.innerHTML = '';
-  pairs.forEach(([a,b],i) => {
-    const p1 = getCenter(a), p2 = getCenter(b);
-    if (!p1||!p2) return;
-    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
-    line.setAttribute('x1',p1.x); line.setAttribute('y1',p1.y);
-    line.setAttribute('x2',p2.x); line.setAttribute('y2',p2.y);
-    line.setAttribute('stroke',colors[i]); line.setAttribute('stroke-width','1.5');
-    line.setAttribute('stroke-dasharray','4 3'); line.setAttribute('opacity','0.6');
+  pairs.forEach(([from, to, color]) => {
+    const a = centerOf(from, rect);
+    const b = centerOf(to, rect);
+    if (!a || !b) return;
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', a.x);
+    line.setAttribute('y1', a.y);
+    line.setAttribute('x2', b.x);
+    line.setAttribute('y2', b.y);
+    line.setAttribute('stroke', color);
+    line.setAttribute('stroke-width', '1.5');
+    line.setAttribute('stroke-dasharray', '5 4');
+    line.setAttribute('opacity', '0.65');
     svg.appendChild(line);
   });
 }
-setTimeout(drawLines, 200);
+
+function centerOf(id, parentRect) {
+  const el = byId(id);
+  if (!el) return null;
+  const rect = el.getBoundingClientRect();
+  return {
+    x: rect.left - parentRect.left + rect.width / 2,
+    y: rect.top - parentRect.top + rect.height / 2,
+  };
+}
+
+function renderGateways(gateways) {
+  text('gatewayCountBadge', gateways.length);
+  renderResourceList('gatewayList', gateways.slice(0, 8), (item) => ({
+    title: `${shortGatewayType(item.gateway_type)} / ${item.name}`,
+    meta: `${item.region} / ${item.lifecycle_state || 'unknown'} / ${item.vcn_id || 'regional'}`,
+    badge: item.is_enabled === false ? 'blocked' : 'available',
+    badgeClass: item.is_enabled === false ? 'badge warn' : badgeClass(item.lifecycle_state === 'AVAILABLE'),
+  }));
+}
+
+function renderRouteTables(routeTables) {
+  text('routeCountBadge', routeTables.length);
+  renderResourceList('routeList', routeTables.slice(0, 8), (item) => ({
+    title: item.name,
+    meta: `${item.region} / ${item.route_rules?.length || 0} route rules / ${item.vcn_id}`,
+    badge: item.lifecycle_state || 'unknown',
+    badgeClass: badgeClass(item.lifecycle_state === 'AVAILABLE'),
+  }));
+}
+
+function renderSecurityLists(securityLists) {
+  text('securityListBadge', securityLists.length);
+  renderResourceList('securityList', securityLists.slice(0, 8), (item) => ({
+    title: item.name,
+    meta: `${item.region} / ${item.ingress_rules?.length || 0} ingress / ${item.egress_rules?.length || 0} egress`,
+    badge: item.lifecycle_state || 'unknown',
+    badgeClass: badgeClass(item.lifecycle_state === 'AVAILABLE'),
+  }));
+}
+
+function renderFindings(findings) {
+  const list = byId('findingList');
+  if (!findings.length) {
+    list.innerHTML = '<div class="empty">No broad ingress exposure detected by the current backend checks.</div>';
+    return;
+  }
+  list.innerHTML = findings.slice(0, 8).map((finding) => `
+    <div class="finding-row">
+      <div>
+        <div class="finding-name">${escapeHtml(finding.rule_type)} / ${escapeHtml(finding.resource_name)}</div>
+        <div class="finding-meta">${escapeHtml(finding.description)}</div>
+      </div>
+      <span class="${badgeClass(finding.severity)}">${escapeHtml(finding.severity)}</span>
+    </div>
+  `).join('');
+}
+
+function renderResourceList(id, items, mapItem) {
+  const list = byId(id);
+  if (!items.length) {
+    list.innerHTML = '<div class="empty">No data returned yet. Enable live OCI mode or use demo data.</div>';
+    return;
+  }
+  list.innerHTML = items.map((item) => {
+    const mapped = mapItem(item);
+    return `
+      <div class="resource-row">
+        <div>
+          <div class="resource-name">${escapeHtml(mapped.title)}</div>
+          <div class="resource-meta">${escapeHtml(mapped.meta)}</div>
+        </div>
+        <span class="${mapped.badgeClass}">${escapeHtml(mapped.badge)}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderNetworkTable(vcns, subnets) {
+  const rows = [
+    ...vcns.map((item) => ({
+      type: 'VCN',
+      name: item.name,
+      region: item.region,
+      cidr: item.cidr_blocks?.join(', ') || '',
+      vcn: item.id,
+      state: item.lifecycle_state,
+    })),
+    ...subnets.map((item) => ({
+      type: 'Subnet',
+      name: item.name,
+      region: item.region,
+      cidr: item.cidr_block,
+      vcn: item.vcn_id,
+      state: item.lifecycle_state,
+    })),
+  ];
+  const body = byId('networkTable');
+  if (!rows.length) {
+    body.innerHTML = '<tr><td colspan="6" class="muted">No VCN or subnet inventory returned yet.</td></tr>';
+    return;
+  }
+  body.innerHTML = rows.map((row) => `
+    <tr>
+      <td>${escapeHtml(row.type)}</td>
+      <td>${escapeHtml(row.name)}</td>
+      <td>${escapeHtml(row.region)}</td>
+      <td class="mono">${escapeHtml(row.cidr)}</td>
+      <td class="mono">${escapeHtml(row.vcn)}</td>
+      <td>${escapeHtml(row.state || 'unknown')}</td>
+    </tr>
+  `).join('');
+}
+
+byId('refreshBtn').addEventListener('click', refreshDashboard);
+byId('demoToggle').addEventListener('click', () => {
+  useDemoData = !useDemoData;
+  byId('demoToggle').textContent = useDemoData ? 'Use API' : 'Demo data';
+  refreshDashboard();
+});
+
+window.addEventListener('resize', drawTopologyLines);
+refreshDashboard();
 </script>

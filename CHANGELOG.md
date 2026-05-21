@@ -9,6 +9,7 @@
 - Add gateway inventory API endpoint.
 - Add route table and security list inventory API endpoints.
 - Add initial security posture API endpoint.
+- Refresh the static dashboard prototype to consume implemented API endpoints with demo fallback data.
 - Add OCI client factory abstraction.
 - Add deployment options documentation covering VM, serverless container, Functions, and OKE patterns.
 - Add backend tests and local backend commands.

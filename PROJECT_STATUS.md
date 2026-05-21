@@ -10,6 +10,7 @@ Backend foundation scaffold.
 
 - Product specification document.
 - Static dashboard prototype.
+- API-aware static dashboard with demo fallback data.
 - FastAPI backend foundation.
 - Health and readiness endpoints.
 - Regions endpoints.
