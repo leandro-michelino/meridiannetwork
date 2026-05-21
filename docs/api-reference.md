@@ -24,9 +24,14 @@ This document describes the Meridian API surface. Some endpoints are implemented
 ```text
 GET /healthz
 GET /readyz
+GET /api/preflight
 ```
 
 Status: implemented.
+
+`GET /api/preflight` returns runtime readiness checks for live OCI mode, auth mode, tenancy configuration, monitored
+compartments, configured regions, OCI SDK signer creation, compartment discovery permission, and required network
+inventory reads.
 
 ## Scope
 

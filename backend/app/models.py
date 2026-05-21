@@ -16,6 +16,24 @@ class ReadinessResponse(BaseModel):
     auth_mode: str
 
 
+class PreflightCheck(BaseModel):
+    name: str
+    status: str
+    message: str
+    action: str | None = None
+
+
+class PreflightSummary(BaseModel):
+    status: str
+    live_oci_enabled: bool
+    auth_mode: str
+    home_region: str
+    active_regions: list[str]
+    tenancy_configured: bool
+    compartment_ids: list[str] = Field(default_factory=list)
+    checks: list[PreflightCheck] = Field(default_factory=list)
+
+
 class RegionSummary(BaseModel):
     id: str
     geo: str

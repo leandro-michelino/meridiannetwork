@@ -33,7 +33,7 @@ class RegionService:
     settings: Settings
 
     def list_available(self) -> list[RegionSummary]:
-        active = set(self.settings.active_regions)
+        active = {self.settings.home_region, *self.settings.active_regions}
         return [
             RegionSummary(
                 id=region_id,
@@ -43,4 +43,3 @@ class RegionService:
             )
             for region_id, geo in OCI_REGIONS
         ]
-

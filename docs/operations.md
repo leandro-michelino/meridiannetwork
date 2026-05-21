@@ -34,6 +34,12 @@ make tf-apply
 make deploy
 ```
 
+7. Validate runtime OCI access:
+
+```bash
+curl http://<dashboard-host>/api/preflight
+```
+
 ## Manual Validation
 
 Before changing infrastructure or pushing repository updates, run the checks in [manual-validation.md](manual-validation.md).
@@ -124,3 +130,11 @@ If the API service is unavailable after deployment:
 - Check `sudo journalctl -u meridian-api -n 100`.
 - Check `/opt/meridian/config/meridian.env`.
 - Confirm Nginx can reach `127.0.0.1:8080`.
+
+If live inventory is empty or the preflight fails:
+
+- Confirm `MERIDIAN_ENABLE_LIVE_OCI=true`.
+- Confirm `MERIDIAN_TENANCY_OCID` is set.
+- Confirm `MERIDIAN_COMPARTMENT_IDS` contains the monitored compartment OCIDs, or that tenancy-root inventory is intended.
+- Confirm the instance principal dynamic group matches the Meridian Compute instance.
+- Confirm the dynamic group has `inspect compartments` and `read virtual-network-family` policies.

@@ -28,6 +28,67 @@ When enabled, the default policy statements are intended to allow the Meridian i
 
 These defaults are intentionally read-oriented and should be reviewed per tenancy.
 
+The current dashboard needs read access to Virtual Networking because it lists VCNs, subnets, route tables, security
+lists, Internet Gateways, NAT Gateways, Service Gateways, DRGs, and Network Security Groups during preflight. `manage`
+permissions are not required for the runtime dashboard.
+
+## Runtime Preflight
+
+The backend exposes:
+
+```text
+GET /api/preflight
+```
+
+The preflight endpoint validates:
+
+- Live OCI mode and runtime authentication mode.
+- `MERIDIAN_TENANCY_OCID`.
+- Home region plus configured active regions.
+- `MERIDIAN_COMPARTMENT_IDS`, or tenancy root when no explicit monitored compartments are configured.
+- OCI SDK and signer creation.
+- Compartment discovery permission.
+- Virtual Networking read access for the resource types used by the dashboard.
+
+The static dashboard also shows this checklist in the `OCI Preflight` expander.
+
+## Minimum Runtime Policies
+
+For production instance-principal access, create a dynamic group that matches the Meridian Compute instance and grant
+read-only inventory permissions. The Terraform baseline can create this when `create_identity_policies = true`.
+
+Tenancy-wide example:
+
+```text
+allow dynamic-group <meridian-dynamic-group> to inspect compartments in tenancy
+allow dynamic-group <meridian-dynamic-group> to read virtual-network-family in tenancy
+allow dynamic-group <meridian-dynamic-group> to inspect instance-family in tenancy
+allow dynamic-group <meridian-dynamic-group> to read metrics in tenancy
+allow dynamic-group <meridian-dynamic-group> to read logging-family in tenancy
+allow dynamic-group <meridian-dynamic-group> to read alarms in tenancy
+```
+
+Compartment-scoped example:
+
+```text
+allow dynamic-group <meridian-dynamic-group> to inspect compartments in tenancy
+allow dynamic-group <meridian-dynamic-group> to read virtual-network-family in compartment <network-compartment-name>
+```
+
+Use compartment-scoped policies when the customer does not want tenancy-wide network inventory. Set
+`MERIDIAN_COMPARTMENT_IDS` to a comma-separated list of monitored compartment OCIDs so the API and preflight validate
+those compartments directly.
+
+## Service Enablement Notes
+
+- Network inventory requires OCI Networking APIs and `read virtual-network-family`.
+- Compartment names require Identity compartment discovery through `inspect compartments`.
+- Metrics, alarms, and logging permissions are reserved for planned modules; they are included in Terraform defaults so
+  the policy can be reviewed before those modules are enabled.
+- Config-file authentication requires a valid OCI config profile and API key on the host.
+- Instance principal authentication requires the Compute instance to match a dynamic group and for that dynamic group to
+  have the policy statements above.
+
 ## Recommended Production Adjustments
 
 - Replace public access with private access where possible.

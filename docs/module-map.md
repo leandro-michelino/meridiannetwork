@@ -18,6 +18,7 @@ This is a compact map of the product modules described in the full specification
 - Compartment switcher.
 - Multi-region OCI API calls.
 - Multi-compartment filtering.
+- Runtime OCI preflight.
 
 ## Security and Governance
 
@@ -53,6 +54,7 @@ This is a compact map of the product modules described in the full specification
 ## Planned Backend Endpoint Families
 
 - `/api/regions`
+- `/api/preflight`
 - `/api/compartments`
 - `/api/vcns`
 - `/api/gateways`

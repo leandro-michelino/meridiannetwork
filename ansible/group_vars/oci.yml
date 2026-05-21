@@ -11,6 +11,7 @@ meridian_runtime_user: meridian
 meridian_environment: dev
 meridian_home_region: eu-frankfurt-1
 meridian_active_regions: eu-frankfurt-1
+meridian_compartment_ids: ""
 meridian_oci_auth: instance_principal
 meridian_enable_live_oci: "false"
 meridian_tenancy_ocid: ""

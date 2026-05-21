@@ -50,9 +50,21 @@ class CompartmentService:
         return results
 
     def _configured_compartments(self) -> list[CompartmentSummary]:
+        results: list[CompartmentSummary] = []
         if not self.settings.tenancy_ocid:
-            return []
-        return [
+            return [
+                CompartmentSummary(
+                    id=compartment_id,
+                    name=compartment_id,
+                    description="Configured monitored compartment. Enable live OCI calls to resolve its name.",
+                    lifecycle_state="UNKNOWN",
+                    parent_compartment_id=None,
+                    source="configured",
+                )
+                for compartment_id in self.settings.compartment_ids
+            ]
+
+        results.append(
             CompartmentSummary(
                 id=self.settings.tenancy_ocid,
                 name="tenancy-root",
@@ -61,4 +73,18 @@ class CompartmentService:
                 parent_compartment_id=None,
                 source="configured",
             )
-        ]
+        )
+        for compartment_id in self.settings.compartment_ids:
+            if compartment_id == self.settings.tenancy_ocid:
+                continue
+            results.append(
+                CompartmentSummary(
+                    id=compartment_id,
+                    name=compartment_id,
+                    description="Configured monitored compartment. Enable live OCI calls to resolve its name.",
+                    lifecycle_state="UNKNOWN",
+                    parent_compartment_id=self.settings.tenancy_ocid,
+                    source="configured",
+                )
+            )
+        return results

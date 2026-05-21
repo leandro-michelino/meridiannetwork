@@ -35,6 +35,7 @@ Optional local API smoke test:
 ```bash
 uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8080
 curl http://127.0.0.1:8080/healthz
+curl http://127.0.0.1:8080/api/preflight
 curl http://127.0.0.1:8080/api/vcns
 curl http://127.0.0.1:8080/api/subnets
 curl http://127.0.0.1:8080/api/gateways

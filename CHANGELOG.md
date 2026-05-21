@@ -10,9 +10,12 @@
 - Add route table and security list inventory API endpoints.
 - Add topology graph API endpoint and dashboard graph rendering from live inventory relationships.
 - Add draggable, keyboard-navigable topology nodes with persisted browser layout positions.
+- Add OCI preflight API endpoint and dashboard expander for IAM, region, compartment, and network read validation.
+- Add configurable monitored compartment IDs through `MERIDIAN_COMPARTMENT_IDS`.
 - Add initial security posture API endpoint.
 - Refresh the static dashboard prototype to consume implemented API endpoints with demo fallback data.
 - Add OCI client factory abstraction.
+- Update default runtime IAM policy to use read-only Virtual Networking access for live inventory.
 - Add deployment options documentation covering VM, serverless container, Functions, and OKE patterns.
 - Add backend tests and local backend commands.
 - Update Ansible to deploy the backend as a systemd service behind Nginx.

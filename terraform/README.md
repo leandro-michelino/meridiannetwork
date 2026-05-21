@@ -67,6 +67,10 @@ terraform -chdir=terraform validate
 - `instance_memory_gb = 8`
 - `create_identity_policies = false`
 
+When `create_identity_policies = true`, the default runtime policy grants `read virtual-network-family` so Meridian can
+list VCNs, subnets, gateways, route tables, security lists, DRGs, and network security groups during preflight and live
+inventory.
+
 ## Production Notes
 
 - Use remote state before team usage.

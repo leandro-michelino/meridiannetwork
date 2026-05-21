@@ -77,3 +77,6 @@ ansible/group_vars/oci.yml
 ```
 
 The playbook also loads this file explicitly through `vars_files`.
+
+Set `meridian_compartment_ids` to a comma-separated list of monitored compartment OCIDs when the customer wants the
+runtime API and preflight to validate specific compartments instead of defaulting to the tenancy root.

@@ -461,13 +461,18 @@ class NetworkInventoryService:
         )
 
     def _region_scope(self, regions: list[str] | None) -> list[str]:
-        selected = regions or self.settings.active_regions
-        return selected or [self.settings.home_region]
+        selected = regions or [self.settings.home_region, *self.settings.active_regions]
+        return list(dict.fromkeys(selected or [self.settings.home_region]))
 
     def _compartment_scope(self, compartment_ids: list[str] | None) -> list[str]:
-        selected = compartment_ids or ([self.settings.tenancy_ocid] if self.settings.tenancy_ocid else [])
+        selected = (
+            compartment_ids
+            or self.settings.compartment_ids
+            or ([self.settings.tenancy_ocid] if self.settings.tenancy_ocid else [])
+        )
         if not selected:
             raise OciClientError(
-                "At least one compartment_id query value or MERIDIAN_TENANCY_OCID is required for live OCI calls."
+                "At least one compartment_id query value, MERIDIAN_COMPARTMENT_IDS, or MERIDIAN_TENANCY_OCID is "
+                "required for live OCI calls."
             )
         return selected

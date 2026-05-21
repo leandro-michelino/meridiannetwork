@@ -15,10 +15,13 @@ Use this checklist before deploying Meridian into an OCI tenancy.
 - Confirm tenancy OCID.
 - Confirm compartment OCID.
 - Confirm target region.
+- Confirm home region and any additional active regions.
+- Confirm monitored compartment OCIDs for `MERIDIAN_COMPARTMENT_IDS`.
 - Confirm admin source CIDR blocks.
 - Confirm SSH public key path.
 - Confirm OCI CLI profile.
 - Confirm required permissions for network and compute creation.
+- Confirm runtime policies grant compartment discovery and Virtual Networking read access.
 
 ## Terraform
 
@@ -38,6 +41,8 @@ Use this checklist before deploying Meridian into an OCI tenancy.
 - Run `make deploy`.
 - Confirm Nginx is running.
 - Confirm the dashboard URL responds.
+- Confirm the dashboard `OCI Preflight` expander has no failed checks.
+- Confirm `GET /api/preflight` returns `pass` before relying on live inventory.
 
 ## Security
 
@@ -55,4 +60,3 @@ Use this checklist before deploying Meridian into an OCI tenancy.
 - Record the dashboard URL.
 - Record the source commit.
 - Record any manual changes made in OCI.
-

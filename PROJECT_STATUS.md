@@ -15,8 +15,10 @@ Backend foundation scaffold.
 - Static dashboard live mode refreshes in the background every 5 seconds.
 - Static dashboard operational panels use expanders to keep large inventories compact.
 - Static dashboard topology nodes are draggable and keyboard-navigable.
+- Static dashboard includes an OCI preflight expander for runtime IAM and network read validation.
 - FastAPI backend foundation.
 - Health and readiness endpoints.
+- OCI preflight endpoint.
 - Regions endpoints.
 - Compartments endpoint with optional live OCI support.
 - VCN inventory endpoint with optional live OCI support.
@@ -40,7 +42,7 @@ Backend foundation scaffold.
 ## Not Yet Implemented
 
 - React production frontend.
-- OCI SDK collectors beyond the initial identity/compartment service.
+- OCI SDK collectors beyond the current identity, preflight, and initial network inventory services.
 - Scheduler.
 - Cache.
 - Authentication UI.
@@ -53,7 +55,8 @@ Backend foundation scaffold.
 2. Add route table issue detection.
 3. Add richer security posture scoring.
 4. Add OCI response normalization for all collectors.
-5. Replace static HTML deployment with frontend build artifact deployment.
-6. Add remote Terraform state.
-7. Add HTTPS and private access pattern.
-8. Add Meridian self-monitoring.
+5. Add dashboard filtering by configured compartment and region.
+6. Replace static HTML deployment with frontend build artifact deployment.
+7. Add remote Terraform state.
+8. Add HTTPS and private access pattern.
+9. Add Meridian self-monitoring.

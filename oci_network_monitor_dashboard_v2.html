@@ -612,8 +612,17 @@ tr:last-child td { border-bottom: 0; }
         <div class="kpi"><div class="kpi-label"><span class="status-dot ok"></span>Route Tables</div><div class="kpi-value" id="kpiRoutes">0</div><div class="kpi-sub" id="kpiRouteSub">Route rule context</div></div>
         <div class="kpi"><div class="kpi-label"><span class="status-dot ok"></span>Security Lists</div><div class="kpi-value" id="kpiSecLists">0</div><div class="kpi-sub" id="kpiSecListSub">Ingress / egress rules</div></div>
         <div class="kpi"><div class="kpi-label"><span class="status-dot warn"></span>Findings</div><div class="kpi-value" id="kpiFindings">0</div><div class="kpi-sub" id="kpiFindingSub">Security posture</div></div>
+        <div class="kpi"><div class="kpi-label"><span class="status-dot neutral" id="preflightDot"></span>Preflight</div><div class="kpi-value" id="kpiPreflight">-</div><div class="kpi-sub" id="kpiPreflightSub">OCI readiness</div></div>
       </div>
     </section>
+
+    <details class="card expander" open>
+      <summary class="card-header">
+        <div class="card-title">OCI Preflight</div>
+        <span class="badge neutral" id="preflightBadge">waiting</span>
+      </summary>
+      <div class="resource-list" id="preflightList"></div>
+    </details>
 
     <section class="grid-2">
       <details class="card expander" open id="topologyPanel">
@@ -696,6 +705,7 @@ tr:last-child td { border-bottom: 0; }
 const API_PATHS = {
   health: '/healthz',
   activeRegions: '/api/regions/active',
+  preflight: '/api/preflight',
   compartments: '/api/compartments',
   vcns: '/api/vcns',
   subnets: '/api/subnets',
@@ -715,6 +725,22 @@ const DEMO_DATA = {
     { id: 'prod', name: 'Production', description: 'Primary production compartment', lifecycle_state: 'ACTIVE' },
     { id: 'dr', name: 'Disaster Recovery', description: 'Standby network compartment', lifecycle_state: 'ACTIVE' },
   ],
+  preflight: {
+    status: 'pass',
+    live_oci_enabled: true,
+    auth_mode: 'instance_principal',
+    home_region: 'eu-frankfurt-1',
+    active_regions: ['eu-frankfurt-1', 'eu-amsterdam-1'],
+    tenancy_configured: true,
+    compartment_ids: ['prod', 'dr'],
+    checks: [
+      { name: 'Live OCI mode', status: 'pass', message: 'Live OCI calls are enabled.' },
+      { name: 'Compartment discovery permission', status: 'pass', message: 'Validated successfully.' },
+      { name: 'eu-frankfurt-1 / VCN inventory', status: 'pass', message: 'Validated successfully.' },
+      { name: 'eu-frankfurt-1 / Subnet inventory', status: 'pass', message: 'Validated successfully.' },
+      { name: 'eu-amsterdam-1 / Network client', status: 'pass', message: 'Validated successfully.' }
+    ]
+  },
   vcns: [
     { id: 'vcn-prod-fra', name: 'vcn-prod-fra', region: 'eu-frankfurt-1', compartment_id: 'prod', cidr_blocks: ['10.0.0.0/16'], dns_label: 'prod', lifecycle_state: 'AVAILABLE' },
     { id: 'vcn-dr-ams', name: 'vcn-dr-ams', region: 'eu-amsterdam-1', compartment_id: 'dr', cidr_blocks: ['10.20.0.0/16'], dns_label: 'dr', lifecycle_state: 'AVAILABLE' },
@@ -786,10 +812,17 @@ function saveTopologyPositions() {
 }
 
 function badgeClass(status) {
-  if (status === 'critical' || status === 'high') return 'badge err';
-  if (status === 'medium' || status === 'low') return 'badge warn';
-  if (status === 'ok' || status === 'AVAILABLE' || status === true) return 'badge ok';
+  if (status === 'critical' || status === 'high' || status === 'fail' || status === 'degraded') return 'badge err';
+  if (status === 'medium' || status === 'low' || status === 'warn') return 'badge warn';
+  if (status === 'ok' || status === 'pass' || status === 'ready' || status === 'AVAILABLE' || status === true) return 'badge ok';
   return 'badge neutral';
+}
+
+function dotStatus(status) {
+  if (status === 'pass' || status === 'ok' || status === 'ready') return 'ok';
+  if (status === 'warn') return 'warn';
+  if (status === 'fail' || status === 'degraded') return 'err';
+  return 'neutral';
 }
 
 function escapeHtml(value) {
@@ -809,8 +842,9 @@ async function getJson(path) {
 }
 
 async function loadApiData() {
-  const [activeRegions, compartments, vcns, subnets, gateways, routeTables, securityLists, topology, securityPosture] = await Promise.all([
+  const [activeRegions, preflight, compartments, vcns, subnets, gateways, routeTables, securityLists, topology, securityPosture] = await Promise.all([
     getJson(API_PATHS.activeRegions),
+    getJson(API_PATHS.preflight),
     getJson(API_PATHS.compartments),
     getJson(API_PATHS.vcns),
     getJson(API_PATHS.subnets),
@@ -820,7 +854,7 @@ async function loadApiData() {
     getJson(API_PATHS.topology),
     getJson(API_PATHS.securityPosture),
   ]);
-  return { activeRegions, compartments, vcns, subnets, gateways, routeTables, securityLists, topology, securityPosture };
+  return { activeRegions, preflight, compartments, vcns, subnets, gateways, routeTables, securityLists, topology, securityPosture };
 }
 
 async function refreshDashboard({ showLoading = false } = {}) {
@@ -847,7 +881,14 @@ async function refreshDashboard({ showLoading = false } = {}) {
 
 function renderDashboard(data, mode) {
   data.activeRegions = data.activeRegions || [];
+  data.preflight = data.preflight || { status: 'skipped', checks: [] };
   data.compartments = data.compartments || [];
+  data.vcns = data.vcns || [];
+  data.subnets = data.subnets || [];
+  data.gateways = data.gateways || [];
+  data.routeTables = data.routeTables || [];
+  data.securityLists = data.securityLists || [];
+  data.securityPosture = data.securityPosture || { status: 'ok', total_findings: 0, findings: [] };
   data.topology = data.topology || buildInventoryTopology(data);
   const observedRegions = new Set([
     ...data.vcns.map((item) => item.region),
@@ -867,6 +908,7 @@ function renderDashboard(data, mode) {
   text('kpiRoutes', data.routeTables.length);
   text('kpiSecLists', data.securityLists.length);
   text('kpiFindings', data.securityPosture.total_findings || 0);
+  text('kpiPreflight', data.preflight.status || 'skipped');
   text('kpiVcnSub', `${regions.size || 0} active regions`);
   text('kpiCompartmentSub', `${data.compartments.length || compartmentCount} in scope`);
   text('kpiSubnetSub', `${uniqueCount(data.subnets, 'vcn_id')} VCN links`);
@@ -874,8 +916,15 @@ function renderDashboard(data, mode) {
   text('kpiRouteSub', `${sum(data.routeTables, (item) => item.route_rules?.length || 0)} rules`);
   text('kpiSecListSub', `${sum(data.securityLists, (item) => item.ingress_rules?.length || 0)} ingress rules`);
   text('kpiFindingSub', `${data.securityPosture.status || 'ok'} posture`);
+  text('kpiPreflightSub', `${data.preflight.checks?.length || 0} checks / ${data.preflight.auth_mode || 'auth pending'}`);
   text('dataModeBadge', mode);
   text('topologyBadge', `${data.vcns.length} VCN / ${data.gateways.length} gateways`);
+
+  const preflightBadge = byId('preflightBadge');
+  preflightBadge.textContent = data.preflight.status || 'skipped';
+  preflightBadge.className = badgeClass(data.preflight.status || 'skipped');
+  const preflightDot = byId('preflightDot');
+  preflightDot.className = `status-dot ${dotStatus(data.preflight.status)}`;
 
   const postureBadge = byId('postureBadge');
   postureBadge.textContent = data.securityPosture.status || 'ok';
@@ -886,6 +935,7 @@ function renderDashboard(data, mode) {
   renderGateways(data.gateways, compartmentMap);
   renderRouteTables(data.routeTables, compartmentMap);
   renderSecurityLists(data.securityLists, compartmentMap);
+  renderPreflight(data.preflight);
   renderFindings(data.securityPosture.findings || []);
   renderNetworkTable(data.vcns, data.subnets, compartmentMap);
   text('lastUpdated', `Last refresh: ${new Date().toLocaleString()} / ${mode}`);
@@ -1317,6 +1367,24 @@ function renderSecurityLists(securityLists, compartmentMap) {
     badge: item.lifecycle_state || 'unknown',
     badgeClass: badgeClass(item.lifecycle_state === 'AVAILABLE'),
   }));
+}
+
+function renderPreflight(preflight) {
+  const checks = preflight.checks || [];
+  const list = byId('preflightList');
+  if (!checks.length) {
+    list.innerHTML = '<div class="empty">No preflight result returned yet.</div>';
+    return;
+  }
+  list.innerHTML = checks.map((check) => `
+    <div class="resource-row">
+      <div>
+        <div class="resource-name">${escapeHtml(check.name)}</div>
+        <div class="resource-meta">${escapeHtml(check.action ? `${check.message} Action: ${check.action}` : check.message)}</div>
+      </div>
+      <span class="${badgeClass(check.status)}">${escapeHtml(check.status)}</span>
+    </div>
+  `).join('');
 }
 
 function renderFindings(findings) {

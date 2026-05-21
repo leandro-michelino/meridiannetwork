@@ -15,8 +15,9 @@ The product vision is captured in [Meridian_OCI_Network_Monitor.md](Meridian_OCI
 
 - Terraform for OCI VCN, public subnet, internet gateway, route table, security list, and Compute host.
 - Optional OCI dynamic group and IAM policy for instance principal access.
-- FastAPI backend foundation with health, readiness, regions, and compartments endpoints.
+- FastAPI backend foundation with health, readiness, preflight, regions, and compartments endpoints.
 - API-aware static dashboard prototype with fallback demo data, 5-second live refresh, compartment-aware inventory, draggable topology, subnet access labels, resource IDs, expanders, and pinned home-region navigation.
+- Dashboard OCI preflight panel for runtime IAM, region, compartment, and network read validation.
 - Ansible bootstrap to configure Oracle Linux with Nginx, Podman-ready packages, firewall rules, the static dashboard, and the backend API service.
 - Inventory generation from Terraform outputs.
 - Documentation for architecture, operations, security/IAM, API design, data model, roadmap, release process, and remote audit.
@@ -128,6 +129,7 @@ Local endpoints:
 
 - `GET /healthz`
 - `GET /readyz`
+- `GET /api/preflight`
 - `GET /api/regions/available`
 - `GET /api/regions/active`
 - `GET /api/compartments`
@@ -152,6 +154,13 @@ If your OCI config file is not in the default location, export:
 export OCI_CONFIG_FILE=/path/to/config
 ```
 
+For runtime inventory scope, set monitored compartments explicitly when you do not want the API to use the tenancy root
+as the default compartment scope:
+
+```bash
+export MERIDIAN_COMPARTMENT_IDS=ocid1.compartment.oc1..example,ocid1.compartment.oc1..example2
+```
+
 ## IAM Model
 
 `create_identity_policies` is disabled by default because IAM policy creation usually requires tenancy-level privileges.
@@ -160,6 +169,10 @@ When enabled, Terraform creates:
 
 - A dynamic group matching Compute instances in the application compartment.
 - A read-oriented policy intended for instance principal access to network observability data.
+
+The deployed API exposes `GET /api/preflight`, and the dashboard includes an `OCI Preflight` expander to validate
+runtime authentication, compartment discovery, configured regions, monitored compartments, and required networking read
+permissions.
 
 Review [docs/security-and-iam.md](docs/security-and-iam.md) before enabling IAM creation in a shared tenancy.
 

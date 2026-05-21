@@ -30,6 +30,7 @@ Implemented so far:
 - Gateway inventory endpoint with optional live OCI mode.
 - Route table and security list inventory endpoints with optional live OCI mode.
 - Topology graph endpoint derived from live OCI inventory.
+- OCI preflight endpoint for runtime IAM and network read validation.
 - Initial security posture endpoint for public SSH, public RDP, and public all-protocol ingress.
 - OCI client factory.
 - Backend tests.

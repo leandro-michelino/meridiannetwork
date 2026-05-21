@@ -6,6 +6,7 @@ FastAPI backend foundation for Meridian.
 
 - Application factory.
 - Health and readiness endpoints.
+- OCI preflight endpoint for IAM and service readiness validation.
 - OCI client factory abstraction.
 - Regions endpoint.
 - Compartments endpoint with live OCI support when enabled.
@@ -49,6 +50,7 @@ export MERIDIAN_ENABLE_LIVE_OCI=true
 export MERIDIAN_OCI_AUTH=config_file
 export MERIDIAN_OCI_PROFILE=DEFAULT
 export MERIDIAN_TENANCY_OCID=ocid1.tenancy.oc1..example
+export MERIDIAN_COMPARTMENT_IDS=ocid1.compartment.oc1..example
 ```
 
 For production on an OCI Compute instance, use:
@@ -56,4 +58,15 @@ For production on an OCI Compute instance, use:
 ```bash
 export MERIDIAN_ENABLE_LIVE_OCI=true
 export MERIDIAN_OCI_AUTH=instance_principal
+export MERIDIAN_TENANCY_OCID=ocid1.tenancy.oc1..example
+export MERIDIAN_COMPARTMENT_IDS=ocid1.compartment.oc1..example
 ```
+
+## Preflight
+
+```bash
+curl http://127.0.0.1:8080/api/preflight
+```
+
+The response reports live mode, auth mode, home region, active regions, monitored compartments, and pass/fail checks for
+the OCI SDK signer, compartment discovery, and Virtual Networking read calls used by the dashboard.

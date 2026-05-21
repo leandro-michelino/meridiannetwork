@@ -119,7 +119,7 @@ variable "identity_policy_statements" {
   type        = list(string)
   default = [
     "allow dynamic-group {dynamic_group_name} to inspect compartments in tenancy",
-    "allow dynamic-group {dynamic_group_name} to inspect virtual-network-family in tenancy",
+    "allow dynamic-group {dynamic_group_name} to read virtual-network-family in tenancy",
     "allow dynamic-group {dynamic_group_name} to inspect instance-family in tenancy",
     "allow dynamic-group {dynamic_group_name} to read metrics in tenancy",
     "allow dynamic-group {dynamic_group_name} to read logging-family in tenancy",
