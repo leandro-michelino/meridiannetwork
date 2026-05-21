@@ -263,12 +263,14 @@ body {
   display: grid;
   grid-template-columns: minmax(360px, 1.1fr) minmax(360px, 0.9fr);
   gap: 12px;
+  align-items: start;
 }
 
 .grid-3 {
   display: grid;
   grid-template-columns: repeat(3, minmax(260px, 1fr));
   gap: 12px;
+  align-items: start;
 }
 
 .card {
@@ -285,6 +287,41 @@ body {
   justify-content: space-between;
   gap: 8px;
   margin-bottom: 10px;
+}
+
+.expander > summary.card-header {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto;
+  cursor: pointer;
+  list-style: none;
+  margin-bottom: 0;
+}
+
+.expander > summary.card-header::-webkit-details-marker {
+  display: none;
+}
+
+.expander > summary.card-header::before {
+  color: var(--mn-muted);
+  content: ">";
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 800;
+  transform: rotate(0deg);
+  transform-origin: center;
+  transition: transform 120ms ease;
+}
+
+.expander[open] > summary.card-header {
+  margin-bottom: 10px;
+}
+
+.expander[open] > summary.card-header::before {
+  transform: rotate(90deg);
+}
+
+.expander > summary.card-header:hover .card-title {
+  color: var(--mn-blue);
 }
 
 .card-title {
@@ -550,11 +587,11 @@ tr:last-child td { border-bottom: 0; }
     </section>
 
     <section class="grid-2">
-      <div class="card">
-        <div class="card-header">
+      <details class="card expander" open id="topologyPanel">
+        <summary class="card-header">
           <div class="card-title">Network Topology</div>
           <span class="badge neutral" id="topologyBadge">inventory</span>
-        </div>
+        </summary>
         <div class="topology" id="topology">
           <svg id="topologyLines" aria-hidden="true"></svg>
           <div class="topo-node" id="nodeVcn" style="left:50%;top:48%;">
@@ -583,48 +620,48 @@ tr:last-child td { border-bottom: 0; }
             <div class="topo-meta" id="nodeDrgMeta">0</div>
           </div>
         </div>
-      </div>
+      </details>
 
-      <div class="card">
-        <div class="card-header">
+      <details class="card expander" open>
+        <summary class="card-header">
           <div class="card-title">Security Posture</div>
           <span class="badge ok" id="postureBadge">ok</span>
-        </div>
+        </summary>
         <div class="finding-list" id="findingList"></div>
-      </div>
+      </details>
     </section>
 
     <section class="grid-3">
-      <div class="card">
-        <div class="card-header">
+      <details class="card expander">
+        <summary class="card-header">
           <div class="card-title">Gateways</div>
           <span class="badge neutral" id="gatewayCountBadge">0</span>
-        </div>
+        </summary>
         <div class="resource-list" id="gatewayList"></div>
-      </div>
+      </details>
 
-      <div class="card">
-        <div class="card-header">
+      <details class="card expander">
+        <summary class="card-header">
           <div class="card-title">Route Tables</div>
           <span class="badge neutral" id="routeCountBadge">0</span>
-        </div>
+        </summary>
         <div class="resource-list" id="routeList"></div>
-      </div>
+      </details>
 
-      <div class="card">
-        <div class="card-header">
+      <details class="card expander">
+        <summary class="card-header">
           <div class="card-title">Security Lists</div>
           <span class="badge neutral" id="securityListBadge">0</span>
-        </div>
+        </summary>
         <div class="resource-list" id="securityList"></div>
-      </div>
+      </details>
     </section>
 
-    <section class="card">
-      <div class="card-header">
+    <details class="card expander" open>
+      <summary class="card-header">
         <div class="card-title">VCNs and Subnets</div>
         <span class="badge neutral" id="dataModeBadge">api</span>
-      </div>
+      </summary>
       <div class="table-wrap">
         <table>
           <thead>
@@ -644,7 +681,7 @@ tr:last-child td { border-bottom: 0; }
           <tbody id="networkTable"></tbody>
         </table>
       </div>
-    </section>
+    </details>
 
     <div class="footer-note" id="lastUpdated">Not refreshed yet</div>
   </main>
@@ -1103,6 +1140,11 @@ document.addEventListener('click', (event) => {
     byId('regionMenu').classList.remove('open');
     byId('regionMenuBtn').setAttribute('aria-expanded', 'false');
   }
+});
+document.querySelectorAll('details.expander').forEach((panel) => {
+  panel.addEventListener('toggle', () => {
+    if (panel.id === 'topologyPanel' && panel.open) window.requestAnimationFrame(drawTopologyLines);
+  });
 });
 
 window.addEventListener('resize', drawTopologyLines);
