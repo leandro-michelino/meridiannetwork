@@ -14,6 +14,9 @@ Backend foundation scaffold.
 - Health and readiness endpoints.
 - Regions endpoints.
 - Compartments endpoint with optional live OCI support.
+- VCN inventory endpoint with optional live OCI support.
+- Subnet inventory endpoint with optional live OCI support.
+- Gateway inventory endpoint with optional live OCI support.
 - OCI client factory abstraction.
 - OCI Terraform baseline.
 - Ansible bootstrap.
@@ -37,9 +40,9 @@ Backend foundation scaffold.
 
 ## Recommended Next Work
 
-1. Add VCN inventory endpoint.
-2. Add gateway inventory endpoint.
-3. Add OCI pagination helpers and response normalization for all collectors.
+1. Add route table inventory endpoint.
+2. Add security list and NSG inventory endpoints.
+3. Add OCI response normalization for all collectors.
 4. Replace static HTML deployment with frontend build artifact deployment.
 5. Containerize backend and frontend.
 6. Add remote Terraform state.

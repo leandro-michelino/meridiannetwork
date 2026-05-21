@@ -60,7 +60,7 @@ The intended production application is:
 - Scheduler: APScheduler or Celery.
 - Cache: Redis or OCI Cache.
 - Auth to OCI: instance principal in production, API key in development.
-- Runtime: VM with Podman, containerized services, or OKE later.
+- Runtime: small OCI Compute VM first, with OCI Container Instances, OCI Functions for selected background tasks, or OKE only as future options.
 
 ## Main Data Sources
 

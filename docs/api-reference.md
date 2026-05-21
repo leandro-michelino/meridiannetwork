@@ -49,7 +49,22 @@ GET /api/vpns
 GET /api/fastconnect
 ```
 
-Status: planned.
+Status:
+
+- `GET /api/vcns`: implemented.
+- `GET /api/subnets`: implemented.
+- `GET /api/gateways`: implemented for Internet Gateways, NAT Gateways, Service Gateways, and DRGs.
+- Remaining endpoints: planned.
+
+Implemented query parameters:
+
+```text
+GET /api/vcns?regions=eu-frankfurt-1,eu-madrid-1&compartment_ids=<ocid>,<ocid>
+GET /api/subnets?regions=eu-frankfurt-1&compartment_ids=<ocid>&vcn_id=<vcn_ocid>
+GET /api/gateways?regions=eu-frankfurt-1&compartment_ids=<ocid>&vcn_id=<vcn_ocid>
+```
+
+If live OCI mode is disabled, these endpoints return empty lists.
 
 ## Metrics
 

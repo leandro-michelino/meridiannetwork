@@ -5,7 +5,10 @@
 - Add FastAPI backend foundation.
 - Add health and readiness endpoints.
 - Add regions and compartments API endpoints.
+- Add VCN and subnet inventory API endpoints.
+- Add gateway inventory API endpoint.
 - Add OCI client factory abstraction.
+- Add deployment options documentation covering VM, serverless container, Functions, and OKE patterns.
 - Add backend tests and local backend commands.
 - Update Ansible to deploy the backend as a systemd service behind Nginx.
 - Standardize repository documentation in English.

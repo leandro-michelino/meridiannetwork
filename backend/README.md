@@ -9,6 +9,9 @@ FastAPI backend foundation for Meridian.
 - OCI client factory abstraction.
 - Regions endpoint.
 - Compartments endpoint with live OCI support when enabled.
+- VCN inventory endpoint with live OCI support when enabled.
+- Subnet inventory endpoint with live OCI support when enabled.
+- Gateway inventory endpoint with live OCI support when enabled.
 - Test suite for the implemented API surface.
 
 ## Local Setup
@@ -51,4 +54,3 @@ For production on an OCI Compute instance, use:
 export MERIDIAN_ENABLE_LIVE_OCI=true
 export MERIDIAN_OCI_AUTH=instance_principal
 ```
-

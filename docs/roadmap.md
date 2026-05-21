@@ -26,6 +26,8 @@ Implemented so far:
 - Health and readiness endpoints.
 - Region scope endpoints.
 - Compartment endpoint with optional live OCI mode.
+- VCN and subnet inventory endpoints with optional live OCI mode.
+- Gateway inventory endpoint with optional live OCI mode.
 - OCI client factory.
 - Backend tests.
 
@@ -74,6 +76,9 @@ Implemented so far:
 - Remote Terraform state.
 - HTTPS and private access pattern.
 - Containerized backend/frontend.
+- Keep the small OCI Compute VM as the first deployment target.
+- Evaluate OCI Container Instances only after containerization.
+- Evaluate OCI Functions only for asynchronous collectors and notifications.
 - Manual release/deployment procedure unless automation is explicitly approved later.
 - Automated tests.
 - Observability for Meridian itself.

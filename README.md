@@ -130,6 +130,9 @@ Local endpoints:
 - `GET /api/regions/available`
 - `GET /api/regions/active`
 - `GET /api/compartments`
+- `GET /api/vcns`
+- `GET /api/subnets`
+- `GET /api/gateways`
 - `GET /docs`
 
 ## OCI Authentication
@@ -163,6 +166,7 @@ Review [docs/security-and-iam.md](docs/security-and-iam.md) before enabling IAM 
 - [API Reference](docs/api-reference.md)
 - [Data Model](docs/data-model.md)
 - [Deployment Checklist](docs/deployment-checklist.md)
+- [Deployment Options](docs/deployment-options.md)
 - [Manual Validation](docs/manual-validation.md)
 - [Module Map](docs/module-map.md)
 - [Roadmap](docs/roadmap.md)

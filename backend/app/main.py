@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
 from app.config import get_settings
-from app.routers import health, scope
+from app.routers import health, network, scope
 
 
 def create_app() -> FastAPI:
@@ -14,8 +14,8 @@ def create_app() -> FastAPI:
     )
     app.include_router(health.router)
     app.include_router(scope.router)
+    app.include_router(network.router)
     return app
 
 
 app = create_app()
-
