@@ -11,6 +11,7 @@ Backend foundation scaffold.
 - Product specification document.
 - Static dashboard prototype.
 - API-aware static dashboard with demo fallback data.
+- Static dashboard inventory table with compartment context, subnet access classification, real OCI resource ID display, and pinned home-region navigation.
 - FastAPI backend foundation.
 - Health and readiness endpoints.
 - Regions endpoints.

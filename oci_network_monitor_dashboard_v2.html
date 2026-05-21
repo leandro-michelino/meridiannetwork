@@ -1,3 +1,9 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meridian Network Dashboard</title>
 <style>
 :root {
   --mn-bg: #f7f8fa;
@@ -35,6 +41,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 12px;
   background: var(--mn-surface);
   border-bottom: 1px solid var(--mn-border-soft);
@@ -86,6 +93,7 @@ body {
   align-items: center;
   gap: 6px;
   flex-wrap: wrap;
+  position: relative;
 }
 
 .pill,
@@ -146,11 +154,65 @@ body {
   border-color: var(--mn-orange);
 }
 
+.region-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 280px;
+  max-width: min(280px, calc(100vw - 24px));
+  border: 1px solid var(--mn-border);
+  border-radius: 7px;
+  background: var(--mn-surface);
+  box-shadow: 0 10px 24px rgba(31, 41, 51, 0.14);
+  padding: 8px;
+  display: none;
+  z-index: 30;
+}
+
+.region-menu.open {
+  display: block;
+}
+
+.region-menu-title {
+  color: var(--mn-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 4px 4px 8px;
+}
+
+.region-menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.region-menu-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--mn-border-soft);
+  background: var(--mn-surface-soft);
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.region-menu-geo {
+  color: var(--mn-muted);
+  font-size: 11px;
+}
+
 .content {
   padding: 16px 18px 24px;
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+.content > * {
+  min-width: 0;
 }
 
 .section-title {
@@ -164,7 +226,7 @@ body {
 
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(6, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
   gap: 10px;
 }
 
@@ -292,7 +354,7 @@ body {
 table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 620px;
+  min-width: 1180px;
 }
 
 th,
@@ -314,6 +376,13 @@ tr:last-child td { border-bottom: 0; }
 
 .mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.id-cell {
+  max-width: 210px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .muted { color: var(--mn-muted); }
@@ -392,19 +461,53 @@ tr:last-child td { border-bottom: 0; }
 }
 
 @media (max-width: 1100px) {
-  .kpi-grid { grid-template-columns: repeat(3, 1fr); }
   .grid-2,
   .grid-3 { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 720px) {
-  .topbar { align-items: flex-start; }
+  .topbar {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 10px 12px;
+  }
+
   .brand { width: 100%; }
-  .topbar-actions { justify-content: flex-start; }
-  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+
+  .topbar-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-content: flex-start;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .region-strip {
+    grid-column: 1 / -1;
+    max-width: 100%;
+    flex-wrap: wrap;
+    min-width: 0;
+    padding-bottom: 2px;
+  }
+
+  .region-menu {
+    flex-basis: 100%;
+    margin-top: 4px;
+    max-width: none;
+    position: static;
+    width: 100%;
+  }
+
+  .button {
+    justify-content: center;
+  }
+
+  .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .content { padding: 12px; }
 }
 </style>
+</head>
+<body>
 
 <div class="dash">
   <div class="topbar">
@@ -417,7 +520,12 @@ tr:last-child td { border-bottom: 0; }
     </div>
     <div class="topbar-actions">
       <div class="region-strip" id="regionStrip">
-        <div class="pill home"><span class="home-dot"></span><span>eu-frankfurt-1</span><span>home</span></div>
+        <div class="pill home"><span class="home-dot"></span><span id="homeRegionName">eu-frankfurt-1</span><span>home</span></div>
+        <button class="button" id="regionMenuBtn" type="button" aria-controls="regionMenu" aria-expanded="false">Regions</button>
+        <div class="region-menu" id="regionMenu">
+          <div class="region-menu-title">Additional regions</div>
+          <div class="region-menu-list" id="regionMenuList"></div>
+        </div>
       </div>
       <button class="button" id="demoToggle" type="button">Demo data</button>
       <button class="button primary" id="refreshBtn" type="button">Refresh</button>
@@ -429,6 +537,7 @@ tr:last-child td { border-bottom: 0; }
       <div class="section-title">Live inventory</div>
       <div class="kpi-grid">
         <div class="kpi"><div class="kpi-label"><span class="status-dot ok"></span>VCNs</div><div class="kpi-value" id="kpiVcns">0</div><div class="kpi-sub" id="kpiVcnSub">Waiting for API</div></div>
+        <div class="kpi"><div class="kpi-label"><span class="status-dot ok"></span>Compartments</div><div class="kpi-value" id="kpiCompartments">0</div><div class="kpi-sub" id="kpiCompartmentSub">Scope context</div></div>
         <div class="kpi"><div class="kpi-label"><span class="status-dot ok"></span>Subnets</div><div class="kpi-value" id="kpiSubnets">0</div><div class="kpi-sub" id="kpiSubnetSub">CIDR inventory</div></div>
         <div class="kpi"><div class="kpi-label"><span class="status-dot ok"></span>Gateways</div><div class="kpi-value" id="kpiGateways">0</div><div class="kpi-sub" id="kpiGatewaySub">IGW / NAT / SGW / DRG</div></div>
         <div class="kpi"><div class="kpi-label"><span class="status-dot ok"></span>Route Tables</div><div class="kpi-value" id="kpiRoutes">0</div><div class="kpi-sub" id="kpiRouteSub">Route rule context</div></div>
@@ -519,9 +628,13 @@ tr:last-child td { border-bottom: 0; }
             <tr>
               <th>Type</th>
               <th>Name</th>
+              <th>Compartment</th>
               <th>Region</th>
               <th>CIDR</th>
-              <th>VCN</th>
+              <th>Parent VCN</th>
+              <th>DNS / AD</th>
+              <th>Subnet Access</th>
+              <th>Resource ID</th>
               <th>State</th>
             </tr>
           </thead>
@@ -537,6 +650,8 @@ tr:last-child td { border-bottom: 0; }
 <script>
 const API_PATHS = {
   health: '/healthz',
+  activeRegions: '/api/regions/active',
+  compartments: '/api/compartments',
   vcns: '/api/vcns',
   subnets: '/api/subnets',
   gateways: '/api/gateways',
@@ -546,14 +661,22 @@ const API_PATHS = {
 };
 
 const DEMO_DATA = {
+  activeRegions: [
+    { id: 'eu-frankfurt-1', geo: 'Europe', is_home_region: true, is_active: true },
+    { id: 'eu-amsterdam-1', geo: 'Europe', is_home_region: false, is_active: true },
+  ],
+  compartments: [
+    { id: 'prod', name: 'Production', description: 'Primary production compartment', lifecycle_state: 'ACTIVE' },
+    { id: 'dr', name: 'Disaster Recovery', description: 'Standby network compartment', lifecycle_state: 'ACTIVE' },
+  ],
   vcns: [
-    { id: 'vcn-prod-fra', name: 'vcn-prod-fra', region: 'eu-frankfurt-1', compartment_id: 'prod', cidr_blocks: ['10.0.0.0/16'], lifecycle_state: 'AVAILABLE' },
-    { id: 'vcn-dr-ams', name: 'vcn-dr-ams', region: 'eu-amsterdam-1', compartment_id: 'dr', cidr_blocks: ['10.20.0.0/16'], lifecycle_state: 'AVAILABLE' },
+    { id: 'vcn-prod-fra', name: 'vcn-prod-fra', region: 'eu-frankfurt-1', compartment_id: 'prod', cidr_blocks: ['10.0.0.0/16'], dns_label: 'prod', lifecycle_state: 'AVAILABLE' },
+    { id: 'vcn-dr-ams', name: 'vcn-dr-ams', region: 'eu-amsterdam-1', compartment_id: 'dr', cidr_blocks: ['10.20.0.0/16'], dns_label: 'dr', lifecycle_state: 'AVAILABLE' },
   ],
   subnets: [
-    { id: 'subnet-web', name: 'web-public', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', cidr_block: '10.0.10.0/24', lifecycle_state: 'AVAILABLE' },
-    { id: 'subnet-app', name: 'app-private', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', cidr_block: '10.0.20.0/24', lifecycle_state: 'AVAILABLE' },
-    { id: 'subnet-dr', name: 'dr-private', region: 'eu-amsterdam-1', compartment_id: 'dr', vcn_id: 'vcn-dr-ams', cidr_block: '10.20.10.0/24', lifecycle_state: 'AVAILABLE' },
+    { id: 'subnet-web', name: 'web-public', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', cidr_block: '10.0.10.0/24', dns_label: 'web', availability_domain: null, prohibit_public_ip_on_vnic: false, lifecycle_state: 'AVAILABLE' },
+    { id: 'subnet-app', name: 'app-private', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', cidr_block: '10.0.20.0/24', dns_label: 'app', availability_domain: null, prohibit_public_ip_on_vnic: true, lifecycle_state: 'AVAILABLE' },
+    { id: 'subnet-dr', name: 'dr-private', region: 'eu-amsterdam-1', compartment_id: 'dr', vcn_id: 'vcn-dr-ams', cidr_block: '10.20.10.0/24', dns_label: 'drapp', availability_domain: null, prohibit_public_ip_on_vnic: true, lifecycle_state: 'AVAILABLE' },
   ],
   gateways: [
     { id: 'igw-01', name: 'prod-internet-gateway', gateway_type: 'internet_gateway', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', lifecycle_state: 'AVAILABLE', is_enabled: true },
@@ -617,7 +740,9 @@ async function getJson(path) {
 }
 
 async function loadApiData() {
-  const [vcns, subnets, gateways, routeTables, securityLists, securityPosture] = await Promise.all([
+  const [activeRegions, compartments, vcns, subnets, gateways, routeTables, securityLists, securityPosture] = await Promise.all([
+    getJson(API_PATHS.activeRegions),
+    getJson(API_PATHS.compartments),
     getJson(API_PATHS.vcns),
     getJson(API_PATHS.subnets),
     getJson(API_PATHS.gateways),
@@ -625,7 +750,7 @@ async function loadApiData() {
     getJson(API_PATHS.securityLists),
     getJson(API_PATHS.securityPosture),
   ]);
-  return { vcns, subnets, gateways, routeTables, securityLists, securityPosture };
+  return { activeRegions, compartments, vcns, subnets, gateways, routeTables, securityLists, securityPosture };
 }
 
 async function refreshDashboard() {
@@ -642,24 +767,34 @@ async function refreshDashboard() {
     useDemoData = true;
   }
 
+  byId('demoToggle').textContent = useDemoData ? 'Use API' : 'Demo data';
   renderDashboard(data, mode);
   byId('refreshBtn').disabled = false;
 }
 
 function renderDashboard(data, mode) {
-  const regions = new Set([
+  data.activeRegions = data.activeRegions || [];
+  data.compartments = data.compartments || [];
+  const observedRegions = new Set([
     ...data.vcns.map((item) => item.region),
     ...data.subnets.map((item) => item.region),
     ...data.gateways.map((item) => item.region),
   ].filter(Boolean));
+  const activeRegionIds = data.activeRegions.map((item) => item.id).filter(Boolean);
+  const regions = new Set([...activeRegionIds, ...observedRegions]);
+  const homeRegion = homeRegionId(data.activeRegions, regions);
+  const compartmentMap = buildCompartmentMap(data);
+  const compartmentCount = Object.keys(compartmentMap).length;
 
   text('kpiVcns', data.vcns.length);
+  text('kpiCompartments', compartmentCount);
   text('kpiSubnets', data.subnets.length);
   text('kpiGateways', data.gateways.length);
   text('kpiRoutes', data.routeTables.length);
   text('kpiSecLists', data.securityLists.length);
   text('kpiFindings', data.securityPosture.total_findings || 0);
   text('kpiVcnSub', `${regions.size || 0} active regions`);
+  text('kpiCompartmentSub', `${data.compartments.length || compartmentCount} in scope`);
   text('kpiSubnetSub', `${uniqueCount(data.subnets, 'vcn_id')} VCN links`);
   text('kpiGatewaySub', gatewayTypeSummary(data.gateways));
   text('kpiRouteSub', `${sum(data.routeTables, (item) => item.route_rules?.length || 0)} rules`);
@@ -672,14 +807,31 @@ function renderDashboard(data, mode) {
   postureBadge.textContent = data.securityPosture.status || 'ok';
   postureBadge.className = badgeClass(data.securityPosture.status || 'ok');
 
-  renderRegionStrip(regions);
+  renderRegionStrip(homeRegion, regions, data.activeRegions);
   renderTopology(data);
-  renderGateways(data.gateways);
-  renderRouteTables(data.routeTables);
-  renderSecurityLists(data.securityLists);
+  renderGateways(data.gateways, compartmentMap);
+  renderRouteTables(data.routeTables, compartmentMap);
+  renderSecurityLists(data.securityLists, compartmentMap);
   renderFindings(data.securityPosture.findings || []);
-  renderNetworkTable(data.vcns, data.subnets);
+  renderNetworkTable(data.vcns, data.subnets, compartmentMap);
   text('lastUpdated', `Last refresh: ${new Date().toLocaleString()} / ${mode}`);
+}
+
+function buildCompartmentMap(data) {
+  const map = {};
+  (data.compartments || []).forEach((item) => {
+    map[item.id] = item.name || item.id;
+  });
+  [...data.vcns, ...data.subnets, ...data.gateways, ...data.routeTables, ...data.securityLists].forEach((item) => {
+    if (item.compartment_id && !map[item.compartment_id]) {
+      map[item.compartment_id] = item.compartment_id;
+    }
+  });
+  return map;
+}
+
+function compartmentName(map, id) {
+  return map[id] || id || 'unknown';
 }
 
 function uniqueCount(items, field) {
@@ -708,16 +860,43 @@ function shortGatewayType(type) {
   }[type] || type;
 }
 
-function renderRegionStrip(regions) {
-  const strip = byId('regionStrip');
-  const extras = [...regions].filter((region) => region !== 'eu-frankfurt-1').sort();
-  strip.innerHTML = '<div class="pill home"><span class="home-dot"></span><span>eu-frankfurt-1</span><span>home</span></div>';
-  extras.forEach((region) => {
-    const pill = document.createElement('div');
-    pill.className = 'pill active';
-    pill.textContent = region;
-    strip.appendChild(pill);
-  });
+function homeRegionId(activeRegions, regions) {
+  return activeRegions.find((region) => region.is_home_region)?.id || [...regions][0] || 'eu-frankfurt-1';
+}
+
+function renderRegionStrip(homeRegion, regions, activeRegions) {
+  const regionDetails = activeRegions.reduce((acc, region) => {
+    acc[region.id] = region;
+    return acc;
+  }, {});
+  const extras = [...regions].filter((region) => region !== homeRegion).sort();
+  const button = byId('regionMenuBtn');
+  const menu = byId('regionMenu');
+  const list = byId('regionMenuList');
+  text('homeRegionName', homeRegion);
+  button.textContent = extras.length ? `Regions +${extras.length}` : 'Regions';
+  button.setAttribute('aria-expanded', 'false');
+  menu.classList.remove('open');
+  if (!extras.length) {
+    list.innerHTML = '<div class="empty">No additional regions returned by the API.</div>';
+    return;
+  }
+  list.innerHTML = extras.map((region) => `
+    <div class="region-menu-item">
+      <strong>${escapeHtml(region)}</strong>
+      <span class="region-menu-geo">${escapeHtml(regionDetails[region]?.geo || regionGeo(region))}</span>
+    </div>
+  `).join('');
+}
+
+function regionGeo(region) {
+  if (region.startsWith('eu-')) return 'Europe';
+  if (region.startsWith('us-') || region.startsWith('ca-')) return 'North America';
+  if (region.startsWith('af-')) return 'Africa';
+  if (region.startsWith('me-')) return 'Middle East';
+  if (region.startsWith('ap-')) return 'Asia Pacific';
+  if (region.startsWith('sa-')) return 'South America';
+  return 'Region';
 }
 
 function renderTopology(data) {
@@ -773,31 +952,31 @@ function centerOf(id, parentRect) {
   };
 }
 
-function renderGateways(gateways) {
+function renderGateways(gateways, compartmentMap) {
   text('gatewayCountBadge', gateways.length);
   renderResourceList('gatewayList', gateways.slice(0, 8), (item) => ({
     title: `${shortGatewayType(item.gateway_type)} / ${item.name}`,
-    meta: `${item.region} / ${item.lifecycle_state || 'unknown'} / ${item.vcn_id || 'regional'}`,
+    meta: `${compartmentName(compartmentMap, item.compartment_id)} / ${item.region} / ${item.lifecycle_state || 'unknown'} / ${item.vcn_id || 'regional'}`,
     badge: item.is_enabled === false ? 'blocked' : 'available',
     badgeClass: item.is_enabled === false ? 'badge warn' : badgeClass(item.lifecycle_state === 'AVAILABLE'),
   }));
 }
 
-function renderRouteTables(routeTables) {
+function renderRouteTables(routeTables, compartmentMap) {
   text('routeCountBadge', routeTables.length);
   renderResourceList('routeList', routeTables.slice(0, 8), (item) => ({
     title: item.name,
-    meta: `${item.region} / ${item.route_rules?.length || 0} route rules / ${item.vcn_id}`,
+    meta: `${compartmentName(compartmentMap, item.compartment_id)} / ${item.region} / ${item.route_rules?.length || 0} route rules / ${item.vcn_id}`,
     badge: item.lifecycle_state || 'unknown',
     badgeClass: badgeClass(item.lifecycle_state === 'AVAILABLE'),
   }));
 }
 
-function renderSecurityLists(securityLists) {
+function renderSecurityLists(securityLists, compartmentMap) {
   text('securityListBadge', securityLists.length);
   renderResourceList('securityList', securityLists.slice(0, 8), (item) => ({
     title: item.name,
-    meta: `${item.region} / ${item.ingress_rules?.length || 0} ingress / ${item.egress_rules?.length || 0} egress`,
+    meta: `${compartmentName(compartmentMap, item.compartment_id)} / ${item.region} / ${item.ingress_rules?.length || 0} ingress / ${item.egress_rules?.length || 0} egress`,
     badge: item.lifecycle_state || 'unknown',
     badgeClass: badgeClass(item.lifecycle_state === 'AVAILABLE'),
   }));
@@ -840,40 +1019,64 @@ function renderResourceList(id, items, mapItem) {
   }).join('');
 }
 
-function renderNetworkTable(vcns, subnets) {
+function renderNetworkTable(vcns, subnets, compartmentMap) {
   const rows = [
     ...vcns.map((item) => ({
       type: 'VCN',
       name: item.name,
+      compartment: compartmentName(compartmentMap, item.compartment_id),
       region: item.region,
       cidr: item.cidr_blocks?.join(', ') || '',
-      vcn: item.id,
+      vcn: '-',
+      dns: item.dns_label || '-',
+      subnetAccess: '-',
       state: item.lifecycle_state,
+      id: item.id,
     })),
     ...subnets.map((item) => ({
       type: 'Subnet',
       name: item.name,
+      compartment: compartmentName(compartmentMap, item.compartment_id),
       region: item.region,
       cidr: item.cidr_block,
       vcn: item.vcn_id,
+      dns: item.availability_domain || item.dns_label || '-',
+      subnetAccess: subnetAccessMode(item),
       state: item.lifecycle_state,
+      id: item.id,
     })),
   ];
   const body = byId('networkTable');
   if (!rows.length) {
-    body.innerHTML = '<tr><td colspan="6" class="muted">No VCN or subnet inventory returned yet.</td></tr>';
+    body.innerHTML = '<tr><td colspan="10" class="muted">No VCN or subnet inventory returned yet.</td></tr>';
     return;
   }
   body.innerHTML = rows.map((row) => `
     <tr>
       <td>${escapeHtml(row.type)}</td>
       <td>${escapeHtml(row.name)}</td>
+      <td>${escapeHtml(row.compartment)}</td>
       <td>${escapeHtml(row.region)}</td>
       <td class="mono">${escapeHtml(row.cidr)}</td>
       <td class="mono">${escapeHtml(row.vcn)}</td>
-      <td>${escapeHtml(row.state || 'unknown')}</td>
+      <td>${escapeHtml(row.dns)}</td>
+      <td>${escapeHtml(row.subnetAccess)}</td>
+      <td class="mono id-cell" title="${escapeHtml(row.id)}">${escapeHtml(shortId(row.id))}</td>
+      <td><span class="${badgeClass(row.state === 'AVAILABLE')}">${escapeHtml(row.state || 'unknown')}</span></td>
     </tr>
   `).join('');
+}
+
+function subnetAccessMode(item) {
+  if (item.prohibit_public_ip_on_vnic === true) return 'Private subnet';
+  if (item.prohibit_public_ip_on_vnic === false) return 'Public subnet';
+  return '-';
+}
+
+function shortId(id) {
+  if (!id) return '-';
+  if (id.length <= 28) return id;
+  return `${id.slice(0, 18)}...${id.slice(-8)}`;
 }
 
 byId('refreshBtn').addEventListener('click', refreshDashboard);
@@ -882,7 +1085,21 @@ byId('demoToggle').addEventListener('click', () => {
   byId('demoToggle').textContent = useDemoData ? 'Use API' : 'Demo data';
   refreshDashboard();
 });
+byId('regionMenuBtn').addEventListener('click', (event) => {
+  event.stopPropagation();
+  const menu = byId('regionMenu');
+  const isOpen = menu.classList.toggle('open');
+  event.currentTarget.setAttribute('aria-expanded', String(isOpen));
+});
+document.addEventListener('click', (event) => {
+  if (!byId('regionStrip').contains(event.target)) {
+    byId('regionMenu').classList.remove('open');
+    byId('regionMenuBtn').setAttribute('aria-expanded', 'false');
+  }
+});
 
 window.addEventListener('resize', drawTopologyLines);
 refreshDashboard();
 </script>
+</body>
+</html>

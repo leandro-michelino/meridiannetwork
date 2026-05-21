@@ -23,6 +23,7 @@
 - Add repository security policy.
 - Add repository text attributes.
 - Translate the static dashboard prototype labels to English.
+- Improve the static dashboard inventory UX with compartment context, subnet access wording, real OCI resource IDs, and a pinned home-region expander.
 - Preserve the no GitHub Actions policy.
 
 ## 2026-05-21
