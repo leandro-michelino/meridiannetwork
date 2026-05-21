@@ -137,6 +137,7 @@ Local endpoints:
 - `GET /api/subnets`
 - `GET /api/gateways`
 - `GET /api/route-tables`
+- `GET /api/route-issues`
 - `GET /api/security-lists`
 - `GET /api/network-security-groups`
 - `GET /api/topology`

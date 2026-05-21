@@ -76,6 +76,23 @@ edges[]
   metadata
 ```
 
+## RouteIssue
+
+```text
+severity
+issue_type
+route_table_id
+route_table_name
+region
+compartment_id
+vcn_id
+destination
+destination_type
+network_entity_id
+description
+recommendation
+```
+
 ## MetricPoint
 
 ```text

@@ -634,6 +634,7 @@ tr:last-child td { border-bottom: 0; }
         <div class="kpi"><div class="kpi-label"><span class="status-dot ok"></span>Subnets</div><div class="kpi-value" id="kpiSubnets">0</div><div class="kpi-sub" id="kpiSubnetSub">CIDR inventory</div></div>
         <div class="kpi"><div class="kpi-label"><span class="status-dot ok"></span>Gateways</div><div class="kpi-value" id="kpiGateways">0</div><div class="kpi-sub" id="kpiGatewaySub">IGW / NAT / SGW / DRG</div></div>
         <div class="kpi"><div class="kpi-label"><span class="status-dot ok"></span>Route Tables</div><div class="kpi-value" id="kpiRoutes">0</div><div class="kpi-sub" id="kpiRouteSub">Route rule context</div></div>
+        <div class="kpi"><div class="kpi-label"><span class="status-dot warn"></span>Route Issues</div><div class="kpi-value" id="kpiRouteIssues">0</div><div class="kpi-sub" id="kpiRouteIssueSub">Route analysis</div></div>
         <div class="kpi"><div class="kpi-label"><span class="status-dot ok"></span>Security Lists</div><div class="kpi-value" id="kpiSecLists">0</div><div class="kpi-sub" id="kpiSecListSub">Ingress / egress rules</div></div>
         <div class="kpi"><div class="kpi-label"><span class="status-dot ok"></span>NSGs</div><div class="kpi-value" id="kpiNsgs">0</div><div class="kpi-sub" id="kpiNsgSub">Network Security Groups</div></div>
         <div class="kpi"><div class="kpi-label"><span class="status-dot warn"></span>Findings</div><div class="kpi-value" id="kpiFindings">0</div><div class="kpi-sub" id="kpiFindingSub">Security posture</div></div>
@@ -676,6 +677,14 @@ tr:last-child td { border-bottom: 0; }
           <span class="badge neutral" id="routeCountBadge">0</span>
         </summary>
         <div class="resource-list" id="routeList"></div>
+      </details>
+
+      <details class="card expander">
+        <summary class="card-header">
+          <div class="card-title">Route Issues</div>
+          <span class="badge neutral" id="routeIssueBadge">0</span>
+        </summary>
+        <div class="resource-list" id="routeIssueList"></div>
       </details>
 
       <details class="card expander">
@@ -735,6 +744,7 @@ const API_PATHS = {
   subnets: '/api/subnets',
   gateways: '/api/gateways',
   routeTables: '/api/route-tables',
+  routeIssues: '/api/route-issues',
   securityLists: '/api/security-lists',
   networkSecurityGroups: '/api/network-security-groups',
   topology: '/api/topology',
@@ -769,6 +779,17 @@ const DEMO_DATA = {
     { id: 'rt-public', name: 'public-route-table', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', lifecycle_state: 'AVAILABLE', route_rules: [{ destination: '0.0.0.0/0', destination_type: 'CIDR_BLOCK', network_entity_id: 'igw-01' }] },
     { id: 'rt-private', name: 'private-route-table', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', lifecycle_state: 'AVAILABLE', route_rules: [{ destination: '0.0.0.0/0', destination_type: 'CIDR_BLOCK', network_entity_id: 'nat-01' }] },
   ],
+  routeIssues: {
+    status: 'medium',
+    total_issues: 1,
+    critical_issues: 0,
+    high_issues: 0,
+    medium_issues: 1,
+    low_issues: 0,
+    issues: [
+      { severity: 'medium', issue_type: 'public_default_route', route_table_name: 'public-route-table', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', destination: '0.0.0.0/0', destination_type: 'CIDR_BLOCK', network_entity_id: 'igw-01', description: 'Route table sends default traffic to an Internet Gateway.', recommendation: 'Confirm this route table is only associated with public subnets.' }
+    ]
+  },
   securityLists: [
     { id: 'sl-public', name: 'public-security-list', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', lifecycle_state: 'AVAILABLE', ingress_rules: [{ protocol: '6', source: '0.0.0.0/0', min_port: 443, max_port: 443 }], egress_rules: [{ protocol: 'all', destination: '0.0.0.0/0' }] },
     { id: 'sl-admin-risk', name: 'admin-risk-review', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', lifecycle_state: 'AVAILABLE', ingress_rules: [{ protocol: '6', source: '0.0.0.0/0', min_port: 22, max_port: 22 }], egress_rules: [] },
@@ -863,6 +884,7 @@ async function loadApiData() {
     subnets,
     gateways,
     routeTables,
+    routeIssues,
     securityLists,
     networkSecurityGroups,
     topology,
@@ -874,6 +896,7 @@ async function loadApiData() {
     getJson(API_PATHS.subnets),
     getJson(API_PATHS.gateways),
     getJson(API_PATHS.routeTables),
+    getJson(API_PATHS.routeIssues),
     getJson(API_PATHS.securityLists),
     getJson(API_PATHS.networkSecurityGroups),
     getJson(API_PATHS.topology),
@@ -886,6 +909,7 @@ async function loadApiData() {
     subnets,
     gateways,
     routeTables,
+    routeIssues,
     securityLists,
     networkSecurityGroups,
     topology,
@@ -922,6 +946,7 @@ function renderDashboard(data, mode) {
   data.subnets = data.subnets || [];
   data.gateways = data.gateways || [];
   data.routeTables = data.routeTables || [];
+  data.routeIssues = data.routeIssues || { status: 'ok', total_issues: 0, issues: [] };
   data.securityLists = data.securityLists || [];
   data.networkSecurityGroups = data.networkSecurityGroups || [];
   data.securityPosture = data.securityPosture || { status: 'ok', total_findings: 0, findings: [] };
@@ -943,6 +968,7 @@ function renderDashboard(data, mode) {
   text('kpiSubnets', data.subnets.length);
   text('kpiGateways', data.gateways.length);
   text('kpiRoutes', data.routeTables.length);
+  text('kpiRouteIssues', data.routeIssues.total_issues || 0);
   text('kpiSecLists', data.securityLists.length);
   text('kpiNsgs', data.networkSecurityGroups.length);
   text('kpiFindings', data.securityPosture.total_findings || 0);
@@ -951,6 +977,7 @@ function renderDashboard(data, mode) {
   text('kpiSubnetSub', `${uniqueCount(data.subnets, 'vcn_id')} VCN links`);
   text('kpiGatewaySub', gatewayTypeSummary(data.gateways));
   text('kpiRouteSub', `${sum(data.routeTables, (item) => item.route_rules?.length || 0)} rules`);
+  text('kpiRouteIssueSub', `${data.routeIssues.status || 'ok'} route status`);
   text('kpiSecListSub', `${sum(data.securityLists, (item) => item.ingress_rules?.length || 0)} ingress rules`);
   text('kpiNsgSub', `${sum(data.networkSecurityGroups, (item) => item.ingress_rules?.length || 0)} ingress rules`);
   text('kpiFindingSub', `${data.securityPosture.status || 'ok'} posture`);
@@ -965,6 +992,7 @@ function renderDashboard(data, mode) {
   renderTopology(data);
   renderGateways(data.gateways, compartmentMap);
   renderRouteTables(data.routeTables, compartmentMap);
+  renderRouteIssues(data.routeIssues);
   renderSecurityLists(data.securityLists, compartmentMap);
   renderNetworkSecurityGroups(data.networkSecurityGroups, compartmentMap);
   renderFindings(data.securityPosture.findings || []);
@@ -1413,6 +1441,33 @@ function renderRouteTables(routeTables, compartmentMap) {
     badge: item.lifecycle_state || 'unknown',
     badgeClass: badgeClass(item.lifecycle_state === 'AVAILABLE'),
   }));
+}
+
+function renderRouteIssues(routeIssues) {
+  const issues = routeIssues.issues || [];
+  const badge = byId('routeIssueBadge');
+  badge.textContent = routeIssues.total_issues || 0;
+  badge.className = badgeClass(routeIssues.status || 'ok');
+
+  const list = byId('routeIssueList');
+  if (!issues.length) {
+    list.innerHTML = '<div class="empty">No route table issues detected by the current backend checks.</div>';
+    return;
+  }
+  list.innerHTML = issues.slice(0, 8).map((issue) => `
+    <div class="resource-row">
+      <div>
+        <div class="resource-name">${escapeHtml(issue.issue_type)} / ${escapeHtml(issue.route_table_name)}</div>
+        <div class="resource-meta">${escapeHtml(routeIssueMeta(issue))}</div>
+      </div>
+      <span class="${badgeClass(issue.severity)}">${escapeHtml(issue.severity)}</span>
+    </div>
+  `).join('');
+}
+
+function routeIssueMeta(issue) {
+  const route = [issue.destination, issue.network_entity_id].filter(Boolean).join(' -> ');
+  return route ? `${issue.description} / ${route}` : issue.description;
 }
 
 function renderSecurityLists(securityLists, compartmentMap) {

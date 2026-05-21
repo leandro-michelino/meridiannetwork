@@ -29,6 +29,7 @@ Implemented so far:
 - VCN and subnet inventory endpoints with optional live OCI mode.
 - Gateway inventory endpoint with optional live OCI mode.
 - Route table and security list inventory endpoints with optional live OCI mode.
+- Route table issue endpoint for empty tables, duplicate destinations, unresolved targets, disabled targets, and public default routes.
 - Network Security Group inventory endpoint with optional live OCI mode.
 - Topology graph endpoint derived from live OCI inventory.
 - OCI preflight endpoint for runtime IAM and network read validation.

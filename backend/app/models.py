@@ -111,6 +111,31 @@ class RouteTableSummary(BaseModel):
     time_created: str | None = None
 
 
+class RouteIssue(BaseModel):
+    severity: str
+    issue_type: str
+    route_table_id: str
+    route_table_name: str
+    region: str
+    compartment_id: str
+    vcn_id: str
+    destination: str | None = None
+    destination_type: str | None = None
+    network_entity_id: str | None = None
+    description: str
+    recommendation: str
+
+
+class RouteIssueSummary(BaseModel):
+    status: str
+    total_issues: int
+    critical_issues: int
+    high_issues: int
+    medium_issues: int
+    low_issues: int
+    issues: list[RouteIssue]
+
+
 class SecurityRuleSummary(BaseModel):
     direction: str
     protocol: str

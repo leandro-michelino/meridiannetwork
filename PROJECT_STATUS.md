@@ -25,6 +25,7 @@ Backend foundation scaffold.
 - Subnet inventory endpoint with optional live OCI support.
 - Gateway inventory endpoint with optional live OCI support.
 - Route table inventory endpoint with optional live OCI support.
+- Route table issue endpoint and dashboard panel.
 - Security list inventory endpoint with optional live OCI support.
 - Network Security Group inventory endpoint with optional live OCI support.
 - Topology graph endpoint derived from live OCI inventory.
@@ -52,11 +53,10 @@ Backend foundation scaffold.
 
 ## Recommended Next Work
 
-1. Add route table issue detection.
-2. Add richer security posture scoring.
-3. Add OCI response normalization for all collectors.
-4. Add dashboard filtering by configured compartment and region.
-5. Replace static HTML deployment with frontend build artifact deployment.
-6. Add remote Terraform state.
-7. Add HTTPS and private access pattern.
-8. Add Meridian self-monitoring.
+1. Add richer security posture scoring.
+2. Add OCI response normalization for all collectors.
+3. Add dashboard filtering by configured compartment and region.
+4. Replace static HTML deployment with frontend build artifact deployment.
+5. Add remote Terraform state.
+6. Add HTTPS and private access pattern.
+7. Add Meridian self-monitoring.

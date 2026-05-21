@@ -6,6 +6,7 @@ from app.services.compartments import CompartmentService
 from app.services.network_inventory import NetworkInventoryService
 from app.services.preflight import PreflightService
 from app.services.regions import RegionService
+from app.services.route_analysis import RouteAnalysisService
 from app.services.security_posture import SecurityPostureService
 
 
@@ -35,6 +36,12 @@ def get_security_posture_service(
     network_inventory: NetworkInventoryService = Depends(get_network_inventory_service),
 ) -> SecurityPostureService:
     return SecurityPostureService(network_inventory=network_inventory)
+
+
+def get_route_analysis_service(
+    network_inventory: NetworkInventoryService = Depends(get_network_inventory_service),
+) -> RouteAnalysisService:
+    return RouteAnalysisService(network_inventory=network_inventory)
 
 
 def get_preflight_service(

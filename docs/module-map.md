@@ -58,6 +58,7 @@ This is a compact map of the product modules described in the full specification
 - `/api/compartments`
 - `/api/vcns`
 - `/api/gateways`
+- `/api/route-issues`
 - `/api/network-security-groups`
 - `/api/topology`
 - `/api/flow-logs`

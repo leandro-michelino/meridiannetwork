@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.dependencies import get_network_inventory_service
+from app.dependencies import get_network_inventory_service, get_route_analysis_service
 from app.models import (
     GatewaySummary,
     NetworkSecurityGroupSummary,
+    RouteIssueSummary,
     RouteTableSummary,
     SecurityListSummary,
     SubnetSummary,
@@ -12,6 +13,7 @@ from app.models import (
 )
 from app.oci_clients import OciClientError
 from app.services.network_inventory import NetworkInventoryService, split_csv
+from app.services.route_analysis import RouteAnalysisService
 
 router = APIRouter(prefix="/api", tags=["network"])
 
@@ -80,6 +82,26 @@ def route_tables(
 ) -> list[RouteTableSummary]:
     try:
         return service.list_route_tables(
+            regions=split_csv(regions),
+            compartment_ids=split_csv(compartment_ids),
+            vcn_id=vcn_id,
+        )
+    except OciClientError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "OCI_CLIENT_ERROR", "message": str(exc)},
+        ) from exc
+
+
+@router.get("/route-issues", response_model=RouteIssueSummary)
+def route_issues(
+    regions: str | None = Query(default=None, description="Comma-separated OCI region names."),
+    compartment_ids: str | None = Query(default=None, description="Comma-separated compartment OCIDs."),
+    vcn_id: str | None = Query(default=None, description="Optional VCN OCID filter."),
+    service: RouteAnalysisService = Depends(get_route_analysis_service),
+) -> RouteIssueSummary:
+    try:
+        return service.summarize(
             regions=split_csv(regions),
             compartment_ids=split_csv(compartment_ids),
             vcn_id=vcn_id,
