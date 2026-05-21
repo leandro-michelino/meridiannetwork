@@ -46,6 +46,7 @@ GET /api/subnets
 GET /api/gateways
 GET /api/route-tables
 GET /api/security-lists
+GET /api/topology
 GET /api/drgs
 GET /api/vpns
 GET /api/fastconnect
@@ -58,6 +59,7 @@ Status:
 - `GET /api/gateways`: implemented for Internet Gateways, NAT Gateways, Service Gateways, and DRGs.
 - `GET /api/route-tables`: implemented.
 - `GET /api/security-lists`: implemented.
+- `GET /api/topology`: implemented as a graph derived from VCNs, subnets, gateways, route tables, and security lists.
 - Remaining endpoints: planned.
 
 Implemented query parameters:
@@ -68,6 +70,7 @@ GET /api/subnets?regions=eu-frankfurt-1&compartment_ids=<ocid>&vcn_id=<vcn_ocid>
 GET /api/gateways?regions=eu-frankfurt-1&compartment_ids=<ocid>&vcn_id=<vcn_ocid>
 GET /api/route-tables?regions=eu-frankfurt-1&compartment_ids=<ocid>&vcn_id=<vcn_ocid>
 GET /api/security-lists?regions=eu-frankfurt-1&compartment_ids=<ocid>&vcn_id=<vcn_ocid>
+GET /api/topology?regions=eu-frankfurt-1&compartment_ids=<ocid>&vcn_id=<vcn_ocid>
 ```
 
 If live OCI mode is disabled, these endpoints return empty lists.

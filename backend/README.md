@@ -13,6 +13,7 @@ FastAPI backend foundation for Meridian.
 - Subnet inventory endpoint with live OCI support when enabled.
 - Gateway inventory endpoint with live OCI support when enabled.
 - Route table and security list endpoints with live OCI support when enabled.
+- Topology graph endpoint derived from live OCI network inventory when enabled.
 - Initial security posture endpoint for broad ingress exposure.
 - Test suite for the implemented API surface.
 

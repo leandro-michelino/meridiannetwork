@@ -8,6 +8,8 @@
 - Add VCN and subnet inventory API endpoints.
 - Add gateway inventory API endpoint.
 - Add route table and security list inventory API endpoints.
+- Add topology graph API endpoint and dashboard graph rendering from live inventory relationships.
+- Add draggable, keyboard-navigable topology nodes with persisted browser layout positions.
 - Add initial security posture API endpoint.
 - Refresh the static dashboard prototype to consume implemented API endpoints with demo fallback data.
 - Add OCI client factory abstraction.

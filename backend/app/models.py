@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class HealthResponse(BaseModel):
@@ -57,6 +57,8 @@ class SubnetSummary(BaseModel):
     availability_domain: str | None = None
     dns_label: str | None = None
     prohibit_public_ip_on_vnic: bool | None = None
+    route_table_id: str | None = None
+    security_list_ids: list[str] = Field(default_factory=list)
     time_created: str | None = None
 
 
@@ -136,6 +138,30 @@ class SecurityPostureSummary(BaseModel):
     medium_findings: int
     low_findings: int
     findings: list[SecurityFinding]
+
+
+class TopologyNode(BaseModel):
+    id: str
+    name: str
+    resource_type: str
+    region: str | None = None
+    compartment_id: str | None = None
+    vcn_id: str | None = None
+    lifecycle_state: str | None = None
+    metadata: dict[str, str] = Field(default_factory=dict)
+
+
+class TopologyEdge(BaseModel):
+    id: str
+    source_id: str
+    target_id: str
+    relationship: str
+    metadata: dict[str, str] = Field(default_factory=dict)
+
+
+class TopologyGraph(BaseModel):
+    nodes: list[TopologyNode]
+    edges: list[TopologyEdge]
 
 
 class ErrorEnvelope(BaseModel):

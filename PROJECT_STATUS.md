@@ -14,6 +14,7 @@ Backend foundation scaffold.
 - Static dashboard inventory table with compartment context, subnet access classification, real OCI resource ID display, and pinned home-region navigation.
 - Static dashboard live mode refreshes in the background every 5 seconds.
 - Static dashboard operational panels use expanders to keep large inventories compact.
+- Static dashboard topology nodes are draggable and keyboard-navigable.
 - FastAPI backend foundation.
 - Health and readiness endpoints.
 - Regions endpoints.
@@ -23,6 +24,7 @@ Backend foundation scaffold.
 - Gateway inventory endpoint with optional live OCI support.
 - Route table inventory endpoint with optional live OCI support.
 - Security list inventory endpoint with optional live OCI support.
+- Topology graph endpoint derived from live OCI inventory.
 - Initial security posture endpoint for broad ingress exposure.
 - OCI client factory abstraction.
 - OCI Terraform baseline.

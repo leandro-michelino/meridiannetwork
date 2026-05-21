@@ -429,7 +429,7 @@ tr:last-child td { border-bottom: 0; }
 .blue { color: var(--mn-blue); }
 
 .topology {
-  min-height: 240px;
+  min-height: 360px;
   position: relative;
   border: 1px solid var(--mn-border-soft);
   border-radius: 7px;
@@ -445,11 +445,31 @@ tr:last-child td { border-bottom: 0; }
   pointer-events: none;
 }
 
-.topo-node {
+.topology-nodes {
   position: absolute;
-  width: 86px;
+  inset: 0;
+}
+
+.topo-node {
+  cursor: grab;
+  position: absolute;
+  touch-action: none;
+  width: 96px;
   transform: translate(-50%, -50%);
   text-align: center;
+  user-select: none;
+  z-index: 2;
+}
+
+.topo-node.dragging {
+  cursor: grabbing;
+  z-index: 5;
+}
+
+.topo-node.dragging .topo-icon,
+.topo-node:focus-visible .topo-icon {
+  border-color: var(--mn-orange);
+  box-shadow: 0 0 0 2px #ffe1d4;
 }
 
 .topo-icon {
@@ -474,8 +494,16 @@ tr:last-child td { border-bottom: 0; }
   white-space: nowrap;
 }
 
+.topology .empty {
+  left: 14px;
+  position: absolute;
+  right: 14px;
+  top: 14px;
+}
+
 .topo-meta {
   color: var(--mn-muted);
+  display: none;
   font-size: 9px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -543,6 +571,7 @@ tr:last-child td { border-bottom: 0; }
     grid-column: 1 / -1;
   }
 
+  .topology { min-height: 340px; }
   .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .content { padding: 12px; }
 }
@@ -594,31 +623,7 @@ tr:last-child td { border-bottom: 0; }
         </summary>
         <div class="topology" id="topology">
           <svg id="topologyLines" aria-hidden="true"></svg>
-          <div class="topo-node" id="nodeVcn" style="left:50%;top:48%;">
-            <div class="topo-icon">VCN</div>
-            <div class="topo-label" id="nodeVcnName">No VCN</div>
-            <div class="topo-meta" id="nodeVcnMeta">API pending</div>
-          </div>
-          <div class="topo-node" id="nodeIgw" style="left:18%;top:24%;">
-            <div class="topo-icon">IGW</div>
-            <div class="topo-label">Internet</div>
-            <div class="topo-meta" id="nodeIgwMeta">0</div>
-          </div>
-          <div class="topo-node" id="nodeNat" style="left:18%;top:74%;">
-            <div class="topo-icon">NAT</div>
-            <div class="topo-label">NAT</div>
-            <div class="topo-meta" id="nodeNatMeta">0</div>
-          </div>
-          <div class="topo-node" id="nodeSgw" style="left:82%;top:24%;">
-            <div class="topo-icon">SGW</div>
-            <div class="topo-label">Service</div>
-            <div class="topo-meta" id="nodeSgwMeta">0</div>
-          </div>
-          <div class="topo-node" id="nodeDrg" style="left:82%;top:74%;">
-            <div class="topo-icon">DRG</div>
-            <div class="topo-label">DRG</div>
-            <div class="topo-meta" id="nodeDrgMeta">0</div>
-          </div>
+          <div class="topology-nodes" id="topologyNodes"></div>
         </div>
       </details>
 
@@ -697,6 +702,7 @@ const API_PATHS = {
   gateways: '/api/gateways',
   routeTables: '/api/route-tables',
   securityLists: '/api/security-lists',
+  topology: '/api/topology',
   securityPosture: '/api/security/posture',
 };
 
@@ -714,9 +720,9 @@ const DEMO_DATA = {
     { id: 'vcn-dr-ams', name: 'vcn-dr-ams', region: 'eu-amsterdam-1', compartment_id: 'dr', cidr_blocks: ['10.20.0.0/16'], dns_label: 'dr', lifecycle_state: 'AVAILABLE' },
   ],
   subnets: [
-    { id: 'subnet-web', name: 'web-public', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', cidr_block: '10.0.10.0/24', dns_label: 'web', availability_domain: null, prohibit_public_ip_on_vnic: false, lifecycle_state: 'AVAILABLE' },
-    { id: 'subnet-app', name: 'app-private', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', cidr_block: '10.0.20.0/24', dns_label: 'app', availability_domain: null, prohibit_public_ip_on_vnic: true, lifecycle_state: 'AVAILABLE' },
-    { id: 'subnet-dr', name: 'dr-private', region: 'eu-amsterdam-1', compartment_id: 'dr', vcn_id: 'vcn-dr-ams', cidr_block: '10.20.10.0/24', dns_label: 'drapp', availability_domain: null, prohibit_public_ip_on_vnic: true, lifecycle_state: 'AVAILABLE' },
+    { id: 'subnet-web', name: 'web-public', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', cidr_block: '10.0.10.0/24', dns_label: 'web', availability_domain: null, prohibit_public_ip_on_vnic: false, route_table_id: 'rt-public', security_list_ids: ['sl-public'], lifecycle_state: 'AVAILABLE' },
+    { id: 'subnet-app', name: 'app-private', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', cidr_block: '10.0.20.0/24', dns_label: 'app', availability_domain: null, prohibit_public_ip_on_vnic: true, route_table_id: 'rt-private', security_list_ids: ['sl-admin-risk'], lifecycle_state: 'AVAILABLE' },
+    { id: 'subnet-dr', name: 'dr-private', region: 'eu-amsterdam-1', compartment_id: 'dr', vcn_id: 'vcn-dr-ams', cidr_block: '10.20.10.0/24', dns_label: 'drapp', availability_domain: null, prohibit_public_ip_on_vnic: true, route_table_id: null, security_list_ids: [], lifecycle_state: 'AVAILABLE' },
   ],
   gateways: [
     { id: 'igw-01', name: 'prod-internet-gateway', gateway_type: 'internet_gateway', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', lifecycle_state: 'AVAILABLE', is_enabled: true },
@@ -746,8 +752,13 @@ const DEMO_DATA = {
 };
 
 const AUTO_REFRESH_MS = 5000;
+const TOPOLOGY_POSITION_KEY = 'meridianTopologyNodePositions';
 let useDemoData = false;
 let refreshInFlight = false;
+let topologyEdges = [];
+let topologyNodeDomIds = {};
+let topologyLineFrame = 0;
+let topologyNodePositions = readTopologyPositions();
 
 function byId(id) {
   return document.getElementById(id);
@@ -756,6 +767,22 @@ function byId(id) {
 function text(id, value) {
   const el = byId(id);
   if (el) el.textContent = String(value);
+}
+
+function readTopologyPositions() {
+  try {
+    return JSON.parse(window.localStorage.getItem(TOPOLOGY_POSITION_KEY) || '{}');
+  } catch (error) {
+    return {};
+  }
+}
+
+function saveTopologyPositions() {
+  try {
+    window.localStorage.setItem(TOPOLOGY_POSITION_KEY, JSON.stringify(topologyNodePositions));
+  } catch (error) {
+    // Ignore storage failures; dragging should still work for the active render.
+  }
 }
 
 function badgeClass(status) {
@@ -782,7 +809,7 @@ async function getJson(path) {
 }
 
 async function loadApiData() {
-  const [activeRegions, compartments, vcns, subnets, gateways, routeTables, securityLists, securityPosture] = await Promise.all([
+  const [activeRegions, compartments, vcns, subnets, gateways, routeTables, securityLists, topology, securityPosture] = await Promise.all([
     getJson(API_PATHS.activeRegions),
     getJson(API_PATHS.compartments),
     getJson(API_PATHS.vcns),
@@ -790,9 +817,10 @@ async function loadApiData() {
     getJson(API_PATHS.gateways),
     getJson(API_PATHS.routeTables),
     getJson(API_PATHS.securityLists),
+    getJson(API_PATHS.topology),
     getJson(API_PATHS.securityPosture),
   ]);
-  return { activeRegions, compartments, vcns, subnets, gateways, routeTables, securityLists, securityPosture };
+  return { activeRegions, compartments, vcns, subnets, gateways, routeTables, securityLists, topology, securityPosture };
 }
 
 async function refreshDashboard({ showLoading = false } = {}) {
@@ -820,6 +848,7 @@ async function refreshDashboard({ showLoading = false } = {}) {
 function renderDashboard(data, mode) {
   data.activeRegions = data.activeRegions || [];
   data.compartments = data.compartments || [];
+  data.topology = data.topology || buildInventoryTopology(data);
   const observedRegions = new Set([
     ...data.vcns.map((item) => item.region),
     ...data.subnets.map((item) => item.region),
@@ -945,46 +974,309 @@ function regionGeo(region) {
 }
 
 function renderTopology(data) {
-  const primaryVcn = data.vcns[0];
-  text('nodeVcnName', primaryVcn?.name || 'No VCN');
-  text('nodeVcnMeta', primaryVcn?.cidr_blocks?.join(', ') || 'API pending');
-  text('nodeIgwMeta', countGateways(data.gateways, 'internet_gateway'));
-  text('nodeNatMeta', countGateways(data.gateways, 'nat_gateway'));
-  text('nodeSgwMeta', countGateways(data.gateways, 'service_gateway'));
-  text('nodeDrgMeta', countGateways(data.gateways, 'dynamic_routing_gateway'));
-  drawTopologyLines();
+  const topology = data.topology || buildInventoryTopology(data);
+  const nodes = topology.nodes || [];
+  topologyEdges = topology.edges || [];
+  topologyNodeDomIds = {};
+  text('topologyBadge', `${nodes.length} nodes / ${topologyEdges.length} links`);
+
+  const container = byId('topologyNodes');
+  if (!nodes.length) {
+    container.innerHTML = '<div class="empty">No topology graph returned yet. Enable live OCI mode or use demo data.</div>';
+    byId('topologyLines').innerHTML = '';
+    return;
+  }
+
+  const positions = topologyLayout(nodes);
+  container.innerHTML = nodes.map((node, index) => {
+    const domId = `topologyNode${index}`;
+    topologyNodeDomIds[node.id] = domId;
+    const position = topologyNodePositions[node.id] || positions[node.id] || { x: 50, y: 50 };
+    return `
+      <div class="topo-node" id="${domId}" data-node-id="${escapeHtml(node.id)}" role="button" tabindex="0" aria-label="${escapeHtml(`${node.name || node.id} topology node`)}" style="left:${position.x}%;top:${position.y}%;" title="${escapeHtml(node.id)}">
+        <div class="topo-icon">${escapeHtml(topologyIcon(node.resource_type))}</div>
+        <div class="topo-label">${escapeHtml(node.name || node.id)}</div>
+        <div class="topo-meta">${escapeHtml(topologyMeta(node))}</div>
+      </div>
+    `;
+  }).join('');
+
+  attachTopologyInteractions(container);
+  scheduleDrawTopologyLines();
 }
 
-function countGateways(gateways, type) {
-  return gateways.filter((item) => item.gateway_type === type).length;
+function buildInventoryTopology(data) {
+  const nodes = [];
+  const edges = [];
+  const edgeKeys = new Set();
+  const addEdge = (sourceId, targetId, relationship, metadata = {}) => {
+    if (!sourceId || !targetId) return;
+    const key = `${sourceId}|${targetId}|${relationship}`;
+    if (edgeKeys.has(key)) return;
+    edgeKeys.add(key);
+    edges.push({ id: key, source_id: sourceId, target_id: targetId, relationship, metadata });
+  };
+
+  data.vcns.forEach((item) => {
+    nodes.push({
+      id: item.id,
+      name: item.name,
+      resource_type: 'vcn',
+      region: item.region,
+      compartment_id: item.compartment_id,
+      lifecycle_state: item.lifecycle_state,
+      metadata: { cidr_blocks: item.cidr_blocks?.join(', ') || '', dns_label: item.dns_label || '' },
+    });
+  });
+  data.subnets.forEach((item) => {
+    nodes.push({
+      id: item.id,
+      name: item.name,
+      resource_type: 'subnet',
+      region: item.region,
+      compartment_id: item.compartment_id,
+      vcn_id: item.vcn_id,
+      lifecycle_state: item.lifecycle_state,
+      metadata: { cidr_block: item.cidr_block, subnet_access: subnetAccessMode(item).toLowerCase() },
+    });
+    addEdge(item.vcn_id, item.id, 'contains_subnet');
+    addEdge(item.id, item.route_table_id, 'uses_route_table');
+    (item.security_list_ids || []).forEach((securityListId) => addEdge(item.id, securityListId, 'uses_security_list'));
+  });
+  data.gateways.forEach((item) => {
+    nodes.push({
+      id: item.id,
+      name: item.name,
+      resource_type: item.gateway_type,
+      region: item.region,
+      compartment_id: item.compartment_id,
+      vcn_id: item.vcn_id,
+      lifecycle_state: item.lifecycle_state,
+      metadata: { enabled: String(item.is_enabled ?? '') },
+    });
+    addEdge(item.vcn_id, item.id, 'has_gateway');
+  });
+  data.routeTables.forEach((item) => {
+    nodes.push({
+      id: item.id,
+      name: item.name,
+      resource_type: 'route_table',
+      region: item.region,
+      compartment_id: item.compartment_id,
+      vcn_id: item.vcn_id,
+      lifecycle_state: item.lifecycle_state,
+      metadata: { route_rules: String(item.route_rules?.length || 0) },
+    });
+    addEdge(item.vcn_id, item.id, 'has_route_table');
+    (item.route_rules || []).forEach((rule, index) => {
+      addEdge(item.id, rule.network_entity_id, 'routes_to', {
+        destination: rule.destination || '',
+        destination_type: rule.destination_type || '',
+        rule_index: String(index),
+      });
+    });
+  });
+  data.securityLists.forEach((item) => {
+    nodes.push({
+      id: item.id,
+      name: item.name,
+      resource_type: 'security_list',
+      region: item.region,
+      compartment_id: item.compartment_id,
+      vcn_id: item.vcn_id,
+      lifecycle_state: item.lifecycle_state,
+      metadata: {
+        ingress_rules: String(item.ingress_rules?.length || 0),
+        egress_rules: String(item.egress_rules?.length || 0),
+      },
+    });
+    addEdge(item.vcn_id, item.id, 'has_security_list');
+  });
+
+  const nodeIds = new Set(nodes.map((node) => node.id));
+  return { nodes, edges: edges.filter((edge) => nodeIds.has(edge.source_id) && nodeIds.has(edge.target_id)) };
+}
+
+function topologyLayout(nodes) {
+  const columns = {
+    left: {
+      x: 18,
+      y1: 20,
+      y2: 82,
+      types: new Set(['subnet', 'security_list']),
+    },
+    center: {
+      x: 50,
+      y1: 26,
+      y2: 78,
+      types: new Set(['vcn', 'route_table']),
+    },
+    right: {
+      x: 82,
+      y1: 20,
+      y2: 82,
+      types: new Set(['internet_gateway', 'nat_gateway', 'service_gateway', 'dynamic_routing_gateway']),
+    },
+  };
+  const columnFor = (node) => Object.values(columns).find((column) => column.types.has(node.resource_type)) || columns.center;
+  const groups = nodes.reduce((acc, node) => {
+    const key = Object.entries(columns).find(([, column]) => column.types.has(node.resource_type))?.[0] || 'center';
+    acc[key] = acc[key] || [];
+    acc[key].push(node);
+    return acc;
+  }, {});
+  const positions = {};
+  Object.entries(groups).forEach(([key, group]) => {
+    const band = columns[key] || columnFor(group[0]);
+    group.forEach((node, index) => {
+      const ratio = group.length === 1 ? 0.5 : index / (group.length - 1);
+      positions[node.id] = { x: band.x, y: band.y1 + (band.y2 - band.y1) * ratio };
+    });
+  });
+  return positions;
+}
+
+function topologyIcon(type) {
+  return {
+    vcn: 'VCN',
+    subnet: 'SUB',
+    route_table: 'RT',
+    security_list: 'SL',
+    internet_gateway: 'IGW',
+    nat_gateway: 'NAT',
+    service_gateway: 'SGW',
+    dynamic_routing_gateway: 'DRG',
+  }[type] || 'OCI';
+}
+
+function topologyMeta(node) {
+  const metadata = node.metadata || {};
+  if (metadata.cidr_blocks) return metadata.cidr_blocks;
+  if (metadata.cidr_block) return metadata.cidr_block;
+  if (metadata.route_rules) return `${metadata.route_rules} rules`;
+  if (metadata.ingress_rules || metadata.egress_rules) return `${metadata.ingress_rules || 0} in / ${metadata.egress_rules || 0} out`;
+  return node.region || node.resource_type;
+}
+
+function attachTopologyInteractions(container) {
+  container.querySelectorAll('.topo-node').forEach((node) => {
+    node.addEventListener('pointerdown', startTopologyNodeDrag);
+    node.addEventListener('keydown', handleTopologyNodeKeydown);
+  });
+}
+
+function startTopologyNodeDrag(event) {
+  if (event.button !== 0 && event.pointerType !== 'touch') return;
+  const node = event.currentTarget;
+  event.preventDefault();
+  node.classList.add('dragging');
+  node.setPointerCapture(event.pointerId);
+  updateTopologyNodePosition(node, event.clientX, event.clientY);
+
+  const move = (moveEvent) => {
+    updateTopologyNodePosition(node, moveEvent.clientX, moveEvent.clientY);
+  };
+  const end = () => {
+    node.classList.remove('dragging');
+    try {
+      node.releasePointerCapture(event.pointerId);
+    } catch (error) {
+      // Pointer capture may already be released by the browser.
+    }
+    node.removeEventListener('pointermove', move);
+    node.removeEventListener('pointerup', end);
+    node.removeEventListener('pointercancel', end);
+    saveTopologyPositions();
+  };
+
+  node.addEventListener('pointermove', move);
+  node.addEventListener('pointerup', end);
+  node.addEventListener('pointercancel', end);
+}
+
+function handleTopologyNodeKeydown(event) {
+  const node = event.currentTarget;
+  const current = topologyNodePositions[node.dataset.nodeId] || {
+    x: Number.parseFloat(node.style.left) || 50,
+    y: Number.parseFloat(node.style.top) || 50,
+  };
+  const step = event.shiftKey ? 5 : 2;
+  const next = { ...current };
+  if (event.key === 'ArrowLeft') next.x -= step;
+  else if (event.key === 'ArrowRight') next.x += step;
+  else if (event.key === 'ArrowUp') next.y -= step;
+  else if (event.key === 'ArrowDown') next.y += step;
+  else return;
+
+  event.preventDefault();
+  setTopologyNodePosition(node, next.x, next.y);
+  saveTopologyPositions();
+}
+
+function updateTopologyNodePosition(node, clientX, clientY) {
+  const rect = byId('topology').getBoundingClientRect();
+  const x = ((clientX - rect.left) / rect.width) * 100;
+  const y = ((clientY - rect.top) / rect.height) * 100;
+  setTopologyNodePosition(node, x, y);
+}
+
+function setTopologyNodePosition(node, x, y) {
+  const position = {
+    x: clamp(x, 7, 93),
+    y: clamp(y, 9, 91),
+  };
+  node.style.left = `${position.x}%`;
+  node.style.top = `${position.y}%`;
+  topologyNodePositions[node.dataset.nodeId] = position;
+  scheduleDrawTopologyLines();
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function scheduleDrawTopologyLines() {
+  if (topologyLineFrame) return;
+  topologyLineFrame = window.requestAnimationFrame(() => {
+    topologyLineFrame = 0;
+    drawTopologyLines();
+  });
 }
 
 function drawTopologyLines() {
   const svg = byId('topologyLines');
   const area = byId('topology');
   const rect = area.getBoundingClientRect();
-  const pairs = [
-    ['nodeVcn', 'nodeIgw', '#185fa5'],
-    ['nodeVcn', 'nodeNat', '#2f6b2f'],
-    ['nodeVcn', 'nodeSgw', '#534ab7'],
-    ['nodeVcn', 'nodeDrg', '#8a5a00'],
-  ];
   svg.innerHTML = '';
-  pairs.forEach(([from, to, color]) => {
-    const a = centerOf(from, rect);
-    const b = centerOf(to, rect);
+  topologyEdges.forEach((edge) => {
+    const sourceDomId = topologyNodeDomIds[edge.source_id];
+    const targetDomId = topologyNodeDomIds[edge.target_id];
+    const a = centerOf(sourceDomId, rect);
+    const b = centerOf(targetDomId, rect);
     if (!a || !b) return;
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     line.setAttribute('x1', a.x);
     line.setAttribute('y1', a.y);
     line.setAttribute('x2', b.x);
     line.setAttribute('y2', b.y);
-    line.setAttribute('stroke', color);
+    line.setAttribute('stroke', topologyEdgeColor(edge.relationship));
     line.setAttribute('stroke-width', '1.5');
     line.setAttribute('stroke-dasharray', '5 4');
     line.setAttribute('opacity', '0.65');
     svg.appendChild(line);
   });
+}
+
+function topologyEdgeColor(relationship) {
+  return {
+    contains_subnet: '#185fa5',
+    has_gateway: '#2f6b2f',
+    has_route_table: '#8a5a00',
+    routes_to: '#534ab7',
+    has_security_list: '#a32d2d',
+    uses_route_table: '#8a5a00',
+    uses_security_list: '#a32d2d',
+  }[relationship] || '#66717f';
 }
 
 function centerOf(id, parentRect) {
@@ -1143,11 +1435,11 @@ document.addEventListener('click', (event) => {
 });
 document.querySelectorAll('details.expander').forEach((panel) => {
   panel.addEventListener('toggle', () => {
-    if (panel.id === 'topologyPanel' && panel.open) window.requestAnimationFrame(drawTopologyLines);
+    if (panel.id === 'topologyPanel' && panel.open) scheduleDrawTopologyLines();
   });
 });
 
-window.addEventListener('resize', drawTopologyLines);
+window.addEventListener('resize', scheduleDrawTopologyLines);
 refreshDashboard({ showLoading: true });
 window.setInterval(() => {
   if (!useDemoData) refreshDashboard();

@@ -56,6 +56,7 @@ This is a compact map of the product modules described in the full specification
 - `/api/compartments`
 - `/api/vcns`
 - `/api/gateways`
+- `/api/topology`
 - `/api/flow-logs`
 - `/api/alarms`
 - `/api/latency`
@@ -71,4 +72,3 @@ This is a compact map of the product modules described in the full specification
 - `/api/dns`
 - `/api/drg`
 - `/api/genai`
-

@@ -38,6 +38,29 @@ relationships
 risk_summary
 ```
 
+## TopologyGraph
+
+Used by the dashboard to draw discovered OCI network relationships.
+
+```text
+nodes[]
+  id
+  name
+  resource_type
+  region
+  compartment_id
+  vcn_id
+  lifecycle_state
+  metadata
+
+edges[]
+  id
+  source_id
+  target_id
+  relationship
+  metadata
+```
+
 ## MetricPoint
 
 ```text
@@ -130,4 +153,3 @@ unit_price
 estimated_cost
 currency
 ```
-

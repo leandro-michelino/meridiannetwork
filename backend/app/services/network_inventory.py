@@ -9,6 +9,9 @@ from app.models import (
     SecurityListSummary,
     SecurityRuleSummary,
     SubnetSummary,
+    TopologyEdge,
+    TopologyGraph,
+    TopologyNode,
     VcnSummary,
 )
 from app.oci_clients import OciClientFactory, OciClientError
@@ -93,10 +96,145 @@ class NetworkInventoryService:
                             availability_domain=item.availability_domain,
                             dns_label=item.dns_label,
                             prohibit_public_ip_on_vnic=item.prohibit_public_ip_on_vnic,
+                            route_table_id=getattr(item, "route_table_id", None),
+                            security_list_ids=list(getattr(item, "security_list_ids", None) or []),
                             time_created=_timestamp(item.time_created),
                         )
                     )
         return results
+
+    def get_topology(
+        self,
+        regions: list[str] | None = None,
+        compartment_ids: list[str] | None = None,
+        vcn_id: str | None = None,
+    ) -> TopologyGraph:
+        vcns = self.list_vcns(regions=regions, compartment_ids=compartment_ids)
+        subnets = self.list_subnets(regions=regions, compartment_ids=compartment_ids, vcn_id=vcn_id)
+        gateways = self.list_gateways(regions=regions, compartment_ids=compartment_ids, vcn_id=vcn_id)
+        route_tables = self.list_route_tables(regions=regions, compartment_ids=compartment_ids, vcn_id=vcn_id)
+        security_lists = self.list_security_lists(regions=regions, compartment_ids=compartment_ids, vcn_id=vcn_id)
+
+        selected_vcn_ids = {vcn_id} if vcn_id else {vcn.id for vcn in vcns}
+        nodes: list[TopologyNode] = []
+        edges: list[TopologyEdge] = []
+        edge_keys: set[tuple[str, str, str]] = set()
+
+        for vcn in vcns:
+            if selected_vcn_ids and vcn.id not in selected_vcn_ids:
+                continue
+            nodes.append(
+                TopologyNode(
+                    id=vcn.id,
+                    name=vcn.name,
+                    resource_type="vcn",
+                    region=vcn.region,
+                    compartment_id=vcn.compartment_id,
+                    lifecycle_state=vcn.lifecycle_state,
+                    metadata={"cidr_blocks": ", ".join(vcn.cidr_blocks), "dns_label": vcn.dns_label or ""},
+                )
+            )
+
+        for subnet in subnets:
+            if selected_vcn_ids and subnet.vcn_id not in selected_vcn_ids:
+                continue
+            nodes.append(
+                TopologyNode(
+                    id=subnet.id,
+                    name=subnet.name,
+                    resource_type="subnet",
+                    region=subnet.region,
+                    compartment_id=subnet.compartment_id,
+                    vcn_id=subnet.vcn_id,
+                    lifecycle_state=subnet.lifecycle_state,
+                    metadata={
+                        "cidr_block": subnet.cidr_block,
+                        "subnet_access": "private"
+                        if subnet.prohibit_public_ip_on_vnic is True
+                        else "public"
+                        if subnet.prohibit_public_ip_on_vnic is False
+                        else "unknown",
+                    },
+                )
+            )
+            self._add_topology_edge(edges, edge_keys, subnet.vcn_id, subnet.id, "contains_subnet")
+            if subnet.route_table_id:
+                self._add_topology_edge(edges, edge_keys, subnet.id, subnet.route_table_id, "uses_route_table")
+            for security_list_id in subnet.security_list_ids:
+                self._add_topology_edge(edges, edge_keys, subnet.id, security_list_id, "uses_security_list")
+
+        for gateway in gateways:
+            nodes.append(
+                TopologyNode(
+                    id=gateway.id,
+                    name=gateway.name,
+                    resource_type=gateway.gateway_type,
+                    region=gateway.region,
+                    compartment_id=gateway.compartment_id,
+                    vcn_id=gateway.vcn_id,
+                    lifecycle_state=gateway.lifecycle_state,
+                    metadata={"enabled": str(gateway.is_enabled) if gateway.is_enabled is not None else ""},
+                )
+            )
+            if gateway.vcn_id:
+                self._add_topology_edge(edges, edge_keys, gateway.vcn_id, gateway.id, "has_gateway")
+
+        for route_table in route_tables:
+            if selected_vcn_ids and route_table.vcn_id not in selected_vcn_ids:
+                continue
+            nodes.append(
+                TopologyNode(
+                    id=route_table.id,
+                    name=route_table.name,
+                    resource_type="route_table",
+                    region=route_table.region,
+                    compartment_id=route_table.compartment_id,
+                    vcn_id=route_table.vcn_id,
+                    lifecycle_state=route_table.lifecycle_state,
+                    metadata={"route_rules": str(len(route_table.route_rules))},
+                )
+            )
+            self._add_topology_edge(edges, edge_keys, route_table.vcn_id, route_table.id, "has_route_table")
+            for index, rule in enumerate(route_table.route_rules):
+                if rule.network_entity_id:
+                    self._add_topology_edge(
+                        edges,
+                        edge_keys,
+                        route_table.id,
+                        rule.network_entity_id,
+                        "routes_to",
+                        {
+                            "destination": rule.destination or "",
+                            "destination_type": rule.destination_type or "",
+                            "rule_index": str(index),
+                        },
+                    )
+
+        for security_list in security_lists:
+            if selected_vcn_ids and security_list.vcn_id not in selected_vcn_ids:
+                continue
+            nodes.append(
+                TopologyNode(
+                    id=security_list.id,
+                    name=security_list.name,
+                    resource_type="security_list",
+                    region=security_list.region,
+                    compartment_id=security_list.compartment_id,
+                    vcn_id=security_list.vcn_id,
+                    lifecycle_state=security_list.lifecycle_state,
+                    metadata={
+                        "ingress_rules": str(len(security_list.ingress_rules)),
+                        "egress_rules": str(len(security_list.egress_rules)),
+                    },
+                )
+            )
+            self._add_topology_edge(edges, edge_keys, security_list.vcn_id, security_list.id, "has_security_list")
+
+        node_ids = {node.id for node in nodes}
+        return TopologyGraph(
+            nodes=nodes,
+            edges=[edge for edge in edges if edge.source_id in node_ids and edge.target_id in node_ids],
+        )
 
     def list_gateways(
         self,
@@ -297,6 +435,29 @@ class NetworkInventoryService:
             max_port=getattr(port_range, "max", None),
             description=getattr(rule, "description", None),
             is_stateless=getattr(rule, "is_stateless", None),
+        )
+
+    def _add_topology_edge(
+        self,
+        edges: list[TopologyEdge],
+        edge_keys: set[tuple[str, str, str]],
+        source_id: str,
+        target_id: str,
+        relationship: str,
+        metadata: dict[str, str] | None = None,
+    ) -> None:
+        key = (source_id, target_id, relationship)
+        if key in edge_keys:
+            return
+        edge_keys.add(key)
+        edges.append(
+            TopologyEdge(
+                id=f"{relationship}:{source_id}:{target_id}",
+                source_id=source_id,
+                target_id=target_id,
+                relationship=relationship,
+                metadata=metadata or {},
+            )
         )
 
     def _region_scope(self, regions: list[str] | None) -> list[str]:

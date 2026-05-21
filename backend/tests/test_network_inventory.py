@@ -11,6 +11,12 @@ class OciObject:
 
 
 class FakeVirtualNetworkClient:
+    def list_vcns(self, **kwargs):
+        return kwargs
+
+    def list_subnets(self, **kwargs):
+        return kwargs
+
     def list_route_tables(self, **kwargs):
         return kwargs
 
@@ -36,6 +42,36 @@ class FakeClientFactory:
 
     def list_all(self, list_func, **kwargs):
         method_name = list_func.__name__
+        if method_name == "list_vcns":
+            return [
+                OciObject(
+                    id="vcn-1",
+                    display_name="vcn",
+                    compartment_id="compartment-1",
+                    cidr_blocks=["10.0.0.0/16"],
+                    cidr_block="10.0.0.0/16",
+                    lifecycle_state="AVAILABLE",
+                    dns_label="vcn",
+                    time_created=None,
+                )
+            ]
+        if method_name == "list_subnets":
+            return [
+                OciObject(
+                    id="subnet-1",
+                    display_name="public-subnet",
+                    compartment_id="compartment-1",
+                    vcn_id="vcn-1",
+                    cidr_block="10.0.1.0/24",
+                    lifecycle_state="AVAILABLE",
+                    availability_domain=None,
+                    dns_label="web",
+                    prohibit_public_ip_on_vnic=False,
+                    route_table_id="rt-1",
+                    security_list_ids=["sl-1"],
+                    time_created=None,
+                )
+            ]
         if method_name == "list_route_tables":
             return [
                 OciObject(
@@ -174,6 +210,15 @@ def test_gateways_returns_empty_without_live_oci():
     assert response.json() == []
 
 
+def test_topology_returns_empty_graph_without_live_oci():
+    client = TestClient(create_app())
+
+    response = client.get("/api/topology")
+
+    assert response.status_code == 200
+    assert response.json() == {"nodes": [], "edges": []}
+
+
 def test_gateway_service_maps_supported_gateway_types():
     settings = Settings(
         enable_live_oci=True,
@@ -225,3 +270,26 @@ def test_security_list_service_maps_security_rules():
     assert security_lists[0].ingress_rules[0].source == "0.0.0.0/0"
     assert security_lists[0].ingress_rules[0].min_port == 22
     assert security_lists[0].egress_rules[0].destination == "0.0.0.0/0"
+
+
+def test_topology_service_builds_resource_graph():
+    settings = Settings(
+        enable_live_oci=True,
+        tenancy_ocid="compartment-1",
+        active_regions=["eu-frankfurt-1"],
+    )
+    service = NetworkInventoryService(settings=settings, client_factory=FakeClientFactory())
+
+    topology = service.get_topology(compartment_ids=["compartment-1"], regions=["eu-frankfurt-1"])
+    node_types = {node.id: node.resource_type for node in topology.nodes}
+    edge_keys = {(edge.source_id, edge.target_id, edge.relationship) for edge in topology.edges}
+
+    assert node_types["vcn-1"] == "vcn"
+    assert node_types["subnet-1"] == "subnet"
+    assert node_types["rt-1"] == "route_table"
+    assert node_types["sl-1"] == "security_list"
+    assert node_types["igw-1"] == "internet_gateway"
+    assert ("vcn-1", "subnet-1", "contains_subnet") in edge_keys
+    assert ("subnet-1", "rt-1", "uses_route_table") in edge_keys
+    assert ("subnet-1", "sl-1", "uses_security_list") in edge_keys
+    assert ("rt-1", "igw-1", "routes_to") in edge_keys
