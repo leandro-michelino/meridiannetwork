@@ -1,0 +1,20 @@
+tenancy_ocid     = "ocid1.tenancy.oc1..replace-me"
+compartment_ocid = "ocid1.compartment.oc1..replace-me"
+region           = "eu-frankfurt-1"
+oci_profile      = "DEFAULT"
+
+# Use a narrow CIDR whenever possible, for example your office or VPN public IP.
+admin_cidr_blocks = [
+  "203.0.113.10/32"
+]
+
+ssh_public_key_path = "~/.ssh/id_rsa.pub"
+
+# Optional sizing.
+instance_shape     = "VM.Standard.E5.Flex"
+instance_ocpus     = 1
+instance_memory_gb = 8
+
+# Enable only after reviewing IAM policy statements.
+create_identity_policies = false
+

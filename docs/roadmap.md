@@ -1,0 +1,69 @@
+# Roadmap
+
+## Phase 0 - Repository and Deployment Foundation
+
+Status: in progress.
+
+- Terraform OCI baseline.
+- Ansible host bootstrap.
+- Static dashboard publishing.
+- Documentation and CI validation.
+
+## Phase 1 - Backend Foundation
+
+- Python FastAPI application.
+- OCI SDK client factory.
+- Instance principal support.
+- API key profile support for development.
+- Health endpoint.
+- Structured logging.
+
+## Phase 2 - Core Network Inventory
+
+- Regions and compartments.
+- VCNs, subnets, route tables, gateways.
+- DRG attachments.
+- VPN and FastConnect status.
+- Normalized resource model.
+
+## Phase 3 - Metrics and Alarms
+
+- OCI Monitoring queries.
+- Gateway metrics.
+- VNIC top consumers.
+- Active alarm aggregation.
+- Threshold configuration.
+
+## Phase 4 - Logs and Security Posture
+
+- VCN Flow Logs.
+- Rejected traffic analysis.
+- Risky security list and NSG rules.
+- Audit change feed.
+
+## Phase 5 - Advanced Network Modules
+
+- OKE network health.
+- Load Balancer health and certificate expiry.
+- Private DNS visibility.
+- DRG route inspector.
+- Synthetic health checks.
+- Cost-aware egress.
+
+## Phase 6 - Intelligence Layer
+
+- Alarm explanation with OCI GenAI.
+- Natural language flow log query assistance.
+- Security risk narrative.
+- Change impact analysis.
+- DR readiness summary.
+
+## Phase 7 - Production Hardening
+
+- Remote Terraform state.
+- HTTPS and private access pattern.
+- Containerized backend/frontend.
+- CI/CD deployment pipeline.
+- Automated tests.
+- Observability for Meridian itself.
+

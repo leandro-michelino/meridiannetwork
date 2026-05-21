@@ -1,0 +1,8 @@
+---
+meridian_app_name: meridian
+meridian_app_port: 8080
+meridian_app_root: /opt/meridian
+meridian_web_root: /var/www/meridian
+meridian_server_name: _
+meridian_runtime_user: meridian
+

@@ -1,0 +1,353 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+.dash { background: #fff; font-family: var(--font-sans); }
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; border-bottom: 0.5px solid var(--color-border-tertiary); background: #fff; flex-wrap: wrap; gap: 10px; }
+.topbar-left { display: flex; align-items: center; gap: 10px; }
+.logo-badge { width: 28px; height: 28px; border-radius: 7px; background: #C94D20; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.logo-badge span { color: #fff; font-size: 12px; font-weight: 500; }
+.topbar-title { font-size: 15px; font-weight: 500; color: var(--color-text-primary); }
+.topbar-sub { font-size: 12px; color: var(--color-text-secondary); }
+.topbar-right { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+.region-group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.region-divider { width: 1px; height: 18px; background: var(--color-border-tertiary); margin: 0 2px; }
+
+.pill { font-size: 12px; padding: 4px 10px; border: 0.5px solid var(--color-border-secondary); border-radius: 20px; color: var(--color-text-secondary); background: var(--color-background-secondary); cursor: pointer; user-select: none; display: flex; align-items: center; gap: 5px; transition: all 0.15s; white-space: nowrap; }
+.pill:hover { border-color: var(--color-border-primary); }
+.pill.active { border-color: #C94D20; color: #C94D20; background: #FFF0EB; }
+.pill.home { border-color: #C94D20; color: #C94D20; background: #FFF0EB; font-weight: 500; }
+.pill.home .home-dot { width: 6px; height: 6px; border-radius: 50%; background: #C94D20; display: inline-block; }
+.pill.extra { position: relative; }
+.pill.extra .remove-x { font-size: 11px; color: var(--color-text-secondary); margin-left: 2px; cursor: pointer; opacity: 0.6; }
+.pill.extra .remove-x:hover { opacity: 1; color: #A32D2D; }
+.pill.extra.active .remove-x { color: #C94D20; opacity: 0.7; }
+.pill.extra.active .remove-x:hover { opacity: 1; color: #A32D2D; }
+
+.add-btn { font-size: 12px; padding: 4px 10px; border: 0.5px dashed var(--color-border-secondary); border-radius: 20px; color: var(--color-text-secondary); background: transparent; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.15s; white-space: nowrap; }
+.add-btn:hover { border-color: var(--color-border-primary); color: var(--color-text-primary); background: var(--color-background-secondary); }
+
+.dropdown-wrap { position: relative; }
+.region-dropdown { position: absolute; top: calc(100% + 6px); right: 0; background: #fff; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-lg); min-width: 220px; z-index: 100; box-shadow: 0 4px 16px rgba(0,0,0,0.08); overflow: hidden; }
+.dd-header { padding: 10px 12px 6px; font-size: 11px; color: var(--color-text-secondary); font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 0.5px solid var(--color-border-tertiary); }
+.dd-search { padding: 8px 12px; border-bottom: 0.5px solid var(--color-border-tertiary); }
+.dd-search input { width: 100%; font-size: 12px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); padding: 5px 8px; color: var(--color-text-primary); background: var(--color-background-secondary); outline: none; }
+.dd-search input:focus { border-color: #C94D20; }
+.dd-list { max-height: 200px; overflow-y: auto; }
+.dd-item { padding: 8px 12px; font-size: 12px; color: var(--color-text-primary); cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 8px; transition: background 0.1s; }
+.dd-item:hover { background: var(--color-background-secondary); }
+.dd-item.added { color: var(--color-text-secondary); cursor: default; }
+.dd-item.added:hover { background: transparent; }
+.dd-item-region { font-weight: 500; }
+.dd-item-geo { font-size: 10px; color: var(--color-text-secondary); }
+.dd-check { font-size: 13px; color: #3B6D11; }
+.dd-empty { padding: 12px; font-size: 12px; color: var(--color-text-secondary); text-align: center; }
+
+.refresh-btn { display: flex; align-items: center; gap: 5px; font-size: 12px; padding: 5px 10px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); color: var(--color-text-secondary); cursor: pointer; background: transparent; white-space: nowrap; }
+
+.content { padding: 16px 20px; }
+.section-label { font-size: 11px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px; }
+.kpi-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 16px; }
+.kpi { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 12px 14px; }
+.kpi-label { font-size: 11px; color: var(--color-text-secondary); margin-bottom: 4px; display: flex; align-items: center; gap: 5px; }
+.kpi-value { font-size: 22px; font-weight: 500; color: var(--color-text-primary); line-height: 1; }
+.kpi-sub { font-size: 11px; color: var(--color-text-secondary); margin-top: 3px; }
+.dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.dot-green { background: #3B6D11; } .dot-red { background: #A32D2D; } .dot-amber { background: #854F0B; }
+.mid-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.card { background: #fff; border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 14px 16px; }
+.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.card-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); display: flex; align-items: center; gap: 6px; }
+.card-badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; }
+.badge-ok { background: #EAF3DE; color: #3B6D11; } .badge-warn { background: #FAEEDA; color: #854F0B; } .badge-err { background: #FCEBEB; color: #A32D2D; }
+.gw-list { display: flex; flex-direction: column; gap: 8px; }
+.gw-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-tertiary); background: var(--color-background-secondary); }
+.gw-left { display: flex; align-items: center; gap: 8px; }
+.gw-name { font-size: 12px; font-weight: 500; color: var(--color-text-primary); }
+.gw-sub { font-size: 11px; color: var(--color-text-secondary); }
+.gw-right { text-align: right; }
+.gw-metric { font-size: 12px; font-weight: 500; color: var(--color-text-primary); }
+.gw-unit { font-size: 10px; color: var(--color-text-secondary); }
+.status-tag { font-size: 10px; font-weight: 500; padding: 2px 7px; border-radius: 20px; }
+.st-up { background: #EAF3DE; color: #3B6D11; } .st-warn { background: #FAEEDA; color: #854F0B; }
+.mini-chart { height: 52px; display: flex; align-items: flex-end; gap: 3px; padding-top: 4px; }
+.bar { border-radius: 3px 3px 0 0; flex: 1; }
+.bottom-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.alarm-list { display: flex; flex-direction: column; gap: 6px; }
+.alarm-item { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-tertiary); }
+.alarm-item.crit { border-left: 3px solid #A32D2D; } .alarm-item.warn { border-left: 3px solid #854F0B; } .alarm-item.info { border-left: 3px solid #185FA5; }
+.alarm-name { font-size: 12px; font-weight: 500; color: var(--color-text-primary); }
+.alarm-res { font-size: 11px; color: var(--color-text-secondary); }
+.alarm-time { font-size: 10px; color: var(--color-text-secondary); margin-top: 2px; }
+.topology { position: relative; height: 180px; }
+.topo-node { position: absolute; display: flex; flex-direction: column; align-items: center; gap: 3px; cursor: pointer; }
+.topo-icon { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; border: 0.5px solid var(--color-border-tertiary); }
+.topo-label { font-size: 9px; color: var(--color-text-secondary); text-align: center; max-width: 52px; }
+svg.topo-lines { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+.latency-grid { display: flex; flex-direction: column; gap: 6px; }
+.lat-row { display: flex; align-items: center; gap: 8px; }
+.lat-from { font-size: 11px; color: var(--color-text-secondary); width: 64px; text-align: right; }
+.lat-bar-wrap { flex: 1; height: 6px; background: var(--color-background-secondary); border-radius: 3px; overflow: hidden; }
+.lat-bar-fill { height: 100%; border-radius: 3px; }
+.lat-val { font-size: 11px; font-weight: 500; color: var(--color-text-primary); width: 40px; }
+.flow-table { width: 100%; border-collapse: collapse; }
+.flow-table th { font-size: 10px; color: var(--color-text-secondary); font-weight: 500; text-align: left; padding: 4px 6px; border-bottom: 0.5px solid var(--color-border-tertiary); }
+.flow-table td { font-size: 11px; color: var(--color-text-primary); padding: 5px 6px; border-bottom: 0.5px solid var(--color-border-tertiary); }
+.flow-table tr:last-child td { border-bottom: none; }
+.accept { color: #3B6D11; font-weight: 500; } .reject { color: #A32D2D; font-weight: 500; }
+</style>
+
+<div class="dash">
+  <div class="topbar">
+    <div class="topbar-left">
+      <div class="logo-badge"><span>OCI</span></div>
+      <div>
+        <div class="topbar-title">Network Monitor</div>
+        <div class="topbar-sub">Consolidated Dashboard</div>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <div class="region-group" id="regionGroup">
+        <div class="pill home" title="Home Region - fixada">
+          <span class="home-dot"></span> eu-frankfurt-1
+          <span style="font-size:10px;background:#C94D20;color:#fff;padding:1px 5px;border-radius:20px;margin-left:2px">home</span>
+        </div>
+        <div class="region-divider"></div>
+        <div id="extraRegions"></div>
+        <div class="dropdown-wrap" id="ddWrap">
+          <button class="add-btn" id="addBtn">
+            <i class="ti ti-plus" style="font-size:13px" aria-hidden="true"></i> adicionar região
+          </button>
+          <div class="region-dropdown" id="regionDropdown" style="display:none">
+            <div class="dd-header">Selecionar região</div>
+            <div class="dd-search"><input type="text" placeholder="Filtrar..." id="regionSearch"></div>
+            <div class="dd-list" id="regionList"></div>
+          </div>
+        </div>
+      </div>
+      <div class="region-divider"></div>
+      <button class="refresh-btn"><i class="ti ti-refresh" aria-hidden="true"></i> Refresh</button>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="section-label">overview</div>
+    <div class="kpi-row">
+      <div class="kpi"><div class="kpi-label"><span class="dot dot-green"></span> VCNs</div><div class="kpi-value">7</div><div class="kpi-sub">3 regiões</div></div>
+      <div class="kpi"><div class="kpi-label"><span class="dot dot-green"></span> Gateways</div><div class="kpi-value">14</div><div class="kpi-sub">13 UP · 1 WARN</div></div>
+      <div class="kpi"><div class="kpi-label"><span class="dot dot-amber"></span> Alarmes</div><div class="kpi-value">3</div><div class="kpi-sub">1 crítico · 2 warn</div></div>
+      <div class="kpi"><div class="kpi-label"><span class="dot dot-green"></span> FastConnect</div><div class="kpi-value">2</div><div class="kpi-sub">Ambos UP</div></div>
+      <div class="kpi"><div class="kpi-label"><span class="dot dot-green"></span> VPN Tunnels</div><div class="kpi-value">4</div><div class="kpi-sub">4/4 UP</div></div>
+    </div>
+
+    <div class="mid-row">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="ti ti-router" style="font-size:15px;color:#C94D20" aria-hidden="true"></i> Gateway Status</div>
+          <span class="card-badge badge-warn">1 atenção</span>
+        </div>
+        <div class="gw-list">
+          <div class="gw-row"><div class="gw-left"><span class="dot dot-green"></span><div><div class="gw-name">Internet Gateway</div><div class="gw-sub">vcn-prod-fra · igw-01</div></div></div><div class="gw-right"><div class="gw-metric">2.4 <span class="gw-unit">Gbps in</span></div><span class="status-tag st-up">UP</span></div></div>
+          <div class="gw-row"><div class="gw-left"><span class="dot dot-green"></span><div><div class="gw-name">NAT Gateway</div><div class="gw-sub">vcn-prod-fra · nat-01</div></div></div><div class="gw-right"><div class="gw-metric">0 <span class="gw-unit">dropped pkts</span></div><span class="status-tag st-up">UP</span></div></div>
+          <div class="gw-row"><div class="gw-left"><span class="dot dot-amber"></span><div><div class="gw-name">DRG Attachment</div><div class="gw-sub">vcn-dr-ams · drg-attach-02</div></div></div><div class="gw-right"><div class="gw-metric">142 <span class="gw-unit">routes</span></div><span class="status-tag st-warn">WARN</span></div></div>
+          <div class="gw-row"><div class="gw-left"><span class="dot dot-green"></span><div><div class="gw-name">FastConnect</div><div class="gw-sub">fc-circuit-01 · 10G</div></div></div><div class="gw-right"><div class="gw-metric">6.2 <span class="gw-unit">Gbps</span></div><span class="status-tag st-up">UP</span></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="ti ti-chart-line" style="font-size:15px;color:#185FA5" aria-hidden="true"></i> Tráfego VCN · prod-fra</div>
+          <span style="font-size:11px;color:var(--color-text-secondary)">últimas 12h</span>
+        </div>
+        <div style="display:flex;gap:12px;margin-bottom:10px">
+          <div class="kpi" style="flex:1;padding:8px 10px"><div class="kpi-label">In (avg)</div><div class="kpi-value" style="font-size:16px">3.1 <span style="font-size:12px;font-weight:400;color:var(--color-text-secondary)">Gbps</span></div></div>
+          <div class="kpi" style="flex:1;padding:8px 10px"><div class="kpi-label">Out (avg)</div><div class="kpi-value" style="font-size:16px">1.8 <span style="font-size:12px;font-weight:400;color:var(--color-text-secondary)">Gbps</span></div></div>
+          <div class="kpi" style="flex:1;padding:8px 10px"><div class="kpi-label">Drops</div><div class="kpi-value" style="font-size:16px;color:#A32D2D">24 <span style="font-size:12px;font-weight:400;color:var(--color-text-secondary)">/min</span></div></div>
+        </div>
+        <div style="margin-bottom:6px">
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--color-text-secondary);margin-bottom:4px"><span>00h</span><span>04h</span><span>08h</span><span>12h</span></div>
+          <div class="mini-chart" id="trafficChart"></div>
+        </div>
+        <div style="display:flex;gap:10px;font-size:10px;color:var(--color-text-secondary)">
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#185FA5;display:inline-block"></span> In</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#9FE1CB;display:inline-block"></span> Out</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="bottom-row">
+      <div class="card">
+        <div class="card-header"><div class="card-title"><i class="ti ti-bell" style="font-size:15px;color:#A32D2D" aria-hidden="true"></i> Alarmes ativos</div><span class="card-badge badge-err">3</span></div>
+        <div class="alarm-list">
+          <div class="alarm-item crit"><div><div class="alarm-name">DRG route limit</div><div class="alarm-res">drg-attach-02 · ams</div><div class="alarm-time">há 8 min</div></div></div>
+          <div class="alarm-item warn"><div><div class="alarm-name">VPN packet loss &gt; 1%</div><div class="alarm-res">vpn-tunnel-03 · fra</div><div class="alarm-time">há 23 min</div></div></div>
+          <div class="alarm-item info"><div><div class="alarm-name">Egress spike detectado</div><div class="alarm-res">igw-01 · vcn-prod-fra</div><div class="alarm-time">há 41 min</div></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title"><i class="ti ti-topology-ring-3" style="font-size:15px;color:#0F6E56" aria-hidden="true"></i> Topologia VCN</div></div>
+        <div class="topology" id="topoArea">
+          <svg class="topo-lines" id="topoSvg"></svg>
+          <div class="topo-node" style="top:10px;left:50%;transform:translateX(-50%)" id="tn-igw"><div class="topo-icon" style="background:#E6F1FB"><i class="ti ti-world" style="font-size:16px;color:#185FA5" aria-hidden="true"></i></div><div class="topo-label">Internet GW</div></div>
+          <div class="topo-node" style="top:70px;left:50%;transform:translateX(-50%)" id="tn-vcn"><div class="topo-icon" style="background:#F0997B;border-color:#D85A30"><i class="ti ti-cloud" style="font-size:16px;color:#C94D20" aria-hidden="true"></i></div><div class="topo-label" style="font-weight:500;color:var(--color-text-primary)">VCN prod-fra</div></div>
+          <div class="topo-node" style="top:130px;left:15%" id="tn-nat"><div class="topo-icon" style="background:#EAF3DE"><i class="ti ti-arrows-exchange" style="font-size:14px;color:#3B6D11" aria-hidden="true"></i></div><div class="topo-label">NAT GW</div></div>
+          <div class="topo-node" style="top:130px;left:40%" id="tn-sgw"><div class="topo-icon" style="background:#EEEDFE"><i class="ti ti-shield" style="font-size:14px;color:#534AB7" aria-hidden="true"></i></div><div class="topo-label">Service GW</div></div>
+          <div class="topo-node" style="top:130px;right:15%" id="tn-drg"><div class="topo-icon" style="background:#FAEEDA;border-color:#EF9F27"><i class="ti ti-git-branch" style="font-size:14px;color:#854F0B" aria-hidden="true"></i></div><div class="topo-label">DRG</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title"><i class="ti ti-wave-sine" style="font-size:15px;color:#534AB7" aria-hidden="true"></i> Latência inter-região</div></div>
+        <div class="latency-grid">
+          <div class="lat-row"><div class="lat-from">FRA → AMS</div><div class="lat-bar-wrap"><div class="lat-bar-fill" style="width:18%;background:#185FA5"></div></div><div class="lat-val">8 ms</div></div>
+          <div class="lat-row"><div class="lat-from">FRA → JNB</div><div class="lat-bar-wrap"><div class="lat-bar-fill" style="width:72%;background:#854F0B"></div></div><div class="lat-val">142 ms</div></div>
+          <div class="lat-row"><div class="lat-from">AMS → JNB</div><div class="lat-bar-wrap"><div class="lat-bar-fill" style="width:68%;background:#854F0B"></div></div><div class="lat-val">133 ms</div></div>
+          <div class="lat-row"><div class="lat-from">FRA → LHR</div><div class="lat-bar-wrap"><div class="lat-bar-fill" style="width:12%;background:#185FA5"></div></div><div class="lat-val">6 ms</div></div>
+        </div>
+        <div style="margin-top:14px">
+          <div class="card-title" style="margin-bottom:8px;font-size:12px"><i class="ti ti-filter" style="font-size:13px" aria-hidden="true"></i> VCN Flow Logs · top sources</div>
+          <table class="flow-table">
+            <thead><tr><th>Source IP</th><th>Destino</th><th>Pkts</th><th>Action</th></tr></thead>
+            <tbody>
+              <tr><td>10.0.1.42</td><td>10.0.2.10</td><td>4.2K</td><td class="accept">ACCEPT</td></tr>
+              <tr><td>185.42.10.3</td><td>10.0.1.80</td><td>892</td><td class="reject">REJECT</td></tr>
+              <tr><td>10.0.3.11</td><td>10.0.1.22</td><td>3.1K</td><td class="accept">ACCEPT</td></tr>
+              <tr><td>91.108.4.15</td><td>10.0.2.5</td><td>241</td><td class="reject">REJECT</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const ALL_REGIONS = [
+  { id: 'eu-amsterdam-1',      geo: 'Europe' },
+  { id: 'eu-london-1',         geo: 'Europe' },
+  { id: 'eu-paris-1',          geo: 'Europe' },
+  { id: 'eu-milan-1',          geo: 'Europe' },
+  { id: 'eu-stockholm-1',      geo: 'Europe' },
+  { id: 'eu-madrid-1',         geo: 'Europe' },
+  { id: 'us-ashburn-1',        geo: 'North America' },
+  { id: 'us-phoenix-1',        geo: 'North America' },
+  { id: 'us-chicago-1',        geo: 'North America' },
+  { id: 'ca-toronto-1',        geo: 'North America' },
+  { id: 'af-johannesburg-1',   geo: 'Africa' },
+  { id: 'me-dubai-1',          geo: 'Middle East' },
+  { id: 'me-jeddah-1',         geo: 'Middle East' },
+  { id: 'ap-tokyo-1',          geo: 'Asia Pacific' },
+  { id: 'ap-singapore-1',      geo: 'Asia Pacific' },
+  { id: 'ap-sydney-1',         geo: 'Asia Pacific' },
+  { id: 'ap-mumbai-1',         geo: 'Asia Pacific' },
+  { id: 'sa-saopaulo-1',       geo: 'South America' },
+  { id: 'sa-vinhedo-1',        geo: 'South America' },
+];
+
+let activeRegions = [];
+let ddOpen = false;
+
+const extraEl = document.getElementById('extraRegions');
+const ddEl = document.getElementById('regionDropdown');
+const addBtn = document.getElementById('addBtn');
+const listEl = document.getElementById('regionList');
+const searchEl = document.getElementById('regionSearch');
+
+function renderExtra() {
+  extraEl.innerHTML = '';
+  activeRegions.forEach(r => {
+    const pill = document.createElement('div');
+    pill.className = 'pill extra active';
+    pill.innerHTML = `${r.id}<span class="remove-x" data-id="${r.id}" title="Remover">✕</span>`;
+    pill.querySelector('.remove-x').addEventListener('click', (e) => {
+      e.stopPropagation();
+      activeRegions = activeRegions.filter(x => x.id !== r.id);
+      renderExtra();
+      renderDropdownList(searchEl.value);
+    });
+    extraEl.appendChild(pill);
+  });
+}
+
+function renderDropdownList(filter) {
+  const q = (filter || '').toLowerCase();
+  const filtered = ALL_REGIONS.filter(r => r.id.includes(q) || r.geo.toLowerCase().includes(q));
+  if (filtered.length === 0) {
+    listEl.innerHTML = '<div class="dd-empty">Nenhuma região encontrada</div>';
+    return;
+  }
+  listEl.innerHTML = '';
+  filtered.forEach(r => {
+    const added = activeRegions.some(x => x.id === r.id);
+    const item = document.createElement('div');
+    item.className = 'dd-item' + (added ? ' added' : '');
+    item.innerHTML = `<div><div class="dd-item-region">${r.id}</div><div class="dd-item-geo">${r.geo}</div></div>${added ? '<i class="ti ti-check dd-check" aria-hidden="true"></i>' : ''}`;
+    if (!added) {
+      item.addEventListener('click', () => {
+        activeRegions.push(r);
+        renderExtra();
+        renderDropdownList(searchEl.value);
+      });
+    }
+    listEl.appendChild(item);
+  });
+}
+
+addBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  ddOpen = !ddOpen;
+  ddEl.style.display = ddOpen ? 'block' : 'none';
+  if (ddOpen) { renderDropdownList(''); searchEl.value = ''; searchEl.focus(); }
+});
+
+searchEl.addEventListener('input', () => renderDropdownList(searchEl.value));
+
+document.addEventListener('click', (e) => {
+  if (!document.getElementById('ddWrap').contains(e.target)) {
+    ddOpen = false;
+    ddEl.style.display = 'none';
+  }
+});
+
+const inData = [28,35,31,45,52,48,60,55,42,38,41,50];
+const outData = [14,18,16,22,28,25,32,29,20,19,22,27];
+const maxVal = Math.max(...inData,...outData);
+const chart = document.getElementById('trafficChart');
+inData.forEach((v,i) => {
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;height:52px;justify-content:flex-end';
+  const bIn = document.createElement('div');
+  bIn.className = 'bar';
+  bIn.style.cssText = `height:${Math.round((v/maxVal)*46)}px;background:#185FA5;width:100%`;
+  const bOut = document.createElement('div');
+  bOut.className = 'bar';
+  bOut.style.cssText = `height:${Math.round((outData[i]/maxVal)*46)}px;background:#9FE1CB;width:100%`;
+  wrap.appendChild(bIn);
+  wrap.appendChild(bOut);
+  chart.appendChild(wrap);
+});
+
+function drawLines() {
+  const area = document.getElementById('topoArea');
+  const svg = document.getElementById('topoSvg');
+  const rect = area.getBoundingClientRect();
+  const getCenter = (id) => {
+    const el = document.getElementById(id);
+    if (!el) return null;
+    const r = el.getBoundingClientRect();
+    return { x: r.left - rect.left + r.width/2, y: r.top - rect.top + r.height/2 };
+  };
+  const pairs = [['tn-igw','tn-vcn'],['tn-vcn','tn-nat'],['tn-vcn','tn-sgw'],['tn-vcn','tn-drg']];
+  const colors = ['#185FA5','#3B6D11','#534AB7','#854F0B'];
+  svg.innerHTML = '';
+  pairs.forEach(([a,b],i) => {
+    const p1 = getCenter(a), p2 = getCenter(b);
+    if (!p1||!p2) return;
+    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1',p1.x); line.setAttribute('y1',p1.y);
+    line.setAttribute('x2',p2.x); line.setAttribute('y2',p2.y);
+    line.setAttribute('stroke',colors[i]); line.setAttribute('stroke-width','1.5');
+    line.setAttribute('stroke-dasharray','4 3'); line.setAttribute('opacity','0.6');
+    svg.appendChild(line);
+  });
+}
+setTimeout(drawLines, 200);
+</script>

@@ -1,0 +1,26 @@
+.DS_Store
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+*.tfvars
+*.tfvars.json
+!terraform.tfvars.example
+
+# Ansible
+*.retry
+ansible/inventory/oci.ini
+ansible/vault.yml
+
+# Local tooling
+.env
+.venv/
+__pycache__/
+
