@@ -50,3 +50,6 @@ Ignored by Git:
 
 Use Ansible Vault, OCI Vault, or environment variables for future secrets.
 
+## Automation Policy
+
+Do not add GitHub Actions, Git-hosted workflows, or other repository automation without explicit approval. Security and infrastructure validation should be run locally using the manual validation guide.

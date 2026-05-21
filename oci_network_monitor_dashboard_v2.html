@@ -108,7 +108,7 @@ svg.topo-lines { position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     </div>
     <div class="topbar-right">
       <div class="region-group" id="regionGroup">
-        <div class="pill home" title="Home Region - fixada">
+        <div class="pill home" title="Home Region - fixed">
           <span class="home-dot"></span> eu-frankfurt-1
           <span style="font-size:10px;background:#C94D20;color:#fff;padding:1px 5px;border-radius:20px;margin-left:2px">home</span>
         </div>
@@ -116,11 +116,11 @@ svg.topo-lines { position: absolute; top: 0; left: 0; width: 100%; height: 100%;
         <div id="extraRegions"></div>
         <div class="dropdown-wrap" id="ddWrap">
           <button class="add-btn" id="addBtn">
-            <i class="ti ti-plus" style="font-size:13px" aria-hidden="true"></i> adicionar região
+            <i class="ti ti-plus" style="font-size:13px" aria-hidden="true"></i> add region
           </button>
           <div class="region-dropdown" id="regionDropdown" style="display:none">
-            <div class="dd-header">Selecionar região</div>
-            <div class="dd-search"><input type="text" placeholder="Filtrar..." id="regionSearch"></div>
+            <div class="dd-header">Select region</div>
+            <div class="dd-search"><input type="text" placeholder="Filter..." id="regionSearch"></div>
             <div class="dd-list" id="regionList"></div>
           </div>
         </div>
@@ -133,10 +133,10 @@ svg.topo-lines { position: absolute; top: 0; left: 0; width: 100%; height: 100%;
   <div class="content">
     <div class="section-label">overview</div>
     <div class="kpi-row">
-      <div class="kpi"><div class="kpi-label"><span class="dot dot-green"></span> VCNs</div><div class="kpi-value">7</div><div class="kpi-sub">3 regiões</div></div>
-      <div class="kpi"><div class="kpi-label"><span class="dot dot-green"></span> Gateways</div><div class="kpi-value">14</div><div class="kpi-sub">13 UP · 1 WARN</div></div>
-      <div class="kpi"><div class="kpi-label"><span class="dot dot-amber"></span> Alarmes</div><div class="kpi-value">3</div><div class="kpi-sub">1 crítico · 2 warn</div></div>
-      <div class="kpi"><div class="kpi-label"><span class="dot dot-green"></span> FastConnect</div><div class="kpi-value">2</div><div class="kpi-sub">Ambos UP</div></div>
+      <div class="kpi"><div class="kpi-label"><span class="dot dot-green"></span> VCNs</div><div class="kpi-value">7</div><div class="kpi-sub">3 regions</div></div>
+      <div class="kpi"><div class="kpi-label"><span class="dot dot-green"></span> Gateways</div><div class="kpi-value">14</div><div class="kpi-sub">13 UP / 1 WARN</div></div>
+      <div class="kpi"><div class="kpi-label"><span class="dot dot-amber"></span> Alarms</div><div class="kpi-value">3</div><div class="kpi-sub">1 critical / 2 warn</div></div>
+      <div class="kpi"><div class="kpi-label"><span class="dot dot-green"></span> FastConnect</div><div class="kpi-value">2</div><div class="kpi-sub">Both UP</div></div>
       <div class="kpi"><div class="kpi-label"><span class="dot dot-green"></span> VPN Tunnels</div><div class="kpi-value">4</div><div class="kpi-sub">4/4 UP</div></div>
     </div>
 
@@ -144,7 +144,7 @@ svg.topo-lines { position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       <div class="card">
         <div class="card-header">
           <div class="card-title"><i class="ti ti-router" style="font-size:15px;color:#C94D20" aria-hidden="true"></i> Gateway Status</div>
-          <span class="card-badge badge-warn">1 atenção</span>
+          <span class="card-badge badge-warn">1 warning</span>
         </div>
         <div class="gw-list">
           <div class="gw-row"><div class="gw-left"><span class="dot dot-green"></span><div><div class="gw-name">Internet Gateway</div><div class="gw-sub">vcn-prod-fra · igw-01</div></div></div><div class="gw-right"><div class="gw-metric">2.4 <span class="gw-unit">Gbps in</span></div><span class="status-tag st-up">UP</span></div></div>
@@ -155,8 +155,8 @@ svg.topo-lines { position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       </div>
       <div class="card">
         <div class="card-header">
-          <div class="card-title"><i class="ti ti-chart-line" style="font-size:15px;color:#185FA5" aria-hidden="true"></i> Tráfego VCN · prod-fra</div>
-          <span style="font-size:11px;color:var(--color-text-secondary)">últimas 12h</span>
+          <div class="card-title"><i class="ti ti-chart-line" style="font-size:15px;color:#185FA5" aria-hidden="true"></i> VCN Traffic / prod-fra</div>
+          <span style="font-size:11px;color:var(--color-text-secondary)">last 12h</span>
         </div>
         <div style="display:flex;gap:12px;margin-bottom:10px">
           <div class="kpi" style="flex:1;padding:8px 10px"><div class="kpi-label">In (avg)</div><div class="kpi-value" style="font-size:16px">3.1 <span style="font-size:12px;font-weight:400;color:var(--color-text-secondary)">Gbps</span></div></div>
@@ -176,15 +176,15 @@ svg.topo-lines { position: absolute; top: 0; left: 0; width: 100%; height: 100%;
 
     <div class="bottom-row">
       <div class="card">
-        <div class="card-header"><div class="card-title"><i class="ti ti-bell" style="font-size:15px;color:#A32D2D" aria-hidden="true"></i> Alarmes ativos</div><span class="card-badge badge-err">3</span></div>
+        <div class="card-header"><div class="card-title"><i class="ti ti-bell" style="font-size:15px;color:#A32D2D" aria-hidden="true"></i> Active Alarms</div><span class="card-badge badge-err">3</span></div>
         <div class="alarm-list">
-          <div class="alarm-item crit"><div><div class="alarm-name">DRG route limit</div><div class="alarm-res">drg-attach-02 · ams</div><div class="alarm-time">há 8 min</div></div></div>
-          <div class="alarm-item warn"><div><div class="alarm-name">VPN packet loss &gt; 1%</div><div class="alarm-res">vpn-tunnel-03 · fra</div><div class="alarm-time">há 23 min</div></div></div>
-          <div class="alarm-item info"><div><div class="alarm-name">Egress spike detectado</div><div class="alarm-res">igw-01 · vcn-prod-fra</div><div class="alarm-time">há 41 min</div></div></div>
+          <div class="alarm-item crit"><div><div class="alarm-name">DRG route limit</div><div class="alarm-res">drg-attach-02 / ams</div><div class="alarm-time">8 min ago</div></div></div>
+          <div class="alarm-item warn"><div><div class="alarm-name">VPN packet loss &gt; 1%</div><div class="alarm-res">vpn-tunnel-03 / fra</div><div class="alarm-time">23 min ago</div></div></div>
+          <div class="alarm-item info"><div><div class="alarm-name">Egress spike detected</div><div class="alarm-res">igw-01 / vcn-prod-fra</div><div class="alarm-time">41 min ago</div></div></div>
         </div>
       </div>
       <div class="card">
-        <div class="card-header"><div class="card-title"><i class="ti ti-topology-ring-3" style="font-size:15px;color:#0F6E56" aria-hidden="true"></i> Topologia VCN</div></div>
+        <div class="card-header"><div class="card-title"><i class="ti ti-topology-ring-3" style="font-size:15px;color:#0F6E56" aria-hidden="true"></i> VCN Topology</div></div>
         <div class="topology" id="topoArea">
           <svg class="topo-lines" id="topoSvg"></svg>
           <div class="topo-node" style="top:10px;left:50%;transform:translateX(-50%)" id="tn-igw"><div class="topo-icon" style="background:#E6F1FB"><i class="ti ti-world" style="font-size:16px;color:#185FA5" aria-hidden="true"></i></div><div class="topo-label">Internet GW</div></div>
@@ -195,17 +195,17 @@ svg.topo-lines { position: absolute; top: 0; left: 0; width: 100%; height: 100%;
         </div>
       </div>
       <div class="card">
-        <div class="card-header"><div class="card-title"><i class="ti ti-wave-sine" style="font-size:15px;color:#534AB7" aria-hidden="true"></i> Latência inter-região</div></div>
+        <div class="card-header"><div class="card-title"><i class="ti ti-wave-sine" style="font-size:15px;color:#534AB7" aria-hidden="true"></i> Inter-Region Latency</div></div>
         <div class="latency-grid">
-          <div class="lat-row"><div class="lat-from">FRA → AMS</div><div class="lat-bar-wrap"><div class="lat-bar-fill" style="width:18%;background:#185FA5"></div></div><div class="lat-val">8 ms</div></div>
-          <div class="lat-row"><div class="lat-from">FRA → JNB</div><div class="lat-bar-wrap"><div class="lat-bar-fill" style="width:72%;background:#854F0B"></div></div><div class="lat-val">142 ms</div></div>
-          <div class="lat-row"><div class="lat-from">AMS → JNB</div><div class="lat-bar-wrap"><div class="lat-bar-fill" style="width:68%;background:#854F0B"></div></div><div class="lat-val">133 ms</div></div>
-          <div class="lat-row"><div class="lat-from">FRA → LHR</div><div class="lat-bar-wrap"><div class="lat-bar-fill" style="width:12%;background:#185FA5"></div></div><div class="lat-val">6 ms</div></div>
+          <div class="lat-row"><div class="lat-from">FRA -> AMS</div><div class="lat-bar-wrap"><div class="lat-bar-fill" style="width:18%;background:#185FA5"></div></div><div class="lat-val">8 ms</div></div>
+          <div class="lat-row"><div class="lat-from">FRA -> JNB</div><div class="lat-bar-wrap"><div class="lat-bar-fill" style="width:72%;background:#854F0B"></div></div><div class="lat-val">142 ms</div></div>
+          <div class="lat-row"><div class="lat-from">AMS -> JNB</div><div class="lat-bar-wrap"><div class="lat-bar-fill" style="width:68%;background:#854F0B"></div></div><div class="lat-val">133 ms</div></div>
+          <div class="lat-row"><div class="lat-from">FRA -> LHR</div><div class="lat-bar-wrap"><div class="lat-bar-fill" style="width:12%;background:#185FA5"></div></div><div class="lat-val">6 ms</div></div>
         </div>
         <div style="margin-top:14px">
-          <div class="card-title" style="margin-bottom:8px;font-size:12px"><i class="ti ti-filter" style="font-size:13px" aria-hidden="true"></i> VCN Flow Logs · top sources</div>
+          <div class="card-title" style="margin-bottom:8px;font-size:12px"><i class="ti ti-filter" style="font-size:13px" aria-hidden="true"></i> VCN Flow Logs / top sources</div>
           <table class="flow-table">
-            <thead><tr><th>Source IP</th><th>Destino</th><th>Pkts</th><th>Action</th></tr></thead>
+            <thead><tr><th>Source IP</th><th>Destination</th><th>Pkts</th><th>Action</th></tr></thead>
             <tbody>
               <tr><td>10.0.1.42</td><td>10.0.2.10</td><td>4.2K</td><td class="accept">ACCEPT</td></tr>
               <tr><td>185.42.10.3</td><td>10.0.1.80</td><td>892</td><td class="reject">REJECT</td></tr>
@@ -256,7 +256,7 @@ function renderExtra() {
   activeRegions.forEach(r => {
     const pill = document.createElement('div');
     pill.className = 'pill extra active';
-    pill.innerHTML = `${r.id}<span class="remove-x" data-id="${r.id}" title="Remover">✕</span>`;
+    pill.innerHTML = `${r.id}<span class="remove-x" data-id="${r.id}" title="Remove">x</span>`;
     pill.querySelector('.remove-x').addEventListener('click', (e) => {
       e.stopPropagation();
       activeRegions = activeRegions.filter(x => x.id !== r.id);
@@ -271,7 +271,7 @@ function renderDropdownList(filter) {
   const q = (filter || '').toLowerCase();
   const filtered = ALL_REGIONS.filter(r => r.id.includes(q) || r.geo.toLowerCase().includes(q));
   if (filtered.length === 0) {
-    listEl.innerHTML = '<div class="dd-empty">Nenhuma região encontrada</div>';
+    listEl.innerHTML = '<div class="dd-empty">No region found</div>';
     return;
   }
   listEl.innerHTML = '';

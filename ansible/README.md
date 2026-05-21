@@ -36,6 +36,13 @@ make ping
 make deploy
 ```
 
+## Manual Validation
+
+```bash
+printf '[meridian]\nlocalhost ansible_connection=local\n' > /tmp/meridian_inventory
+ansible-playbook --syntax-check -i /tmp/meridian_inventory ansible/playbooks/bootstrap.yml
+```
+
 ## Main Playbook
 
 ```text
@@ -51,4 +58,3 @@ ansible/group_vars/oci.yml
 ```
 
 The playbook also loads this file explicitly through `vars_files`.
-

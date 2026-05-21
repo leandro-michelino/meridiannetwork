@@ -34,6 +34,10 @@ make tf-apply
 make deploy
 ```
 
+## Manual Validation
+
+Before changing infrastructure or pushing repository updates, run the checks in [manual-validation.md](manual-validation.md).
+
 ## Day-2 Commands
 
 Generate Ansible inventory again:
@@ -104,4 +108,3 @@ If Nginx does not serve the dashboard:
 - Re-run `make deploy`.
 - SSH to the host and check `sudo systemctl status nginx`.
 - Check `/var/log/nginx/meridian_error.log`.
-

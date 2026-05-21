@@ -18,6 +18,12 @@ Remote tags reviewed:
 
 - none found
 
+Remote head observed before the latest local documentation pass:
+
+```text
+5afe158 Remove GitHub automation workflow
+```
+
 ## Existing Remote Content Before Scaffold
 
 The remote repository had one commit on `main`:
@@ -45,6 +51,20 @@ This local update preserves the remote `LICENSE` and adds:
 - Manual local validation documentation.
 - Makefile local commands.
 - Inventory helper script.
+
+## Latest Documentation Pass
+
+The latest local pass prepares these additional updates:
+
+- English-only product specification.
+- English dashboard prototype labels.
+- Planned API reference.
+- Planned data model.
+- Deployment checklist.
+- Manual validation guide.
+- Manual release process.
+- Changelog.
+- Continued no-GitHub-Actions policy.
 
 ## Notes
 

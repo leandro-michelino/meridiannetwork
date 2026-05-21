@@ -17,7 +17,7 @@ The product vision is captured in [Meridian_OCI_Network_Monitor.md](Meridian_OCI
 - Optional OCI dynamic group and IAM policy for instance principal access.
 - Ansible bootstrap to configure Oracle Linux with Nginx, Podman-ready packages, firewall rules, and the static dashboard.
 - Inventory generation from Terraform outputs.
-- Documentation for architecture, operations, security/IAM, roadmap, and remote audit.
+- Documentation for architecture, operations, security/IAM, API design, data model, roadmap, release process, and remote audit.
 - Manual local validation commands for Terraform and Ansible.
 
 ## Repository Layout
@@ -25,7 +25,7 @@ The product vision is captured in [Meridian_OCI_Network_Monitor.md](Meridian_OCI
 ```text
 .
 ├── ansible/                # Host configuration and dashboard publishing
-├── docs/                   # Architecture, operations, security, roadmap
+├── docs/                   # Architecture, operations, security, API, roadmap
 ├── scripts/                # Local helper scripts
 ├── terraform/              # OCI infrastructure as code
 ├── Makefile                # Common local commands
@@ -96,6 +96,8 @@ make tf-destroy
 
 This repository intentionally does not use GitHub Actions or other Git automation. Run validation locally before pushing changes.
 
+Use [docs/manual-validation.md](docs/manual-validation.md) as the source of truth for manual checks.
+
 ## OCI Authentication
 
 Terraform uses the OCI provider and defaults to `config_file_profile = "DEFAULT"`.
@@ -124,9 +126,15 @@ Review [docs/security-and-iam.md](docs/security-and-iam.md) before enabling IAM 
 - [Architecture](docs/architecture.md)
 - [Operations Runbook](docs/operations.md)
 - [Security and IAM](docs/security-and-iam.md)
+- [API Reference](docs/api-reference.md)
+- [Data Model](docs/data-model.md)
+- [Deployment Checklist](docs/deployment-checklist.md)
+- [Manual Validation](docs/manual-validation.md)
 - [Module Map](docs/module-map.md)
 - [Roadmap](docs/roadmap.md)
+- [Release Process](docs/release-process.md)
 - [Remote Audit](docs/remote-audit.md)
+- [Security Policy](SECURITY.md)
 - [Terraform README](terraform/README.md)
 - [Ansible README](ansible/README.md)
 

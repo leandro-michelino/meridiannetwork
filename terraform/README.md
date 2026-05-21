@@ -41,6 +41,14 @@ terraform -chdir=terraform plan
 terraform -chdir=terraform apply
 ```
 
+## Manual Validation
+
+```bash
+terraform -chdir=terraform fmt -recursive -check
+terraform -chdir=terraform init -backend=false
+terraform -chdir=terraform validate
+```
+
 ## Required Variables
 
 - `tenancy_ocid`
@@ -65,4 +73,3 @@ terraform -chdir=terraform apply
 - Restrict admin CIDRs.
 - Review IAM statements before setting `create_identity_policies = true`.
 - Consider private subnet plus load balancer or VPN for production.
-

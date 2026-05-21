@@ -14,6 +14,11 @@ Foundation scaffold.
 - Ansible bootstrap.
 - Documentation set.
 - Manual local validation commands.
+- Planned API reference.
+- Planned data model.
+- Deployment checklist.
+- Manual release process.
+- English-only product specification.
 
 ## Not Yet Implemented
 
@@ -35,3 +40,5 @@ Foundation scaffold.
 5. Replace static HTML deployment with frontend build artifact deployment.
 6. Containerize backend and frontend.
 7. Add remote Terraform state.
+8. Add HTTPS and private access pattern.
+9. Add Meridian self-monitoring.

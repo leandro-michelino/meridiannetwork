@@ -1,0 +1,150 @@
+# API Reference
+
+This document describes the planned Meridian API surface. The backend is not implemented yet; this file is the working contract for future FastAPI development.
+
+## Conventions
+
+- All endpoints return JSON.
+- All list endpoints support pagination once backed by live OCI calls.
+- All OCI resource responses should include `id`, `name`, `region`, `compartment_id`, `lifecycle_state`, and `time_created` where available.
+- Error responses should use a consistent structure:
+
+```json
+{
+  "error": {
+    "code": "OCI_REQUEST_FAILED",
+    "message": "Human-readable error",
+    "request_id": "optional-provider-request-id"
+  }
+}
+```
+
+## Health
+
+```text
+GET /healthz
+GET /readyz
+```
+
+## Scope
+
+```text
+GET /api/regions/available
+GET /api/regions/active
+GET /api/compartments
+```
+
+## Network Inventory
+
+```text
+GET /api/vcns
+GET /api/subnets
+GET /api/gateways
+GET /api/drgs
+GET /api/vpns
+GET /api/fastconnect
+```
+
+## Metrics
+
+```text
+GET /api/gateways/metrics
+GET /api/vnics/top-consumers
+GET /api/vnics/instance/{instance_id}/metrics
+GET /api/vnics/anomalies
+GET /api/latency/interregion
+```
+
+## Logs and Audit
+
+```text
+GET /api/flow-logs
+GET /api/flow-logs/top-talkers
+GET /api/audit/network-changes
+```
+
+## Security
+
+```text
+GET /api/security/posture
+GET /api/security/risky-rules
+GET /api/security/report
+```
+
+## Load Balancers
+
+```text
+GET /api/lb/list
+GET /api/lb/{load_balancer_id}/backends
+GET /api/lb/{load_balancer_id}/metrics
+GET /api/lb/certificates
+GET /api/lb/alerts
+```
+
+## DNS
+
+```text
+GET /api/dns/zones
+GET /api/dns/resolvers
+GET /api/dns/views
+GET /api/dns/issues
+GET /api/dns/query-stats
+```
+
+## DRG
+
+```text
+GET /api/drg/list
+GET /api/drg/{drg_id}/routes
+GET /api/drg/{drg_id}/bgp
+GET /api/drg/{drg_id}/policies
+GET /api/drg/validation
+GET /api/drg/issues
+```
+
+## OKE
+
+```text
+GET /api/oke/clusters
+GET /api/oke/network-health
+```
+
+## Cost
+
+```text
+GET /api/cost/egress
+GET /api/cost/top-consumers
+```
+
+## Synthetic Checks
+
+```text
+GET /api/healthchecks
+POST /api/healthchecks
+GET /api/healthchecks/{healthcheck_id}/history
+```
+
+## Export
+
+```text
+GET /api/export/pdf
+GET /api/export/csv
+```
+
+## Notifications
+
+```text
+GET /api/notifications/config
+POST /api/notifications/webhook
+```
+
+## AI
+
+```text
+POST /api/genai/alarm/explain
+POST /api/genai/flowlogs/query
+POST /api/genai/security/narrative
+POST /api/genai/audit/impact
+POST /api/genai/dr/readiness-summary
+```
+
