@@ -24,6 +24,7 @@
 - Add repository text attributes.
 - Translate the static dashboard prototype labels to English.
 - Improve the static dashboard inventory UX with compartment context, subnet access wording, real OCI resource IDs, and a pinned home-region expander.
+- Replace the dashboard refresh button with a 5-second background refresh loop for live API mode.
 - Preserve the no GitHub Actions policy.
 
 ## 2026-05-21

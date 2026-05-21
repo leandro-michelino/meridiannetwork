@@ -502,6 +502,10 @@ tr:last-child td { border-bottom: 0; }
     justify-content: center;
   }
 
+  .topbar-actions > .button {
+    grid-column: 1 / -1;
+  }
+
   .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .content { padding: 12px; }
 }
@@ -528,7 +532,6 @@ tr:last-child td { border-bottom: 0; }
         </div>
       </div>
       <button class="button" id="demoToggle" type="button">Demo data</button>
-      <button class="button primary" id="refreshBtn" type="button">Refresh</button>
     </div>
   </div>
 
@@ -705,7 +708,9 @@ const DEMO_DATA = {
   }
 };
 
+const AUTO_REFRESH_MS = 5000;
 let useDemoData = false;
+let refreshInFlight = false;
 
 function byId(id) {
   return document.getElementById(id);
@@ -753,23 +758,26 @@ async function loadApiData() {
   return { activeRegions, compartments, vcns, subnets, gateways, routeTables, securityLists, securityPosture };
 }
 
-async function refreshDashboard() {
-  text('lastUpdated', 'Refreshing...');
-  byId('refreshBtn').disabled = true;
+async function refreshDashboard({ showLoading = false } = {}) {
+  if (refreshInFlight) return;
+  refreshInFlight = true;
+  if (showLoading) text('lastUpdated', 'Refreshing...');
 
-  let data;
-  let mode = 'api';
   try {
-    data = useDemoData ? DEMO_DATA : await loadApiData();
-  } catch (error) {
-    data = DEMO_DATA;
-    mode = 'demo fallback';
-    useDemoData = true;
-  }
+    let data;
+    let mode = useDemoData ? 'demo' : 'api';
+    try {
+      data = useDemoData ? DEMO_DATA : await loadApiData();
+    } catch (error) {
+      data = DEMO_DATA;
+      mode = 'demo fallback';
+    }
 
-  byId('demoToggle').textContent = useDemoData ? 'Use API' : 'Demo data';
-  renderDashboard(data, mode);
-  byId('refreshBtn').disabled = false;
+    byId('demoToggle').textContent = useDemoData ? 'Use API' : 'Demo data';
+    renderDashboard(data, mode);
+  } finally {
+    refreshInFlight = false;
+  }
 }
 
 function renderDashboard(data, mode) {
@@ -1079,11 +1087,10 @@ function shortId(id) {
   return `${id.slice(0, 18)}...${id.slice(-8)}`;
 }
 
-byId('refreshBtn').addEventListener('click', refreshDashboard);
 byId('demoToggle').addEventListener('click', () => {
   useDemoData = !useDemoData;
   byId('demoToggle').textContent = useDemoData ? 'Use API' : 'Demo data';
-  refreshDashboard();
+  refreshDashboard({ showLoading: true });
 });
 byId('regionMenuBtn').addEventListener('click', (event) => {
   event.stopPropagation();
@@ -1099,7 +1106,10 @@ document.addEventListener('click', (event) => {
 });
 
 window.addEventListener('resize', drawTopologyLines);
-refreshDashboard();
+refreshDashboard({ showLoading: true });
+window.setInterval(() => {
+  if (!useDemoData) refreshDashboard();
+}, AUTO_REFRESH_MS);
 </script>
 </body>
 </html>

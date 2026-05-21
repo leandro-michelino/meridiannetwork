@@ -12,6 +12,7 @@ Backend foundation scaffold.
 - Static dashboard prototype.
 - API-aware static dashboard with demo fallback data.
 - Static dashboard inventory table with compartment context, subnet access classification, real OCI resource ID display, and pinned home-region navigation.
+- Static dashboard live mode refreshes in the background every 5 seconds.
 - FastAPI backend foundation.
 - Health and readiness endpoints.
 - Regions endpoints.
