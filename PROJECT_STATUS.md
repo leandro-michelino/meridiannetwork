@@ -13,7 +13,7 @@ Foundation scaffold.
 - OCI Terraform baseline.
 - Ansible bootstrap.
 - Documentation set.
-- GitHub validation workflow.
+- Manual local validation commands.
 
 ## Not Yet Implemented
 
@@ -35,4 +35,3 @@ Foundation scaffold.
 5. Replace static HTML deployment with frontend build artifact deployment.
 6. Containerize backend and frontend.
 7. Add remote Terraform state.
-

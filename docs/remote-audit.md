@@ -42,11 +42,10 @@ This local update preserves the remote `LICENSE` and adds:
 - Product design document.
 - Operational documentation.
 - Security and IAM documentation.
-- GitHub Actions validation workflow.
-- Makefile workflow commands.
+- Manual local validation documentation.
+- Makefile local commands.
 - Inventory helper script.
 
 ## Notes
 
 No remote branches or tags were deleted or rewritten.
-

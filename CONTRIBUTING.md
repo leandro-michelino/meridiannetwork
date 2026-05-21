@@ -5,11 +5,11 @@
 - Keep infrastructure changes small and reviewable.
 - Prefer read-only OCI permissions unless write behavior is explicitly required.
 - Do not commit local credentials, state files, generated inventory, or private keys.
-- Update documentation whenever workflow, architecture, or IAM assumptions change.
+- Update documentation whenever local commands, architecture, or IAM assumptions change.
 
 ## Validation
 
-Run these before opening a pull request:
+Run these locally before pushing changes:
 
 ```bash
 terraform -chdir=terraform fmt -recursive -check
@@ -34,4 +34,3 @@ Add OCI Terraform baseline
 Document IAM model
 Configure Ansible bootstrap
 ```
-

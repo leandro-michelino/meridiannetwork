@@ -9,7 +9,7 @@ The product vision is captured in [Meridian_OCI_Network_Monitor.md](Meridian_OCI
 - Remote: `https://github.com/leandro-michelino/meridiannetwork.git`
 - Branch: `main`
 - Initial remote content reviewed: `LICENSE`
-- Local baseline added: Terraform, Ansible, docs, helper scripts, and GitHub validation workflow.
+- Local baseline added: Terraform, Ansible, docs, and helper scripts.
 
 ## What Is Included
 
@@ -18,18 +18,17 @@ The product vision is captured in [Meridian_OCI_Network_Monitor.md](Meridian_OCI
 - Ansible bootstrap to configure Oracle Linux with Nginx, Podman-ready packages, firewall rules, and the static dashboard.
 - Inventory generation from Terraform outputs.
 - Documentation for architecture, operations, security/IAM, roadmap, and remote audit.
-- GitHub Actions workflow for Terraform and Ansible validation.
+- Manual local validation commands for Terraform and Ansible.
 
 ## Repository Layout
 
 ```text
 .
-├── .github/workflows/      # CI validation
 ├── ansible/                # Host configuration and dashboard publishing
 ├── docs/                   # Architecture, operations, security, roadmap
 ├── scripts/                # Local helper scripts
 ├── terraform/              # OCI infrastructure as code
-├── Makefile                # Common workflow commands
+├── Makefile                # Common local commands
 ├── Meridian_OCI_Network_Monitor.md
 └── oci_network_monitor_dashboard_v2.html
 ```
@@ -92,6 +91,10 @@ make ping
 make deploy
 make tf-destroy
 ```
+
+## Validation Policy
+
+This repository intentionally does not use GitHub Actions or other Git automation. Run validation locally before pushing changes.
 
 ## OCI Authentication
 

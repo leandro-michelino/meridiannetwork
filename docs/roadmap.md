@@ -7,7 +7,7 @@ Status: in progress.
 - Terraform OCI baseline.
 - Ansible host bootstrap.
 - Static dashboard publishing.
-- Documentation and CI validation.
+- Documentation and manual validation.
 
 ## Phase 1 - Backend Foundation
 
@@ -63,7 +63,6 @@ Status: in progress.
 - Remote Terraform state.
 - HTTPS and private access pattern.
 - Containerized backend/frontend.
-- CI/CD deployment pipeline.
+- Manual release/deployment procedure unless automation is explicitly approved later.
 - Automated tests.
 - Observability for Meridian itself.
-
