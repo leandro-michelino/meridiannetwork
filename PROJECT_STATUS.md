@@ -15,7 +15,7 @@ Backend foundation scaffold.
 - Static dashboard live mode refreshes in the background every 5 seconds.
 - Static dashboard operational panels use expanders to keep large inventories compact.
 - Static dashboard topology nodes are draggable and keyboard-navigable.
-- Static dashboard includes an OCI preflight expander for runtime IAM and network read validation.
+- Static dashboard includes a top-bar access validation button for runtime IAM and network read validation.
 - FastAPI backend foundation.
 - Health and readiness endpoints.
 - OCI preflight endpoint.

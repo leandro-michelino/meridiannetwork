@@ -50,7 +50,7 @@ The preflight endpoint validates:
 - Compartment discovery permission.
 - Virtual Networking read access for the resource types used by the dashboard, including NSG rules when NSGs exist.
 
-The static dashboard also shows this checklist in the `OCI Preflight` expander.
+The static dashboard also exposes this checklist through the top-bar `Validate access` button.
 
 ## Minimum Runtime Policies
 

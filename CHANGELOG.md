@@ -11,7 +11,7 @@
 - Add Network Security Group inventory API endpoint, topology nodes, dashboard panel, and security posture checks.
 - Add topology graph API endpoint and dashboard graph rendering from live inventory relationships.
 - Add draggable, keyboard-navigable topology nodes with persisted browser layout positions.
-- Add OCI preflight API endpoint and dashboard expander for IAM, region, compartment, and network read validation.
+- Add OCI preflight API endpoint and dashboard top-bar validation button for IAM, region, compartment, and network read validation.
 - Add configurable monitored compartment IDs through `MERIDIAN_COMPARTMENT_IDS`.
 - Add initial security posture API endpoint.
 - Refresh the static dashboard prototype to consume implemented API endpoints with demo fallback data.

@@ -88,7 +88,8 @@ body {
   flex-wrap: wrap;
 }
 
-.region-strip {
+.region-strip,
+.access-check {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -154,7 +155,8 @@ body {
   border-color: var(--mn-orange);
 }
 
-.region-menu {
+.region-menu,
+.access-menu {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
@@ -169,7 +171,15 @@ body {
   z-index: 30;
 }
 
-.region-menu.open {
+.access-menu {
+  width: 390px;
+  max-height: min(520px, calc(100vh - 86px));
+  max-width: min(390px, calc(100vw - 24px));
+  overflow: auto;
+}
+
+.region-menu.open,
+.access-menu.open {
   display: block;
 }
 
@@ -547,7 +557,8 @@ tr:last-child td { border-bottom: 0; }
     width: 100%;
   }
 
-  .region-strip {
+  .region-strip,
+  .access-check {
     grid-column: 1 / -1;
     max-width: 100%;
     flex-wrap: wrap;
@@ -555,7 +566,8 @@ tr:last-child td { border-bottom: 0; }
     padding-bottom: 2px;
   }
 
-  .region-menu {
+  .region-menu,
+  .access-menu {
     flex-basis: 100%;
     margin-top: 4px;
     max-width: none;
@@ -597,6 +609,18 @@ tr:last-child td { border-bottom: 0; }
           <div class="region-menu-list" id="regionMenuList"></div>
         </div>
       </div>
+      <div class="access-check" id="accessCheck">
+        <button class="button" id="accessCheckBtn" type="button" aria-controls="accessMenu" aria-expanded="false">
+          <span class="status-dot neutral" id="accessCheckDot"></span>
+          <span id="accessCheckLabel">Validate access</span>
+        </button>
+        <div class="access-menu" id="accessMenu">
+          <div class="region-menu-title">OCI access validation</div>
+          <div class="resource-list" id="accessCheckList">
+            <div class="empty">Run validation to check OCI access.</div>
+          </div>
+        </div>
+      </div>
       <button class="button" id="demoToggle" type="button">Demo data</button>
     </div>
   </div>
@@ -613,17 +637,8 @@ tr:last-child td { border-bottom: 0; }
         <div class="kpi"><div class="kpi-label"><span class="status-dot ok"></span>Security Lists</div><div class="kpi-value" id="kpiSecLists">0</div><div class="kpi-sub" id="kpiSecListSub">Ingress / egress rules</div></div>
         <div class="kpi"><div class="kpi-label"><span class="status-dot ok"></span>NSGs</div><div class="kpi-value" id="kpiNsgs">0</div><div class="kpi-sub" id="kpiNsgSub">Network Security Groups</div></div>
         <div class="kpi"><div class="kpi-label"><span class="status-dot warn"></span>Findings</div><div class="kpi-value" id="kpiFindings">0</div><div class="kpi-sub" id="kpiFindingSub">Security posture</div></div>
-        <div class="kpi"><div class="kpi-label"><span class="status-dot neutral" id="preflightDot"></span>Preflight</div><div class="kpi-value" id="kpiPreflight">-</div><div class="kpi-sub" id="kpiPreflightSub">OCI readiness</div></div>
       </div>
     </section>
-
-    <details class="card expander" open>
-      <summary class="card-header">
-        <div class="card-title">OCI Preflight</div>
-        <span class="badge neutral" id="preflightBadge">waiting</span>
-      </summary>
-      <div class="resource-list" id="preflightList"></div>
-    </details>
 
     <section class="grid-2">
       <details class="card expander" open id="topologyPanel">
@@ -735,22 +750,6 @@ const DEMO_DATA = {
     { id: 'prod', name: 'Production', description: 'Primary production compartment', lifecycle_state: 'ACTIVE' },
     { id: 'dr', name: 'Disaster Recovery', description: 'Standby network compartment', lifecycle_state: 'ACTIVE' },
   ],
-  preflight: {
-    status: 'pass',
-    live_oci_enabled: true,
-    auth_mode: 'instance_principal',
-    home_region: 'eu-frankfurt-1',
-    active_regions: ['eu-frankfurt-1', 'eu-amsterdam-1'],
-    tenancy_configured: true,
-    compartment_ids: ['prod', 'dr'],
-    checks: [
-      { name: 'Live OCI mode', status: 'pass', message: 'Live OCI calls are enabled.' },
-      { name: 'Compartment discovery permission', status: 'pass', message: 'Validated successfully.' },
-      { name: 'eu-frankfurt-1 / VCN inventory', status: 'pass', message: 'Validated successfully.' },
-      { name: 'eu-frankfurt-1 / Subnet inventory', status: 'pass', message: 'Validated successfully.' },
-      { name: 'eu-amsterdam-1 / Network client', status: 'pass', message: 'Validated successfully.' }
-    ]
-  },
   vcns: [
     { id: 'vcn-prod-fra', name: 'vcn-prod-fra', region: 'eu-frankfurt-1', compartment_id: 'prod', cidr_blocks: ['10.0.0.0/16'], dns_label: 'prod', lifecycle_state: 'AVAILABLE' },
     { id: 'vcn-dr-ams', name: 'vcn-dr-ams', region: 'eu-amsterdam-1', compartment_id: 'dr', cidr_blocks: ['10.20.0.0/16'], dns_label: 'dr', lifecycle_state: 'AVAILABLE' },
@@ -859,7 +858,6 @@ async function getJson(path) {
 async function loadApiData() {
   const [
     activeRegions,
-    preflight,
     compartments,
     vcns,
     subnets,
@@ -871,7 +869,6 @@ async function loadApiData() {
     securityPosture,
   ] = await Promise.all([
     getJson(API_PATHS.activeRegions),
-    getJson(API_PATHS.preflight),
     getJson(API_PATHS.compartments),
     getJson(API_PATHS.vcns),
     getJson(API_PATHS.subnets),
@@ -884,7 +881,6 @@ async function loadApiData() {
   ]);
   return {
     activeRegions,
-    preflight,
     compartments,
     vcns,
     subnets,
@@ -921,7 +917,6 @@ async function refreshDashboard({ showLoading = false } = {}) {
 
 function renderDashboard(data, mode) {
   data.activeRegions = data.activeRegions || [];
-  data.preflight = data.preflight || { status: 'skipped', checks: [] };
   data.compartments = data.compartments || [];
   data.vcns = data.vcns || [];
   data.subnets = data.subnets || [];
@@ -951,7 +946,6 @@ function renderDashboard(data, mode) {
   text('kpiSecLists', data.securityLists.length);
   text('kpiNsgs', data.networkSecurityGroups.length);
   text('kpiFindings', data.securityPosture.total_findings || 0);
-  text('kpiPreflight', data.preflight.status || 'skipped');
   text('kpiVcnSub', `${regions.size || 0} active regions`);
   text('kpiCompartmentSub', `${data.compartments.length || compartmentCount} in scope`);
   text('kpiSubnetSub', `${uniqueCount(data.subnets, 'vcn_id')} VCN links`);
@@ -960,15 +954,8 @@ function renderDashboard(data, mode) {
   text('kpiSecListSub', `${sum(data.securityLists, (item) => item.ingress_rules?.length || 0)} ingress rules`);
   text('kpiNsgSub', `${sum(data.networkSecurityGroups, (item) => item.ingress_rules?.length || 0)} ingress rules`);
   text('kpiFindingSub', `${data.securityPosture.status || 'ok'} posture`);
-  text('kpiPreflightSub', `${data.preflight.checks?.length || 0} checks / ${data.preflight.auth_mode || 'auth pending'}`);
   text('dataModeBadge', mode);
   text('topologyBadge', `${data.vcns.length} VCN / ${data.gateways.length} gateways`);
-
-  const preflightBadge = byId('preflightBadge');
-  preflightBadge.textContent = data.preflight.status || 'skipped';
-  preflightBadge.className = badgeClass(data.preflight.status || 'skipped');
-  const preflightDot = byId('preflightDot');
-  preflightDot.className = `status-dot ${dotStatus(data.preflight.status)}`;
 
   const postureBadge = byId('postureBadge');
   postureBadge.textContent = data.securityPosture.status || 'ok';
@@ -980,7 +967,6 @@ function renderDashboard(data, mode) {
   renderRouteTables(data.routeTables, compartmentMap);
   renderSecurityLists(data.securityLists, compartmentMap);
   renderNetworkSecurityGroups(data.networkSecurityGroups, compartmentMap);
-  renderPreflight(data.preflight);
   renderFindings(data.securityPosture.findings || []);
   renderNetworkTable(data.vcns, data.subnets, compartmentMap);
   text('lastUpdated', `Last refresh: ${new Date().toLocaleString()} / ${mode}`);
@@ -1449,14 +1435,59 @@ function renderNetworkSecurityGroups(networkSecurityGroups, compartmentMap) {
   }));
 }
 
-function renderPreflight(preflight) {
+async function validateAccess() {
+  const button = byId('accessCheckBtn');
+  const menu = byId('accessMenu');
+  const label = byId('accessCheckLabel');
+  const dot = byId('accessCheckDot');
+  button.disabled = true;
+  button.setAttribute('aria-expanded', 'true');
+  menu.classList.add('open');
+  label.textContent = 'Validating...';
+  dot.className = 'status-dot neutral';
+  byId('accessCheckList').innerHTML = '<div class="empty">Running OCI access validation...</div>';
+
+  try {
+    const preflight = await getJson(API_PATHS.preflight);
+    renderAccessCheck(preflight);
+    label.textContent = accessLabel(preflight.status);
+    dot.className = `status-dot ${dotStatus(preflight.status)}`;
+  } catch (error) {
+    renderAccessCheck({
+      status: 'fail',
+      checks: [
+        {
+          name: 'Preflight API',
+          status: 'fail',
+          message: error.message,
+          action: 'Confirm the Meridian API service is reachable.',
+        },
+      ],
+    });
+    label.textContent = 'Access issues';
+    dot.className = 'status-dot err';
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function renderAccessCheck(preflight) {
   const checks = preflight.checks || [];
-  const list = byId('preflightList');
+  const list = byId('accessCheckList');
   if (!checks.length) {
-    list.innerHTML = '<div class="empty">No preflight result returned yet.</div>';
+    list.innerHTML = '<div class="empty">No access validation result returned yet.</div>';
     return;
   }
-  list.innerHTML = checks.map((check) => `
+  const summary = `
+    <div class="resource-row">
+      <div>
+        <div class="resource-name">Overall status</div>
+        <div class="resource-meta">${escapeHtml(accessSummary(preflight))}</div>
+      </div>
+      <span class="${badgeClass(preflight.status)}">${escapeHtml(preflight.status || 'unknown')}</span>
+    </div>
+  `;
+  list.innerHTML = summary + checks.map((check) => `
     <div class="resource-row">
       <div>
         <div class="resource-name">${escapeHtml(check.name)}</div>
@@ -1465,6 +1496,19 @@ function renderPreflight(preflight) {
       <span class="${badgeClass(check.status)}">${escapeHtml(check.status)}</span>
     </div>
   `).join('');
+}
+
+function accessSummary(preflight) {
+  const regions = preflight.active_regions?.length || 0;
+  const compartments = preflight.compartment_ids?.length || 0;
+  const auth = preflight.auth_mode || 'unknown auth';
+  return `${auth} / ${regions} regions / ${compartments} compartments`;
+}
+
+function accessLabel(status) {
+  if (status === 'pass') return 'Access valid';
+  if (status === 'skipped') return 'Access skipped';
+  return 'Access issues';
 }
 
 function renderFindings(findings) {
@@ -1569,16 +1613,26 @@ byId('demoToggle').addEventListener('click', () => {
   byId('demoToggle').textContent = useDemoData ? 'Use API' : 'Demo data';
   refreshDashboard({ showLoading: true });
 });
+byId('accessCheckBtn').addEventListener('click', (event) => {
+  event.stopPropagation();
+  validateAccess();
+});
 byId('regionMenuBtn').addEventListener('click', (event) => {
   event.stopPropagation();
   const menu = byId('regionMenu');
   const isOpen = menu.classList.toggle('open');
   event.currentTarget.setAttribute('aria-expanded', String(isOpen));
+  byId('accessMenu').classList.remove('open');
+  byId('accessCheckBtn').setAttribute('aria-expanded', 'false');
 });
 document.addEventListener('click', (event) => {
   if (!byId('regionStrip').contains(event.target)) {
     byId('regionMenu').classList.remove('open');
     byId('regionMenuBtn').setAttribute('aria-expanded', 'false');
+  }
+  if (!byId('accessCheck').contains(event.target)) {
+    byId('accessMenu').classList.remove('open');
+    byId('accessCheckBtn').setAttribute('aria-expanded', 'false');
   }
 });
 document.querySelectorAll('details.expander').forEach((panel) => {

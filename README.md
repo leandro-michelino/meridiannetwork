@@ -17,7 +17,7 @@ The product vision is captured in [Meridian_OCI_Network_Monitor.md](Meridian_OCI
 - Optional OCI dynamic group and IAM policy for instance principal access.
 - FastAPI backend foundation with health, readiness, preflight, regions, and compartments endpoints.
 - API-aware static dashboard prototype with fallback demo data, 5-second live refresh, compartment-aware inventory, draggable topology, subnet access labels, NSG context, resource IDs, expanders, and pinned home-region navigation.
-- Dashboard OCI preflight panel for runtime IAM, region, compartment, and network read validation.
+- Dashboard top-bar access validation button for runtime IAM, region, compartment, and network read validation.
 - Ansible bootstrap to configure Oracle Linux with Nginx, Podman-ready packages, firewall rules, the static dashboard, and the backend API service.
 - Inventory generation from Terraform outputs.
 - Documentation for architecture, operations, security/IAM, API design, data model, roadmap, release process, and remote audit.
@@ -171,9 +171,9 @@ When enabled, Terraform creates:
 - A dynamic group matching Compute instances in the application compartment.
 - A read-oriented policy intended for instance principal access to network observability data.
 
-The deployed API exposes `GET /api/preflight`, and the dashboard includes an `OCI Preflight` expander to validate
+The deployed API exposes `GET /api/preflight`, and the dashboard includes a top-bar `Validate access` button to validate
 runtime authentication, compartment discovery, configured regions, monitored compartments, and required networking read
-permissions.
+permissions on demand.
 
 Review [docs/security-and-iam.md](docs/security-and-iam.md) before enabling IAM creation in a shared tenancy.
 

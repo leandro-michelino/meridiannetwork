@@ -41,7 +41,7 @@ Use this checklist before deploying Meridian into an OCI tenancy.
 - Run `make deploy`.
 - Confirm Nginx is running.
 - Confirm the dashboard URL responds.
-- Confirm the dashboard `OCI Preflight` expander has no failed checks.
+- Run the dashboard `Validate access` button and confirm it has no failed checks.
 - Confirm `GET /api/preflight` returns `pass` before relying on live inventory.
 
 ## Security
