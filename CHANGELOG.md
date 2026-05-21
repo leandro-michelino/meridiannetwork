@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Add FastAPI backend foundation.
+- Add health and readiness endpoints.
+- Add regions and compartments API endpoints.
+- Add OCI client factory abstraction.
+- Add backend tests and local backend commands.
+- Update Ansible to deploy the backend as a systemd service behind Nginx.
 - Standardize repository documentation in English.
 - Add planned API reference.
 - Add planned data model.

@@ -18,6 +18,18 @@ printf '[meridian]\nlocalhost ansible_connection=local\n' > /tmp/meridian_invent
 ansible-playbook --syntax-check -i /tmp/meridian_inventory ansible/playbooks/bootstrap.yml
 ```
 
+## Backend
+
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r backend/requirements-dev.txt
+PYTHONPATH=backend pytest backend/tests
+ruff check backend
+python -m compileall -q backend/app
+```
+
 ## Inventory Script
 
 ```bash
@@ -43,4 +55,3 @@ git ls-tree -r --name-only origin/main
 ```
 
 There should be no `.github/workflows` files.
-

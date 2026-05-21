@@ -58,6 +58,14 @@ Re-run host configuration:
 make deploy
 ```
 
+Run the backend locally:
+
+```bash
+make backend-install
+make backend-test
+make backend-run
+```
+
 Destroy the baseline:
 
 ```bash
@@ -108,3 +116,11 @@ If Nginx does not serve the dashboard:
 - Re-run `make deploy`.
 - SSH to the host and check `sudo systemctl status nginx`.
 - Check `/var/log/nginx/meridian_error.log`.
+
+If the API service is unavailable after deployment:
+
+- SSH to the host.
+- Check `sudo systemctl status meridian-api`.
+- Check `sudo journalctl -u meridian-api -n 100`.
+- Check `/opt/meridian/config/meridian.env`.
+- Confirm Nginx can reach `127.0.0.1:8080`.

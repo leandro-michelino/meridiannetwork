@@ -1,8 +1,16 @@
 ---
 meridian_app_name: meridian
 meridian_app_port: 8080
+meridian_api_host: 127.0.0.1
 meridian_app_root: /opt/meridian
+meridian_backend_root: /opt/meridian/backend
+meridian_backend_venv: /opt/meridian/.venv
 meridian_web_root: /var/www/meridian
 meridian_server_name: _
 meridian_runtime_user: meridian
-
+meridian_environment: dev
+meridian_home_region: eu-frankfurt-1
+meridian_active_regions: eu-frankfurt-1
+meridian_oci_auth: instance_principal
+meridian_enable_live_oci: "false"
+meridian_tenancy_ocid: ""

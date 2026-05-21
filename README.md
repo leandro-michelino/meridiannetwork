@@ -15,7 +15,8 @@ The product vision is captured in [Meridian_OCI_Network_Monitor.md](Meridian_OCI
 
 - Terraform for OCI VCN, public subnet, internet gateway, route table, security list, and Compute host.
 - Optional OCI dynamic group and IAM policy for instance principal access.
-- Ansible bootstrap to configure Oracle Linux with Nginx, Podman-ready packages, firewall rules, and the static dashboard.
+- FastAPI backend foundation with health, readiness, regions, and compartments endpoints.
+- Ansible bootstrap to configure Oracle Linux with Nginx, Podman-ready packages, firewall rules, the static dashboard, and the backend API service.
 - Inventory generation from Terraform outputs.
 - Documentation for architecture, operations, security/IAM, API design, data model, roadmap, release process, and remote audit.
 - Manual local validation commands for Terraform and Ansible.
@@ -25,6 +26,7 @@ The product vision is captured in [Meridian_OCI_Network_Monitor.md](Meridian_OCI
 ```text
 .
 ├── ansible/                # Host configuration and dashboard publishing
+├── backend/                # FastAPI backend foundation
 ├── docs/                   # Architecture, operations, security, API, roadmap
 ├── scripts/                # Local helper scripts
 ├── terraform/              # OCI infrastructure as code
@@ -90,6 +92,9 @@ make inventory
 make ping
 make deploy
 make tf-destroy
+make backend-install
+make backend-test
+make backend-run
 ```
 
 ## Validation Policy
@@ -97,6 +102,35 @@ make tf-destroy
 This repository intentionally does not use GitHub Actions or other Git automation. Run validation locally before pushing changes.
 
 Use [docs/manual-validation.md](docs/manual-validation.md) as the source of truth for manual checks.
+
+## Backend Development
+
+Install backend development dependencies:
+
+```bash
+make backend-install
+```
+
+Run tests:
+
+```bash
+make backend-test
+```
+
+Run the API locally:
+
+```bash
+make backend-run
+```
+
+Local endpoints:
+
+- `GET /healthz`
+- `GET /readyz`
+- `GET /api/regions/available`
+- `GET /api/regions/active`
+- `GET /api/compartments`
+- `GET /docs`
 
 ## OCI Authentication
 
@@ -135,6 +169,7 @@ Review [docs/security-and-iam.md](docs/security-and-iam.md) before enabling IAM 
 - [Release Process](docs/release-process.md)
 - [Remote Audit](docs/remote-audit.md)
 - [Security Policy](SECURITY.md)
+- [Backend README](backend/README.md)
 - [Terraform README](terraform/README.md)
 - [Ansible README](ansible/README.md)
 

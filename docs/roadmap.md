@@ -11,12 +11,23 @@ Status: in progress.
 
 ## Phase 1 - Backend Foundation
 
+Status: started.
+
 - Python FastAPI application.
 - OCI SDK client factory.
 - Instance principal support.
 - API key profile support for development.
 - Health endpoint.
 - Structured logging.
+
+Implemented so far:
+
+- FastAPI application factory.
+- Health and readiness endpoints.
+- Region scope endpoints.
+- Compartment endpoint with optional live OCI mode.
+- OCI client factory.
+- Backend tests.
 
 ## Phase 2 - Core Network Inventory
 

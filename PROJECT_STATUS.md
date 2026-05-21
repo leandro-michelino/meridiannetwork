@@ -4,12 +4,17 @@ Date: 2026-05-21
 
 ## Current Stage
 
-Foundation scaffold.
+Backend foundation scaffold.
 
 ## Available Now
 
 - Product specification document.
 - Static dashboard prototype.
+- FastAPI backend foundation.
+- Health and readiness endpoints.
+- Regions endpoints.
+- Compartments endpoint with optional live OCI support.
+- OCI client factory abstraction.
 - OCI Terraform baseline.
 - Ansible bootstrap.
 - Documentation set.
@@ -22,9 +27,8 @@ Foundation scaffold.
 
 ## Not Yet Implemented
 
-- FastAPI backend.
 - React production frontend.
-- OCI SDK collectors.
+- OCI SDK collectors beyond the initial identity/compartment service.
 - Scheduler.
 - Cache.
 - Authentication UI.
@@ -33,12 +37,11 @@ Foundation scaffold.
 
 ## Recommended Next Work
 
-1. Add Python FastAPI backend skeleton.
-2. Add OCI SDK client abstraction.
-3. Implement `/healthz`.
-4. Implement compartments and regions endpoints.
-5. Replace static HTML deployment with frontend build artifact deployment.
-6. Containerize backend and frontend.
-7. Add remote Terraform state.
-8. Add HTTPS and private access pattern.
-9. Add Meridian self-monitoring.
+1. Add VCN inventory endpoint.
+2. Add gateway inventory endpoint.
+3. Add OCI pagination helpers and response normalization for all collectors.
+4. Replace static HTML deployment with frontend build artifact deployment.
+5. Containerize backend and frontend.
+6. Add remote Terraform state.
+7. Add HTTPS and private access pattern.
+8. Add Meridian self-monitoring.

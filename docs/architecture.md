@@ -4,11 +4,12 @@
 
 Meridian centralizes OCI network observability into one operational dashboard.
 
-The first repository baseline focuses on deployment foundations:
+The first repository baseline focuses on deployment foundations and the initial API foundation:
 
 - OCI network and Compute host.
 - Runtime bootstrap with Ansible.
 - Static dashboard publishing.
+- FastAPI health, readiness, region, and compartment endpoints.
 - Future-ready IAM model for instance principal authentication.
 
 The product design adds API aggregation, scheduled collection, cache, charts, topology, alarms, flow logs, DR readiness, load balancer visibility, Private DNS visibility, DRG route inspection, and OCI GenAI-assisted explanations.
@@ -46,6 +47,7 @@ Ansible configures:
 - Base packages.
 - Runtime user and directories.
 - Nginx virtual host.
+- Meridian API systemd service.
 - Firewall rules for SSH, HTTP, and HTTPS.
 - Static dashboard copied to the web root.
 
@@ -77,4 +79,3 @@ The intended production application is:
 The Meridian host should run with the minimum OCI read permissions required for network observability. Write actions should remain out of scope until explicitly needed.
 
 The current public subnet approach is for a practical initial deployment. A hardened production pattern should place Meridian behind a private load balancer, bastion, VPN, or identity-aware access layer.
-

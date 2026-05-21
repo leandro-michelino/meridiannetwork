@@ -1,6 +1,6 @@
 # API Reference
 
-This document describes the planned Meridian API surface. The backend is not implemented yet; this file is the working contract for future FastAPI development.
+This document describes the Meridian API surface. Some endpoints are implemented in the current FastAPI foundation; the remaining endpoint families are the working contract for future development.
 
 ## Conventions
 
@@ -26,6 +26,8 @@ GET /healthz
 GET /readyz
 ```
 
+Status: implemented.
+
 ## Scope
 
 ```text
@@ -33,6 +35,8 @@ GET /api/regions/available
 GET /api/regions/active
 GET /api/compartments
 ```
+
+Status: implemented.
 
 ## Network Inventory
 
@@ -44,6 +48,8 @@ GET /api/drgs
 GET /api/vpns
 GET /api/fastconnect
 ```
+
+Status: planned.
 
 ## Metrics
 
@@ -147,4 +153,3 @@ POST /api/genai/security/narrative
 POST /api/genai/audit/impact
 POST /api/genai/dr/readiness-summary
 ```
-

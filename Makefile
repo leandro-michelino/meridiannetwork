@@ -1,8 +1,9 @@
 TF_DIR := terraform
 ANSIBLE_DIR := ansible
 INVENTORY := $(ANSIBLE_DIR)/inventory/oci.ini
+PYTHON ?= python3
 
-.PHONY: help tf-init tf-fmt tf-validate tf-plan tf-apply tf-destroy inventory ansible-requirements ping deploy
+.PHONY: help tf-init tf-fmt tf-validate tf-plan tf-apply tf-destroy inventory ansible-requirements ping deploy backend-install backend-test backend-run
 
 help:
 	@echo "Meridian OCI Network Monitor"
@@ -16,6 +17,11 @@ help:
 	@echo "Ansible:"
 	@echo "  make inventory     Render Ansible inventory from Terraform outputs"
 	@echo "  make deploy        Configure the OCI host and publish the dashboard"
+	@echo ""
+	@echo "Backend:"
+	@echo "  make backend-install  Install backend dev dependencies"
+	@echo "  make backend-test     Run backend tests"
+	@echo "  make backend-run      Run backend locally"
 
 tf-init:
 	terraform -chdir=$(TF_DIR) init
@@ -48,3 +54,12 @@ ping: inventory
 
 deploy: inventory ansible-requirements
 	ansible-playbook -i $(INVENTORY) $(ANSIBLE_DIR)/playbooks/bootstrap.yml
+
+backend-install:
+	$(PYTHON) -m pip install -r backend/requirements-dev.txt
+
+backend-test:
+	PYTHONPATH=backend pytest backend/tests
+
+backend-run:
+	uvicorn app.main:app --app-dir backend --reload --host 127.0.0.1 --port 8080

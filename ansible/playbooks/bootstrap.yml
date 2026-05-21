@@ -39,6 +39,7 @@
           mode: "0750"
         - path: "{{ meridian_app_root }}/logs"
           mode: "0750"
+        - path: "{{ meridian_backend_root }}"
         - path: "{{ meridian_web_root }}"
           owner: nginx
           group: nginx
@@ -58,6 +59,37 @@
         owner: nginx
         group: nginx
         mode: "0644"
+
+    - name: Copy Meridian backend source
+      ansible.builtin.copy:
+        src: ../../backend/
+        dest: "{{ meridian_backend_root }}/"
+        owner: "{{ meridian_runtime_user }}"
+        group: "{{ meridian_runtime_user }}"
+        mode: preserve
+      notify: Restart Meridian API
+
+    - name: Create backend virtual environment
+      ansible.builtin.command:
+        cmd: "python3 -m venv {{ meridian_backend_venv }}"
+        creates: "{{ meridian_backend_venv }}/bin/python"
+
+    - name: Install backend Python dependencies
+      ansible.builtin.pip:
+        requirements: "{{ meridian_backend_root }}/requirements.txt"
+        virtualenv: "{{ meridian_backend_venv }}"
+      notify: Restart Meridian API
+
+    - name: Configure Meridian API systemd service
+      ansible.builtin.template:
+        src: ../templates/meridian-api.service.j2
+        dest: /etc/systemd/system/meridian-api.service
+        owner: root
+        group: root
+        mode: "0644"
+      notify:
+        - Reload systemd
+        - Restart Meridian API
 
     - name: Configure Nginx for Meridian
       ansible.builtin.template:
@@ -97,9 +129,24 @@
         state: started
         enabled: true
 
+    - name: Enable Meridian API
+      ansible.builtin.systemd:
+        name: meridian-api
+        state: started
+        enabled: true
+        daemon_reload: true
+
   handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: Restart Meridian API
+      ansible.builtin.service:
+        name: meridian-api
+        state: restarted
+
     - name: Reload nginx
       ansible.builtin.service:
         name: nginx
         state: reloaded
-
