@@ -17,6 +17,9 @@ Backend foundation scaffold.
 - VCN inventory endpoint with optional live OCI support.
 - Subnet inventory endpoint with optional live OCI support.
 - Gateway inventory endpoint with optional live OCI support.
+- Route table inventory endpoint with optional live OCI support.
+- Security list inventory endpoint with optional live OCI support.
+- Initial security posture endpoint for broad ingress exposure.
 - OCI client factory abstraction.
 - OCI Terraform baseline.
 - Ansible bootstrap.
@@ -40,11 +43,11 @@ Backend foundation scaffold.
 
 ## Recommended Next Work
 
-1. Add route table inventory endpoint.
-2. Add security list and NSG inventory endpoints.
-3. Add OCI response normalization for all collectors.
-4. Replace static HTML deployment with frontend build artifact deployment.
-5. Containerize backend and frontend.
+1. Add NSG inventory endpoint.
+2. Add route table issue detection.
+3. Add richer security posture scoring.
+4. Add OCI response normalization for all collectors.
+5. Replace static HTML deployment with frontend build artifact deployment.
 6. Add remote Terraform state.
 7. Add HTTPS and private access pattern.
 8. Add Meridian self-monitoring.

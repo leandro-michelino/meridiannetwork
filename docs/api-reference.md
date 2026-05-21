@@ -44,6 +44,8 @@ Status: implemented.
 GET /api/vcns
 GET /api/subnets
 GET /api/gateways
+GET /api/route-tables
+GET /api/security-lists
 GET /api/drgs
 GET /api/vpns
 GET /api/fastconnect
@@ -54,6 +56,8 @@ Status:
 - `GET /api/vcns`: implemented.
 - `GET /api/subnets`: implemented.
 - `GET /api/gateways`: implemented for Internet Gateways, NAT Gateways, Service Gateways, and DRGs.
+- `GET /api/route-tables`: implemented.
+- `GET /api/security-lists`: implemented.
 - Remaining endpoints: planned.
 
 Implemented query parameters:
@@ -62,6 +66,8 @@ Implemented query parameters:
 GET /api/vcns?regions=eu-frankfurt-1,eu-madrid-1&compartment_ids=<ocid>,<ocid>
 GET /api/subnets?regions=eu-frankfurt-1&compartment_ids=<ocid>&vcn_id=<vcn_ocid>
 GET /api/gateways?regions=eu-frankfurt-1&compartment_ids=<ocid>&vcn_id=<vcn_ocid>
+GET /api/route-tables?regions=eu-frankfurt-1&compartment_ids=<ocid>&vcn_id=<vcn_ocid>
+GET /api/security-lists?regions=eu-frankfurt-1&compartment_ids=<ocid>&vcn_id=<vcn_ocid>
 ```
 
 If live OCI mode is disabled, these endpoints return empty lists.
@@ -91,6 +97,11 @@ GET /api/security/posture
 GET /api/security/risky-rules
 GET /api/security/report
 ```
+
+Status:
+
+- `GET /api/security/posture`: implemented for initial broad ingress checks.
+- Remaining endpoints: planned.
 
 ## Load Balancers
 

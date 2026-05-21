@@ -73,6 +73,71 @@ class GatewaySummary(BaseModel):
     time_created: str | None = None
 
 
+class RouteRuleSummary(BaseModel):
+    destination: str | None = None
+    destination_type: str | None = None
+    network_entity_id: str | None = None
+    description: str | None = None
+
+
+class RouteTableSummary(BaseModel):
+    id: str
+    name: str
+    region: str
+    compartment_id: str
+    vcn_id: str
+    lifecycle_state: str | None = None
+    route_rules: list[RouteRuleSummary]
+    time_created: str | None = None
+
+
+class SecurityRuleSummary(BaseModel):
+    direction: str
+    protocol: str
+    source: str | None = None
+    destination: str | None = None
+    source_type: str | None = None
+    destination_type: str | None = None
+    min_port: int | None = None
+    max_port: int | None = None
+    description: str | None = None
+    is_stateless: bool | None = None
+
+
+class SecurityListSummary(BaseModel):
+    id: str
+    name: str
+    region: str
+    compartment_id: str
+    vcn_id: str
+    lifecycle_state: str | None = None
+    ingress_rules: list[SecurityRuleSummary]
+    egress_rules: list[SecurityRuleSummary]
+    time_created: str | None = None
+
+
+class SecurityFinding(BaseModel):
+    severity: str
+    rule_type: str
+    resource_id: str
+    resource_name: str
+    region: str
+    compartment_id: str
+    vcn_id: str
+    description: str
+    recommendation: str
+
+
+class SecurityPostureSummary(BaseModel):
+    status: str
+    total_findings: int
+    critical_findings: int
+    high_findings: int
+    medium_findings: int
+    low_findings: int
+    findings: list[SecurityFinding]
+
+
 class ErrorEnvelope(BaseModel):
     code: str
     message: str

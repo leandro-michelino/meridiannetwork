@@ -7,6 +7,8 @@
 - Add regions and compartments API endpoints.
 - Add VCN and subnet inventory API endpoints.
 - Add gateway inventory API endpoint.
+- Add route table and security list inventory API endpoints.
+- Add initial security posture API endpoint.
 - Add OCI client factory abstraction.
 - Add deployment options documentation covering VM, serverless container, Functions, and OKE patterns.
 - Add backend tests and local backend commands.

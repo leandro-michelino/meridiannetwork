@@ -133,6 +133,9 @@ Local endpoints:
 - `GET /api/vcns`
 - `GET /api/subnets`
 - `GET /api/gateways`
+- `GET /api/route-tables`
+- `GET /api/security-lists`
+- `GET /api/security/posture`
 - `GET /docs`
 
 ## OCI Authentication

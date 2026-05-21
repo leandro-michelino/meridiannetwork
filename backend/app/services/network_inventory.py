@@ -2,7 +2,15 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from app.config import Settings
-from app.models import GatewaySummary, SubnetSummary, VcnSummary
+from app.models import (
+    GatewaySummary,
+    RouteRuleSummary,
+    RouteTableSummary,
+    SecurityListSummary,
+    SecurityRuleSummary,
+    SubnetSummary,
+    VcnSummary,
+)
 from app.oci_clients import OciClientFactory, OciClientError
 
 
@@ -117,6 +125,87 @@ class NetworkInventoryService:
                     results.extend(self._drgs(client, region, compartment_id))
         return results
 
+    def list_route_tables(
+        self,
+        regions: list[str] | None = None,
+        compartment_ids: list[str] | None = None,
+        vcn_id: str | None = None,
+    ) -> list[RouteTableSummary]:
+        if not self.settings.enable_live_oci:
+            return []
+
+        selected_compartments = self._compartment_scope(compartment_ids)
+        selected_regions = self._region_scope(regions)
+        results: list[RouteTableSummary] = []
+
+        for region in selected_regions:
+            client = self.client_factory.virtual_network_client(region=region)
+            for compartment_id in selected_compartments:
+                kwargs: dict[str, str] = {"compartment_id": compartment_id}
+                if vcn_id:
+                    kwargs["vcn_id"] = vcn_id
+                route_tables = self.client_factory.list_all(client.list_route_tables, **kwargs)
+                for item in route_tables:
+                    results.append(
+                        RouteTableSummary(
+                            id=item.id,
+                            name=item.display_name,
+                            region=region,
+                            compartment_id=item.compartment_id,
+                            vcn_id=item.vcn_id,
+                            lifecycle_state=item.lifecycle_state,
+                            route_rules=[
+                                RouteRuleSummary(
+                                    destination=rule.destination,
+                                    destination_type=rule.destination_type,
+                                    network_entity_id=rule.network_entity_id,
+                                    description=getattr(rule, "description", None),
+                                )
+                                for rule in item.route_rules
+                            ],
+                            time_created=_timestamp(item.time_created),
+                        )
+                    )
+        return results
+
+    def list_security_lists(
+        self,
+        regions: list[str] | None = None,
+        compartment_ids: list[str] | None = None,
+        vcn_id: str | None = None,
+    ) -> list[SecurityListSummary]:
+        if not self.settings.enable_live_oci:
+            return []
+
+        selected_compartments = self._compartment_scope(compartment_ids)
+        selected_regions = self._region_scope(regions)
+        results: list[SecurityListSummary] = []
+
+        for region in selected_regions:
+            client = self.client_factory.virtual_network_client(region=region)
+            for compartment_id in selected_compartments:
+                kwargs: dict[str, str] = {"compartment_id": compartment_id}
+                if vcn_id:
+                    kwargs["vcn_id"] = vcn_id
+                security_lists = self.client_factory.list_all(client.list_security_lists, **kwargs)
+                for item in security_lists:
+                    results.append(
+                        SecurityListSummary(
+                            id=item.id,
+                            name=item.display_name,
+                            region=region,
+                            compartment_id=item.compartment_id,
+                            vcn_id=item.vcn_id,
+                            lifecycle_state=item.lifecycle_state,
+                            ingress_rules=[
+                                self._security_rule("ingress", rule) for rule in item.ingress_security_rules
+                            ],
+                            egress_rules=[self._security_rule("egress", rule) for rule in item.egress_security_rules],
+                            time_created=_timestamp(item.time_created),
+                        )
+                    )
+        return results
+
     def _internet_gateways(self, client: object, region: str, **kwargs: str) -> list[GatewaySummary]:
         items = self.client_factory.list_all(client.list_internet_gateways, **kwargs)
         return [
@@ -188,6 +277,27 @@ class NetworkInventoryService:
             )
             for item in items
         ]
+
+    def _security_rule(self, direction: str, rule: object) -> SecurityRuleSummary:
+        tcp_options = getattr(rule, "tcp_options", None)
+        udp_options = getattr(rule, "udp_options", None)
+        port_options = tcp_options or udp_options
+        destination_port_range = getattr(port_options, "destination_port_range", None)
+        source_port_range = getattr(port_options, "source_port_range", None)
+        port_range = destination_port_range or source_port_range
+
+        return SecurityRuleSummary(
+            direction=direction,
+            protocol=rule.protocol,
+            source=getattr(rule, "source", None),
+            destination=getattr(rule, "destination", None),
+            source_type=getattr(rule, "source_type", None),
+            destination_type=getattr(rule, "destination_type", None),
+            min_port=getattr(port_range, "min", None),
+            max_port=getattr(port_range, "max", None),
+            description=getattr(rule, "description", None),
+            is_stateless=getattr(rule, "is_stateless", None),
+        )
 
     def _region_scope(self, regions: list[str] | None) -> list[str]:
         selected = regions or self.settings.active_regions

@@ -28,6 +28,8 @@ Implemented so far:
 - Compartment endpoint with optional live OCI mode.
 - VCN and subnet inventory endpoints with optional live OCI mode.
 - Gateway inventory endpoint with optional live OCI mode.
+- Route table and security list inventory endpoints with optional live OCI mode.
+- Initial security posture endpoint for public SSH, public RDP, and public all-protocol ingress.
 - OCI client factory.
 - Backend tests.
 
