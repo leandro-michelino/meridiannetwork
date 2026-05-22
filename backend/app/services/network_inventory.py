@@ -1,4 +1,5 @@
 from __future__ import annotations
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
@@ -24,6 +25,7 @@ NETWORK_RESOURCE_SEARCH_QUERIES: tuple[str, ...] = (
     "query vcn resources",
     "query subnet resources",
 )
+RESOURCE_SEARCH_MAX_WORKERS = 8
 
 
 def split_csv(value: str | None) -> list[str]:
@@ -726,9 +728,42 @@ class NetworkInventoryService:
 
         compartment_ids: set[str] = set()
         regions: set[str] = set()
-        for search_region in self._subscribed_region_ids():
+        subscribed_regions = self._subscribed_region_ids()
+        max_workers = min(RESOURCE_SEARCH_MAX_WORKERS, max(len(subscribed_regions), 1))
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {
+                executor.submit(self._network_resource_search_scope_for_region, search_region): search_region
+                for search_region in subscribed_regions
+            }
+            for future in as_completed(futures):
+                search_compartments, search_regions = future.result()
+                compartment_ids.update(search_compartments)
+                regions.update(search_regions)
+
+        scope = _NetworkResourceScope(
+            compartment_ids=sorted(compartment_ids),
+            regions=sorted(regions),
+        )
+        object.__setattr__(self, "_network_resource_scope_cache", scope)
+        return scope
+
+    def _network_resource_search_scope_for_region(self, search_region: str) -> tuple[set[str], set[str]]:
+        compartment_ids: set[str] = set()
+        regions: set[str] = set()
+        try:
+            client = self.client_factory.resource_search_client(region=search_region)
+        except Exception as exc:
+            self._add_collection_issue(
+                region=search_region,
+                resource_type="resource_search",
+                compartment_id=self.settings.tenancy_ocid or "*",
+                exc=exc,
+            )
+            return compartment_ids, regions
+
+        for query in NETWORK_RESOURCE_SEARCH_QUERIES:
             try:
-                client = self.client_factory.resource_search_client(region=search_region)
+                items = self._resource_search_items(client, query)
             except Exception as exc:
                 self._add_collection_issue(
                     region=search_region,
@@ -737,30 +772,12 @@ class NetworkInventoryService:
                     exc=exc,
                 )
                 continue
-
-            for query in NETWORK_RESOURCE_SEARCH_QUERIES:
-                try:
-                    items = self._resource_search_items(client, query)
-                except Exception as exc:
-                    self._add_collection_issue(
-                        region=search_region,
-                        resource_type="resource_search",
-                        compartment_id=self.settings.tenancy_ocid or "*",
-                        exc=exc,
-                    )
-                    continue
-                for item in items:
-                    compartment_id = getattr(item, "compartment_id", None)
-                    if compartment_id:
-                        compartment_ids.add(str(compartment_id))
-                    regions.add(self._region_from_resource_identifier(getattr(item, "identifier", None)) or search_region)
-
-        scope = _NetworkResourceScope(
-            compartment_ids=sorted(compartment_ids),
-            regions=sorted(regions),
-        )
-        object.__setattr__(self, "_network_resource_scope_cache", scope)
-        return scope
+            for item in items:
+                compartment_id = getattr(item, "compartment_id", None)
+                if compartment_id:
+                    compartment_ids.add(str(compartment_id))
+                regions.add(self._region_from_resource_identifier(getattr(item, "identifier", None)) or search_region)
+        return compartment_ids, regions
 
     def _subscribed_region_ids(self) -> list[str]:
         if self._region_subscription_cache is not None:
