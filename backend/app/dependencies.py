@@ -7,6 +7,7 @@ from app.services.network_inventory import NetworkInventoryService
 from app.services.preflight import PreflightService
 from app.services.regions import RegionService
 from app.services.route_analysis import RouteAnalysisService
+from app.services.security_actions import SecurityActionsService
 from app.services.security_posture import SecurityPostureService
 
 
@@ -42,6 +43,13 @@ def get_route_analysis_service(
     network_inventory: NetworkInventoryService = Depends(get_network_inventory_service),
 ) -> RouteAnalysisService:
     return RouteAnalysisService(network_inventory=network_inventory)
+
+
+def get_security_actions_service(
+    settings: Settings = Depends(get_settings),
+    client_factory: OciClientFactory = Depends(get_oci_client_factory),
+) -> SecurityActionsService:
+    return SecurityActionsService(settings=settings, client_factory=client_factory)
 
 
 def get_preflight_service(

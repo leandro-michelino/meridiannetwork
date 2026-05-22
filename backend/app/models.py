@@ -219,6 +219,50 @@ class TopologyGraph(BaseModel):
     edges: list[TopologyEdge]
 
 
+class SecurityActionRequest(BaseModel):
+    finding_key: str
+    action_type: str  # remediate | accept_risk | assign_owner | create_remediation_task | suppress
+    user: str
+    note: str | None = None
+    assignee: str | None = None
+    expires_at: str | None = None
+    resource_id: str = ""
+    resource_name: str = ""
+    rule_type: str = ""
+    severity: str = ""
+    region: str = ""
+    compartment_id: str = ""
+    vcn_id: str = ""
+    description: str = ""
+
+
+class SecurityAction(SecurityActionRequest):
+    id: str
+    created_at: str  # ISO-8601
+
+
+class SecurityActionHistoryResponse(BaseModel):
+    total_actions: int
+    actions: list[SecurityAction]
+    retention_days: int = 365
+    storage: str = "object-storage"
+    archive_enabled: bool = False
+    archive_prefix: str | None = None
+    archive_error: str | None = None
+
+
+class IdentityContext(BaseModel):
+    enabled: bool = False
+    source: str = "manual"
+    domain_name: str = "Default"
+    current_user: str | None = None
+    required_group: str = "MeridianNetworkUsers"
+    groups_header: str = "x-authenticated-groups"
+    is_authorized: bool = False
+    user_required: bool = True
+    message: str = ""
+
+
 class ErrorEnvelope(BaseModel):
     code: str
     message: str

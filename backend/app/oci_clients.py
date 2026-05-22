@@ -50,6 +50,13 @@ class OciClientFactory:
             return oci.core.VirtualNetworkClient(config=config, signer=signer)
         return oci.core.VirtualNetworkClient(config)
 
+    def object_storage_client(self) -> Any:
+        oci = self._load_oci()
+        signer, config = self.signer_and_config()
+        if signer is not None:
+            return oci.object_storage.ObjectStorageClient(config=config, signer=signer)
+        return oci.object_storage.ObjectStorageClient(config)
+
     def list_all(self, list_func: Any, *args: Any, **kwargs: Any) -> list[Any]:
         oci = self._load_oci()
         return oci.pagination.list_call_get_all_results(list_func, *args, **kwargs).data

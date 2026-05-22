@@ -26,6 +26,14 @@ class Settings(BaseSettings):
     oci_profile: str = "DEFAULT"
     oci_auth: Literal["config_file", "instance_principal", "resource_principal"] = "config_file"
     enable_live_oci: bool = False
+    enable_resource_search_scope: bool = True
+
+    # Security action audit log — OCI Object Storage backend
+    security_action_object_storage_enabled: bool = False
+    security_action_object_storage_namespace: str = ""
+    security_action_object_storage_bucket: str = ""
+    security_action_object_storage_prefix: str = "meridian/security-actions/"
+    security_action_retention_days: int = 365
 
     @field_validator("active_regions", "compartment_ids", mode="before")
     @classmethod

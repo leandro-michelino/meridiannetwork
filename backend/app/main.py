@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
 from app.config import get_settings
-from app.routers import health, network, preflight, scope, security
+from app.routers import export, health, identity, network, preflight, scope, security
 
 
 def create_app() -> FastAPI:
@@ -16,6 +16,8 @@ def create_app() -> FastAPI:
     app.include_router(scope.router)
     app.include_router(network.router)
     app.include_router(security.router)
+    app.include_router(identity.router)
+    app.include_router(export.router)
     app.include_router(preflight.router)
     return app
 
