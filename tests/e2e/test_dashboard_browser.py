@@ -201,6 +201,10 @@ def test_regions_menu_controls_api_and_demo_scope(page) -> None:
     page.evaluate("localStorage.removeItem('meridianRegionFilter')")
     page.reload(wait_until="networkidle")
     expect(page.locator("#dataModeBadge")).to_have_text("api", timeout=10_000)
+    expect(page.locator("#collectionStatusPanel")).to_be_visible()
+    expect(page.locator("#collectionStatusPanel")).to_contain_text("Collection status")
+    expect(page.locator("#collectionStatusPanel")).to_contain_text("Resources")
+    expect(page.locator("#collectionStatusPanel .cs-count-chip").first).to_contain_text("VCN")
 
     page.click("#regionMenuBtn")
     expect(page.locator("#regionMenuBtn")).to_contain_text("Regions 1/38")

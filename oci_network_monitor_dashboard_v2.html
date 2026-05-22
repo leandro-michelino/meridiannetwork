@@ -368,6 +368,38 @@ body {
   letter-spacing: 0;
 }
 
+.cs-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--mn-border-soft);
+  border-bottom: 1px solid var(--mn-border-soft);
+}
+
+.cs-stat {
+  background: #fff;
+  min-width: 0;
+  padding: 9px 11px;
+}
+
+.cs-stat-label {
+  color: var(--mn-muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.cs-stat-value {
+  margin-top: 4px;
+  color: var(--mn-text);
+  font-size: 13px;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .cs-rows {
   display: flex;
   flex-direction: column;
@@ -375,7 +407,7 @@ body {
 
 .cs-row {
   display: grid;
-  grid-template-columns: 14px 1fr auto auto auto;
+  grid-template-columns: 14px minmax(140px, 1fr) auto minmax(220px, 2fr) auto;
   align-items: center;
   gap: 8px;
   padding: 7px 11px;
@@ -454,6 +486,30 @@ body {
   white-space: nowrap;
 }
 
+.cs-count-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-start;
+  min-width: 0;
+}
+
+.cs-count-chip {
+  border: 1px solid var(--mn-border-soft);
+  border-radius: 4px;
+  color: var(--mn-muted);
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1;
+  padding: 3px 5px;
+  white-space: nowrap;
+}
+
+.cs-count-chip strong {
+  color: var(--mn-text);
+  font-weight: 800;
+}
+
 .cs-error {
   grid-column: 2 / -1;
   font-size: 11px;
@@ -467,6 +523,51 @@ body {
 .cs-counts {
   font-size: 11px;
   color: var(--mn-muted);
+  white-space: nowrap;
+}
+
+.cs-issues {
+  border-top: 1px solid var(--mn-border-soft);
+  background: #fffaf2;
+}
+
+.cs-issue-header {
+  padding: 8px 11px 4px;
+  color: #7c4a03;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.cs-issue-list {
+  display: grid;
+  gap: 6px;
+  padding: 0 11px 10px;
+}
+
+.cs-issue {
+  display: grid;
+  grid-template-columns: minmax(120px, .8fr) minmax(110px, .6fr) minmax(0, 2fr);
+  gap: 8px;
+  border: 1px solid #f2d5a7;
+  border-radius: 6px;
+  background: #fff;
+  padding: 7px 8px;
+  min-width: 0;
+}
+
+.cs-issue strong {
+  color: var(--mn-text);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cs-issue span {
+  color: var(--mn-muted);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -1139,8 +1240,20 @@ tr:last-child td { border-bottom: 0; }
 
   .history-toolbar,
   .history-summary,
-  .topology-filterbar {
+  .topology-filterbar,
+  .cs-summary,
+  .cs-issue {
     grid-template-columns: 1fr;
+  }
+
+  .cs-row {
+    grid-template-columns: 14px minmax(0, 1fr) auto;
+  }
+
+  .cs-count-grid,
+  .cs-meta,
+  .cs-error {
+    grid-column: 2 / -1;
   }
 
   .button {
@@ -2056,6 +2169,7 @@ function renderCollectionStatusPanel(collection) {
   const panel = byId('collectionStatusPanel');
   const regions = collection?.regions || [];
   const status = collection?.status || '';
+  const issues = collectionIssueGroups(collection);
 
   if (!regions.length && status !== 'collecting') {
     panel.hidden = true;
@@ -2081,9 +2195,16 @@ function renderCollectionStatusPanel(collection) {
         <span>Collection status</span>
         <span class="cs-header-right">${escapeHtml(headerStatus)}</span>
       </div>
+      <div class="cs-summary">
+        ${collectionStat('Status', collectionStatusLabel(status || headerStatus))}
+        ${collectionStat('Regions', collectionRegionSummary(collection, regions))}
+        ${collectionStat('Resources', String(collectionTotalResources(regions)))}
+        ${collectionStat('Last successful', collectionLastSuccess(regions))}
+      </div>
       <div class="cs-rows">
         ${regions.map((r) => renderRegionStatusRow(r)).join('')}
       </div>
+      ${renderCollectionIssueGroups(issues)}
     </div>
   `;
 }
@@ -2118,15 +2239,12 @@ function renderRegionStatusRow(r) {
     : 'No resources';
 
   const duration = r.duration_seconds != null ? `${r.duration_seconds}s` : '';
-  const lastUpdated = r.last_updated ? relativeTime(r.last_updated) : '';
-  const metaParts = [duration, lastUpdated].filter(Boolean);
+  const lastUpdated = r.last_updated ? `${relativeTime(r.last_updated)} / ${absoluteTime(r.last_updated)}` : '';
+  const metaParts = [duration ? `duration ${duration}` : '', lastUpdated].filter(Boolean);
   const meta = metaParts.length ? metaParts.join(' · ') : '';
 
   const counts = r.resource_counts || {};
-  const totalResources = Object.values(counts).reduce((sum, n) => sum + (n || 0), 0);
-  const countsText = status !== 'collecting' && totalResources > 0
-    ? `${totalResources} resources`
-    : '';
+  const countsGrid = renderCollectionCounts(counts);
 
   const errorLine = r.error
     ? `<div class="cs-error" title="${escapeHtml(r.error)}">${escapeHtml(r.error.slice(0, 120))}</div>`
@@ -2137,11 +2255,138 @@ function renderRegionStatusRow(r) {
       ${indicator}
       <span class="cs-region-name">${escapeHtml(r.id || '')}</span>
       <span class="cs-status-badge ${badgeClass}">${escapeHtml(badgeLabel)}</span>
-      <span class="cs-counts">${escapeHtml(countsText)}</span>
+      ${countsGrid}
       <span class="cs-meta">${escapeHtml(meta)}</span>
       ${errorLine}
     </div>
   `;
+}
+
+function collectionStat(label, value) {
+  return `
+    <div class="cs-stat">
+      <div class="cs-stat-label">${escapeHtml(label)}</div>
+      <div class="cs-stat-value" title="${escapeHtml(value)}">${escapeHtml(value)}</div>
+    </div>
+  `;
+}
+
+function collectionStatusLabel(status) {
+  return {
+    collecting: 'Collecting',
+    ready: 'Ready',
+    ready_with_warnings: 'Ready with warnings',
+    failed: 'Failed',
+    idle: 'Idle',
+    no_resources: 'No resources',
+  }[status] || status || 'Unknown';
+}
+
+function collectionRegionSummary(collection, regions) {
+  const completed = collection?.completed_regions?.length || regions.filter((r) => r.status !== 'collecting').length;
+  const pending = collection?.pending_regions?.length || regions.filter((r) => r.status === 'collecting').length;
+  const requested = collection?.requested_regions?.length || regions.length;
+  if (pending) return `${completed}/${requested} complete · ${pending} pending`;
+  return `${completed}/${requested} complete`;
+}
+
+function collectionTotalResources(regions) {
+  return regions.reduce((total, region) => {
+    const counts = region.resource_counts || {};
+    return total + Object.values(counts).reduce((sum, value) => sum + Number(value || 0), 0);
+  }, 0);
+}
+
+function collectionLastSuccess(regions) {
+  const timestamps = regions
+    .filter((region) => ['ready', 'ready_with_warnings', 'no_resources'].includes(region.status))
+    .map((region) => region.last_updated)
+    .filter(Boolean)
+    .sort();
+  if (!timestamps.length) return 'No successful refresh';
+  const latest = timestamps[timestamps.length - 1];
+  return `${relativeTime(latest)} / ${absoluteTime(latest)}`;
+}
+
+function renderCollectionCounts(counts) {
+  const labels = [
+    ['vcns', 'VCN'],
+    ['subnets', 'Subnet'],
+    ['gateways', 'Gateway'],
+    ['routeTables', 'Route table'],
+    ['securityLists', 'Security list'],
+    ['networkSecurityGroups', 'NSG'],
+  ];
+  const chips = labels
+    .filter(([key]) => counts[key] != null)
+    .map(([key, label]) => `<span class="cs-count-chip"><strong>${escapeHtml(counts[key] || 0)}</strong> ${escapeHtml(label)}</span>`)
+    .join('');
+  return `<span class="cs-count-grid">${chips || '<span class="cs-count-chip"><strong>0</strong> resources</span>'}</span>`;
+}
+
+function collectionIssueGroups(collection) {
+  const issues = [
+    ...(collection?.issues || []),
+    ...(collection?.regions || []).flatMap((region) => region.issues || []),
+  ];
+  const unique = new Map();
+  issues.forEach((issue) => {
+    const key = [
+      issue.region || '*',
+      issue.resource_type || '*',
+      issue.compartment_id || '*',
+      issue.message || '',
+    ].join('|');
+    unique.set(key, issue);
+  });
+  return [...unique.values()].sort((left, right) => (
+    `${left.region || ''}/${left.resource_type || ''}/${left.message || ''}`
+      .localeCompare(`${right.region || ''}/${right.resource_type || ''}/${right.message || ''}`)
+  ));
+}
+
+function renderCollectionIssueGroups(issues) {
+  if (!issues.length) return '';
+  return `
+    <div class="cs-issues">
+      <div class="cs-issue-header">${escapeHtml(issues.length)} collection warning${issues.length === 1 ? '' : 's'}</div>
+      <div class="cs-issue-list">
+        ${issues.slice(0, 12).map((issue) => `
+          <div class="cs-issue">
+            <strong title="${escapeHtml(issue.region || '*')}">${escapeHtml(issue.region || '*')}</strong>
+            <span title="${escapeHtml(issue.resource_type || '*')}">${escapeHtml(collectionResourceTypeLabel(issue.resource_type))}</span>
+            <span title="${escapeHtml(issue.message || '')}">${escapeHtml(issue.message || '')}</span>
+          </div>
+        `).join('')}
+        ${issues.length > 12 ? `
+          <div class="cs-issue">
+            <strong>Additional warnings</strong>
+            <span>${escapeHtml(String(issues.length - 12))}</span>
+            <span>More collection warnings are hidden from this compact summary.</span>
+          </div>
+        ` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function collectionResourceTypeLabel(resourceType) {
+  return {
+    '*': 'All resources',
+    client: 'OCI client',
+    resource_search: 'Resource Search',
+    region_subscription: 'Region subscriptions',
+    vcn: 'VCN',
+    subnet: 'Subnet',
+    internet_gateway: 'Internet gateway',
+    nat_gateway: 'NAT gateway',
+    service_gateway: 'Service gateway',
+    dynamic_routing_gateway: 'DRG',
+    route_table: 'Route table',
+    security_list: 'Security list',
+    network_security_group: 'NSG',
+    network_security_group_rule: 'NSG rules',
+  }[resourceType || '*'] || String(resourceType || '*').replaceAll('_', ' ');
 }
 
 function relativeTime(isoString) {
@@ -2155,6 +2400,14 @@ function relativeTime(isoString) {
     if (min < 60) return `${min}m ago`;
     const hr = Math.floor(min / 60);
     return `${hr}h ago`;
+  } catch (_) {
+    return '';
+  }
+}
+
+function absoluteTime(isoString) {
+  try {
+    return new Date(isoString).toLocaleString();
   } catch (_) {
     return '';
   }
