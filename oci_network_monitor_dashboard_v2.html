@@ -1713,6 +1713,7 @@ const API_PATHS = {
   securityActions: '/api/security/finding-actions',
   identityContext: '/api/identity/context',
   dashboardCompleteness: '/api/dashboard/completeness',
+  exportCompleteness: '/api/export/completeness.csv',
 };
 
 const DEMO_DATA = {
@@ -2402,6 +2403,7 @@ function renderCoveragePanel(completeness) {
         ${collectionStat('Zero resources', String(completeness.total_zero_resource_regions || 0))}
       </div>
       <div class="coverage-filters">
+        <button class="button" type="button" data-export-coverage>Export coverage</button>
         ${filters.map((filter) => `
           <button class="button coverage-filter ${filter.id === coverageFilter ? 'active' : ''}" type="button" data-coverage-filter="${escapeHtml(filter.id)}">
             ${escapeHtml(filter.label)}
@@ -4947,6 +4949,15 @@ byId('collectionStatusPanel').addEventListener('click', (event) => {
   }
 });
 byId('coveragePanel').addEventListener('click', (event) => {
+  const exportButton = event.target.closest('button[data-export-coverage]');
+  if (exportButton) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (useDemoData) { alert('Switch to API mode to export live coverage.'); return; }
+    const q = exportQueryParams();
+    window.location.href = `${API_PATHS.exportCompleteness}${q ? '?' + q : ''}`;
+    return;
+  }
   const button = event.target.closest('button[data-coverage-filter]');
   if (!button) return;
   coverageFilter = button.getAttribute('data-coverage-filter') || 'all';
