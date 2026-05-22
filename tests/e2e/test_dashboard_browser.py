@@ -246,6 +246,11 @@ def test_topology_layout_modes_do_not_clip_horizontally(page) -> None:
     assert horizontally_clipped_topology_nodes(page) == []
 
     page.click('[data-topology-mode="vcn"]')
+    expect(page.locator("#topologyBadge")).to_contain_text("vcn focus / 8 nodes / 7 links")
+    assert page.locator("#topologyVcnScope").input_value() == ""
+    assert horizontally_clipped_topology_nodes(page) == []
+
+    page.locator("#topologyVcnScope").select_option("vcn-prod-fra")
     expect(page.locator("#topologyBadge")).to_contain_text("vcn focus / 7 nodes / 8 links")
     assert page.locator("#topologyVcnScope").input_value() == "vcn-prod-fra"
     assert horizontally_clipped_topology_nodes(page) == []

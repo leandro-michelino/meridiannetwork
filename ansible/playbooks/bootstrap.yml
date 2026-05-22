@@ -223,7 +223,7 @@
         cmd: >-
           grep -q availableRegions {{ meridian_web_root }}/index.html
           && grep -q effectiveSelectedRegionIds {{ meridian_web_root }}/index.html
-          && grep -q preferredTopologyVcnId {{ meridian_web_root }}/index.html
+          && grep -q topologyScopedData {{ meridian_web_root }}/index.html
       changed_when: false
 
   handlers:

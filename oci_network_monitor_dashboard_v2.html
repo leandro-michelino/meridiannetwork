@@ -2275,8 +2275,12 @@ function renderTopology(data) {
     const onlyVcns = nodes.every((n) => n.resource_type === 'vcn');
     const hasEnabledLayers = Object.values(topologyLayers).some(Boolean);
     if (topologyMode === 'vcn' && onlyVcns && hasEnabledLayers) {
-      const vcnName = nodes[0]?.name || topologyVcnScope || 'this VCN';
-      hintEl.textContent = `No resources found for "${vcnName}" in the enabled layers. The VCN may have no gateways, subnets, or routing resources in the selected scope.`;
+      if (topologyVcnScope) {
+        const vcnName = nodes[0]?.name || topologyVcnScope;
+        hintEl.textContent = `No resources found for "${vcnName}" in the enabled layers. The VCN may have no gateways, subnets, or routing resources in the selected scope.`;
+      } else {
+        hintEl.textContent = 'No child resources found for the visible VCNs in the enabled layers.';
+      }
       hintEl.hidden = false;
     } else {
       hintEl.hidden = true;
@@ -2313,7 +2317,6 @@ function emptyTopologyMessage(data) {
   const issue = data.collection?.issues?.[0];
   if (issue) return `Collection issue: ${issue.message}`;
   if (selected === 0) return 'Select at least one subscribed region to collect topology data.';
-  if (topologyMode === 'vcn' && !topologyVcnScope) return 'Select a VCN from the dropdown to focus the topology view.';
   if (topologyMode !== 'overview' && !Object.values(topologyLayers).some(Boolean)) {
     return 'No layers enabled. Check Subnets, Gateways, Routes, or Security to show resources.';
   }
@@ -2340,9 +2343,6 @@ function renderTopologyControls(data) {
 
   const vcns = topologyAvailableVcns(data);
   if (topologyVcnScope && !vcns.some((item) => item.id === topologyVcnScope)) topologyVcnScope = '';
-  if (topologyMode === 'vcn' && !topologyVcnScope && vcns.length) {
-    topologyVcnScope = preferredTopologyVcnId(data, vcns);
-  }
   const vcnSelect = byId('topologyVcnScope');
   vcnSelect.innerHTML = [
     '<option value="">All VCNs</option>',
@@ -2385,9 +2385,9 @@ function topologyScopedData(data) {
   }
   if (topologyMode !== 'vcn') return scoped;
 
-  const vcns = topologyAvailableVcns(scoped);
-  const vcnId = topologyVcnScope || preferredTopologyVcnId(scoped, vcns);
-  if (!vcnId) return { ...scoped, vcns: [], subnets: [], gateways: [], routeTables: [], securityLists: [], networkSecurityGroups: [] };
+  if (!topologyVcnScope) return scoped;
+
+  const vcnId = topologyVcnScope;
   const vcn = scoped.vcns.find((item) => item.id === vcnId);
   const sameVpc = (item) => item.vcn_id === vcnId;
   return {
@@ -2408,24 +2408,6 @@ function topologyScopedData(data) {
     securityLists: scoped.securityLists.filter(sameVpc),
     networkSecurityGroups: scoped.networkSecurityGroups.filter(sameVpc),
   };
-}
-
-function preferredTopologyVcnId(data, vcns) {
-  if (!vcns.length) return '';
-  return vcns
-    .map((vcn) => ({ id: vcn.id, score: topologyVcnResourceCount(data, vcn.id), name: `${vcn.region}/${vcn.name || vcn.id}` }))
-    .sort((left, right) => right.score - left.score || left.name.localeCompare(right.name))[0].id;
-}
-
-function topologyVcnResourceCount(data, vcnId) {
-  const sameVcn = (item) => item.vcn_id === vcnId;
-  return [
-    data.subnets,
-    data.gateways,
-    data.routeTables,
-    data.securityLists,
-    data.networkSecurityGroups,
-  ].reduce((count, items) => count + (items || []).filter(sameVcn).length, 0);
 }
 
 function filterTopologyData(data, predicate) {
