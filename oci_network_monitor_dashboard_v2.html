@@ -892,6 +892,43 @@ tr:last-child td { border-bottom: 0; }
   margin-bottom: 8px;
 }
 
+.topology-filterbar {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.4fr) repeat(3, minmax(140px, 1fr)) auto;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.topology-filterbar input[type="search"] {
+  min-height: 32px;
+  border: 1px solid var(--mn-border);
+  border-radius: 6px;
+  background: var(--mn-surface);
+  color: var(--mn-text);
+  font-size: 12px;
+  padding: 5px 8px;
+}
+
+.topology-filterbar label {
+  min-height: 32px;
+  border: 1px solid var(--mn-border);
+  border-radius: 6px;
+  background: var(--mn-surface);
+  color: var(--mn-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 750;
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+
+.topology-filterbar input[type="checkbox"] {
+  accent-color: var(--mn-orange);
+}
+
 .topology-modes {
   display: inline-flex;
   gap: 4px;
@@ -984,6 +1021,16 @@ tr:last-child td { border-bottom: 0; }
   text-align: center;
   user-select: none;
   z-index: 2;
+}
+
+.topo-node.expandable .topo-icon {
+  border-color: #b7c7d9;
+}
+
+.topo-node.expanded .topo-icon {
+  background: #fff2ed;
+  border-color: #e1a58f;
+  color: var(--mn-orange);
 }
 
 .topo-node.dragging {
@@ -1091,7 +1138,8 @@ tr:last-child td { border-bottom: 0; }
   }
 
   .history-toolbar,
-  .history-summary {
+  .history-summary,
+  .topology-filterbar {
     grid-template-columns: 1fr;
   }
 
@@ -1208,6 +1256,13 @@ tr:last-child td { border-bottom: 0; }
             <label><input type="checkbox" data-topology-layer="routes"> Routes</label>
             <label><input type="checkbox" data-topology-layer="security"> Security</label>
           </div>
+        </div>
+        <div class="topology-filterbar">
+          <input id="topologySearch" type="search" placeholder="Search topology">
+          <select class="topology-select" id="topologyCompartmentScope" aria-label="Topology compartment"></select>
+          <select class="topology-select" id="topologyResourceScope" aria-label="Topology resource type"></select>
+          <select class="topology-select" id="topologyLifecycleScope" aria-label="Topology lifecycle state"></select>
+          <label><input id="topologyConnectedOnly" type="checkbox"> Connected only</label>
         </div>
         <div class="topology" id="topology">
           <div class="topology-canvas" id="topologyCanvas">
@@ -1497,6 +1552,11 @@ let topologyMode = readTopologyMode();
 let topologyLayers = readTopologyLayers();
 let topologyRegionScope = '';
 let topologyVcnScope = '';
+let topologySearchQuery = '';
+let topologyCompartmentScope = '';
+let topologyResourceScope = '';
+let topologyLifecycleScope = '';
+let topologyConnectedOnly = false;
 const topologyTouchPoints = new Map();
 let topologyPinchDistance = 0;
 let topologyPanPoint = null;
@@ -2246,8 +2306,11 @@ function renderTopology(data) {
   const topologyData = topologyScopedData(data);
   const rawTopology = topologyMode === 'overview'
     ? buildTopologyOverview(topologyData)
-    : buildInventoryTopology(topologyData);
-  const topology = topologyMode === 'overview' ? rawTopology : filterTopologyLayers(rawTopology);
+    : topologyMode === 'vcn'
+      ? buildInventoryTopology(topologyData)
+      : buildClusteredTopology(topologyData);
+  const layeredTopology = topologyMode === 'overview' ? rawTopology : filterTopologyLayers(rawTopology);
+  const topology = filterTopologyGraph(layeredTopology);
   const nodes = topology.nodes || [];
   topologyEdges = topology.edges || [];
   topologyNodeDomIds = {};
@@ -2294,7 +2357,7 @@ function renderTopology(data) {
     topologyNodeDomIds[node.id] = domId;
     const position = topologyNodePositions[node.id] || positions[node.id] || { x: 50, y: 50 };
     return `
-      <div class="topo-node" id="${domId}" data-node-id="${escapeHtml(node.id)}" data-console-url="${escapeHtml(node.console_url || '')}" role="button" tabindex="0" aria-label="${escapeHtml(`${node.name || node.id} topology node`)}" style="left:${position.x}%;top:${position.y}%;" title="${escapeHtml(node.id)}">
+      <div class="topo-node ${topologyNodeClass(node)}" id="${domId}" data-node-id="${escapeHtml(node.id)}" data-console-url="${escapeHtml(node.console_url || '')}" data-resource-type="${escapeHtml(node.resource_type || '')}" role="button" tabindex="0" aria-label="${escapeHtml(`${node.name || node.id} topology node`)}" style="left:${position.x}%;top:${position.y}%;" title="${escapeHtml(node.id)}">
         <div class="topo-icon">${escapeHtml(topologyIcon(node.resource_type))}</div>
         <div class="topo-label">${escapeHtml(node.name || node.id)}</div>
         <div class="topo-meta">${escapeHtml(topologyMeta(node))}</div>
@@ -2349,7 +2412,41 @@ function renderTopologyControls(data) {
     ...vcns.map((vcn) => `<option value="${escapeHtml(vcn.id)}">${escapeHtml(vcn.name || vcn.id)} / ${escapeHtml(vcn.region)}</option>`),
   ].join('');
   vcnSelect.value = topologyVcnScope;
-  vcnSelect.disabled = topologyMode !== 'vcn';
+  vcnSelect.disabled = topologyMode === 'overview';
+
+  const compartments = topologyAvailableCompartments(data);
+  if (topologyCompartmentScope && !compartments.some((item) => item.id === topologyCompartmentScope)) {
+    topologyCompartmentScope = '';
+  }
+  const compartmentSelect = byId('topologyCompartmentScope');
+  compartmentSelect.innerHTML = [
+    '<option value="">All compartments</option>',
+    ...compartments.map((item) => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.name || item.id)}</option>`),
+  ].join('');
+  compartmentSelect.value = topologyCompartmentScope;
+
+  const resourceTypes = topologyAvailableResourceTypes(data);
+  if (topologyResourceScope && !resourceTypes.includes(topologyResourceScope)) topologyResourceScope = '';
+  const resourceSelect = byId('topologyResourceScope');
+  resourceSelect.innerHTML = [
+    '<option value="">All resource types</option>',
+    ...resourceTypes.map((type) => `<option value="${escapeHtml(type)}">${escapeHtml(topologyResourceLabel(type))}</option>`),
+  ].join('');
+  resourceSelect.value = topologyResourceScope;
+
+  const lifecycleStates = topologyAvailableLifecycleStates(data);
+  if (topologyLifecycleScope && !lifecycleStates.includes(topologyLifecycleScope)) topologyLifecycleScope = '';
+  const lifecycleSelect = byId('topologyLifecycleScope');
+  lifecycleSelect.innerHTML = [
+    '<option value="">All lifecycle states</option>',
+    ...lifecycleStates.map((state) => `<option value="${escapeHtml(state)}">${escapeHtml(state)}</option>`),
+  ].join('');
+  lifecycleSelect.value = topologyLifecycleScope;
+
+  byId('topologySearch').value = topologySearchQuery;
+  const connectedInput = byId('topologyConnectedOnly');
+  connectedInput.checked = topologyConnectedOnly;
+  connectedInput.disabled = !topologyVcnScope || topologyMode === 'overview';
 
   const layers = byId('topologyLayerGroup');
   layers.classList.toggle('disabled', topologyMode === 'overview');
@@ -2378,21 +2475,64 @@ function topologyAvailableVcns(data) {
     .sort((left, right) => `${left.region}/${left.name}`.localeCompare(`${right.region}/${right.name}`));
 }
 
+function topologyAvailableCompartments(data) {
+  const names = data.compartments.reduce((acc, compartment) => {
+    acc[compartment.id] = compartment.name || compartment.id;
+    return acc;
+  }, {});
+  return [...new Set([
+    ...data.vcns.map((item) => item.compartment_id),
+    ...data.subnets.map((item) => item.compartment_id),
+    ...data.gateways.map((item) => item.compartment_id),
+    ...data.routeTables.map((item) => item.compartment_id),
+    ...data.securityLists.map((item) => item.compartment_id),
+    ...data.networkSecurityGroups.map((item) => item.compartment_id),
+  ].filter(Boolean))]
+    .map((id) => ({ id, name: names[id] || id }))
+    .sort((left, right) => left.name.localeCompare(right.name));
+}
+
+function topologyAvailableResourceTypes(data) {
+  return [...new Set([
+    'vcn',
+    ...data.subnets.map(() => 'subnet'),
+    ...data.gateways.map((item) => item.gateway_type),
+    ...data.routeTables.map(() => 'route_table'),
+    ...data.securityLists.map(() => 'security_list'),
+    ...data.networkSecurityGroups.map(() => 'network_security_group'),
+  ].filter(Boolean))].sort((left, right) => topologyResourceLabel(left).localeCompare(topologyResourceLabel(right)));
+}
+
+function topologyAvailableLifecycleStates(data) {
+  return [...new Set([
+    ...data.vcns.map((item) => item.lifecycle_state),
+    ...data.subnets.map((item) => item.lifecycle_state),
+    ...data.gateways.map((item) => item.lifecycle_state),
+    ...data.routeTables.map((item) => item.lifecycle_state),
+    ...data.securityLists.map((item) => item.lifecycle_state),
+    ...data.networkSecurityGroups.map((item) => item.lifecycle_state),
+  ].filter(Boolean))].sort();
+}
+
 function topologyScopedData(data) {
   let scoped = data;
   if (topologyRegionScope) {
     scoped = filterTopologyData(scoped, (item) => item.region === topologyRegionScope);
   }
-  if (topologyMode !== 'vcn') return scoped;
+  if (topologyMode !== 'vcn') {
+    return scoped;
+  }
 
   if (!topologyVcnScope) return scoped;
+  return expandSelectedVcnData(scoped, topologyVcnScope, true);
+}
 
-  const vcnId = topologyVcnScope;
+function expandSelectedVcnData(scoped, vcnId, selectedOnly) {
   const vcn = scoped.vcns.find((item) => item.id === vcnId);
   const sameVpc = (item) => item.vcn_id === vcnId;
   return {
     ...scoped,
-    vcns: scoped.vcns.filter((item) => item.id === vcnId),
+    vcns: selectedOnly ? scoped.vcns.filter((item) => item.id === vcnId) : scoped.vcns,
     subnets: scoped.subnets.filter(sameVpc),
     gateways: scoped.gateways
       .map((item) => {
@@ -2431,6 +2571,69 @@ function filterTopologyLayers(topology) {
   };
 }
 
+function filterTopologyGraph(topology) {
+  let nodes = topology.nodes || [];
+  let edges = topology.edges || [];
+  if (topologyCompartmentScope) {
+    nodes = nodes.filter((node) => node.resource_type === 'region' || node.compartment_id === topologyCompartmentScope);
+  }
+  if (topologyResourceScope) {
+    nodes = nodes.filter((node) => node.resource_type === 'region' || node.resource_type === topologyResourceScope);
+  }
+  if (topologyLifecycleScope) {
+    nodes = nodes.filter((node) => node.resource_type === 'region' || node.lifecycle_state === topologyLifecycleScope);
+  }
+  const query = topologySearchQuery.trim().toLowerCase();
+  if (query) {
+    nodes = nodes.filter((node) => topologyNodeSearchText(node).includes(query));
+  }
+
+  let nodeIds = new Set(nodes.map((node) => node.id));
+  edges = edges.filter((edge) => nodeIds.has(edge.source_id) && nodeIds.has(edge.target_id));
+  if (topologyConnectedOnly && topologyVcnScope && topologyMode !== 'overview') {
+    const connectedIds = topologyConnectedNodeIds(topologyVcnScope, edges, nodeIds);
+    nodes = nodes.filter((node) => connectedIds.has(node.id));
+    nodeIds = new Set(nodes.map((node) => node.id));
+    edges = edges.filter((edge) => nodeIds.has(edge.source_id) && nodeIds.has(edge.target_id));
+  }
+  return { nodes, edges };
+}
+
+function topologyConnectedNodeIds(rootId, edges, nodeIds) {
+  if (!nodeIds.has(rootId)) return new Set();
+  const connected = new Set([rootId]);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    edges.forEach((edge) => {
+      if (connected.has(edge.source_id) && !connected.has(edge.target_id)) {
+        connected.add(edge.target_id);
+        changed = true;
+      }
+      if (connected.has(edge.target_id) && !connected.has(edge.source_id)) {
+        connected.add(edge.source_id);
+        changed = true;
+      }
+    });
+  }
+  return connected;
+}
+
+function topologyNodeSearchText(node) {
+  const metadata = node.metadata || {};
+  return [
+    node.id,
+    node.name,
+    node.resource_type,
+    topologyResourceLabel(node.resource_type),
+    node.region,
+    node.compartment_id,
+    node.lifecycle_state,
+    node.vcn_id,
+    ...Object.values(metadata),
+  ].filter(Boolean).join(' ').toLowerCase();
+}
+
 function topologyLayerEnabled(resourceType) {
   if (resourceType === 'region' || resourceType === 'vcn') return true;
   if (resourceType === 'subnet') return Boolean(topologyLayers.subnets);
@@ -2440,6 +2643,28 @@ function topologyLayerEnabled(resourceType) {
     return Boolean(topologyLayers.gateways);
   }
   return true;
+}
+
+function topologyResourceLabel(type) {
+  return {
+    region: 'Region',
+    vcn: 'VCN',
+    subnet: 'Subnet',
+    route_table: 'Route table',
+    security_list: 'Security list',
+    network_security_group: 'Network security group',
+    internet_gateway: 'Internet gateway',
+    nat_gateway: 'NAT gateway',
+    service_gateway: 'Service gateway',
+    dynamic_routing_gateway: 'Dynamic routing gateway',
+  }[type] || String(type || 'Resource').replaceAll('_', ' ');
+}
+
+function topologyNodeClass(node) {
+  return [
+    topologyMode === 'full' && node.resource_type === 'vcn' ? 'expandable' : '',
+    topologyMode === 'full' && node.id === topologyVcnScope ? 'expanded' : '',
+  ].filter(Boolean).join(' ');
 }
 
 function topologyModeLabel(mode) {
@@ -2733,6 +2958,157 @@ function buildInventoryTopology(data) {
   return { nodes, edges: edges.filter((edge) => nodeIds.has(edge.source_id) && nodeIds.has(edge.target_id)) };
 }
 
+function buildClusteredTopology(data) {
+  const nodes = [];
+  const edges = [];
+  const edgeKeys = new Set();
+  const expandedVcnId = topologyVcnScope || '';
+  const addEdge = (sourceId, targetId, relationship, metadata = {}) => {
+    if (!sourceId || !targetId) return;
+    const key = `${sourceId}|${targetId}|${relationship}`;
+    if (edgeKeys.has(key)) return;
+    edgeKeys.add(key);
+    edges.push({ id: key, source_id: sourceId, target_id: targetId, relationship, metadata });
+  };
+
+  const childCounts = topologyChildCounts(data);
+  data.vcns.forEach((item) => {
+    const counts = childCounts[item.id] || {};
+    nodes.push({
+      id: item.id,
+      name: item.name,
+      resource_type: 'vcn',
+      region: item.region,
+      compartment_id: item.compartment_id,
+      lifecycle_state: item.lifecycle_state,
+      console_url: ociConsoleUrl('vcn', item),
+      metadata: {
+        cidr_blocks: item.cidr_blocks?.join(', ') || '',
+        summary: [
+          `${counts.subnets || 0} subnets`,
+          `${counts.gateways || 0} gateways`,
+          `${counts.routes || 0} routes`,
+          `${counts.security || 0} security`,
+        ].join(' / '),
+      },
+    });
+  });
+
+  if (!expandedVcnId) {
+    return { nodes, edges: [] };
+  }
+
+  data.subnets.forEach((item) => {
+    if (item.vcn_id !== expandedVcnId) return;
+    nodes.push({
+      id: item.id,
+      name: item.name,
+      resource_type: 'subnet',
+      region: item.region,
+      compartment_id: item.compartment_id,
+      vcn_id: item.vcn_id,
+      lifecycle_state: item.lifecycle_state,
+      console_url: ociConsoleUrl('subnet', item),
+      metadata: { cidr_block: item.cidr_block, subnet_access: subnetAccessMode(item).toLowerCase() },
+    });
+    addEdge(item.vcn_id, item.id, 'contains_subnet');
+    addEdge(item.id, item.route_table_id, 'uses_route_table');
+    (item.security_list_ids || []).forEach((securityListId) => addEdge(item.id, securityListId, 'uses_security_list'));
+  });
+  data.gateways.forEach((item) => {
+    if (item.vcn_id !== expandedVcnId) return;
+    nodes.push({
+      id: item.id,
+      name: item.name,
+      resource_type: item.gateway_type,
+      region: item.region,
+      compartment_id: item.compartment_id,
+      vcn_id: item.vcn_id,
+      lifecycle_state: item.lifecycle_state,
+      console_url: ociConsoleUrl(item.gateway_type, item),
+      metadata: { enabled: String(item.is_enabled ?? '') },
+    });
+    addEdge(item.vcn_id, item.id, 'has_gateway');
+  });
+  data.routeTables.forEach((item) => {
+    if (item.vcn_id !== expandedVcnId) return;
+    nodes.push({
+      id: item.id,
+      name: item.name,
+      resource_type: 'route_table',
+      region: item.region,
+      compartment_id: item.compartment_id,
+      vcn_id: item.vcn_id,
+      lifecycle_state: item.lifecycle_state,
+      console_url: ociConsoleUrl('route_table', item),
+      metadata: { route_rules: String(item.route_rules?.length || 0) },
+    });
+    addEdge(item.vcn_id, item.id, 'has_route_table');
+    (item.route_rules || []).forEach((rule, index) => {
+      addEdge(item.id, rule.network_entity_id, 'routes_to', {
+        destination: rule.destination || '',
+        destination_type: rule.destination_type || '',
+        rule_index: String(index),
+      });
+    });
+  });
+  data.securityLists.forEach((item) => {
+    if (item.vcn_id !== expandedVcnId) return;
+    nodes.push({
+      id: item.id,
+      name: item.name,
+      resource_type: 'security_list',
+      region: item.region,
+      compartment_id: item.compartment_id,
+      vcn_id: item.vcn_id,
+      lifecycle_state: item.lifecycle_state,
+      console_url: ociConsoleUrl('security_list', item),
+      metadata: {
+        ingress_rules: String(item.ingress_rules?.length || 0),
+        egress_rules: String(item.egress_rules?.length || 0),
+      },
+    });
+    addEdge(item.vcn_id, item.id, 'has_security_list');
+  });
+  data.networkSecurityGroups.forEach((item) => {
+    if (item.vcn_id !== expandedVcnId) return;
+    nodes.push({
+      id: item.id,
+      name: item.name,
+      resource_type: 'network_security_group',
+      region: item.region,
+      compartment_id: item.compartment_id,
+      vcn_id: item.vcn_id,
+      lifecycle_state: item.lifecycle_state,
+      console_url: ociConsoleUrl('network_security_group', item),
+      metadata: {
+        ingress_rules: String(item.ingress_rules?.length || 0),
+        egress_rules: String(item.egress_rules?.length || 0),
+      },
+    });
+    addEdge(item.vcn_id, item.id, 'has_network_security_group');
+  });
+
+  const nodeIds = new Set(nodes.map((node) => node.id));
+  return { nodes, edges: edges.filter((edge) => nodeIds.has(edge.source_id) && nodeIds.has(edge.target_id)) };
+}
+
+function topologyChildCounts(data) {
+  const counts = {};
+  const ensure = (vcnId) => {
+    counts[vcnId] = counts[vcnId] || { subnets: 0, gateways: 0, routes: 0, security: 0 };
+    return counts[vcnId];
+  };
+  data.subnets.forEach((item) => ensure(item.vcn_id).subnets += 1);
+  data.gateways.forEach((item) => {
+    if (item.vcn_id) ensure(item.vcn_id).gateways += 1;
+  });
+  data.routeTables.forEach((item) => ensure(item.vcn_id).routes += 1);
+  data.securityLists.forEach((item) => ensure(item.vcn_id).security += 1);
+  data.networkSecurityGroups.forEach((item) => ensure(item.vcn_id).security += 1);
+  return counts;
+}
+
 function topologyLayout(nodes) {
   const columns = {
     region: {
@@ -2818,10 +3194,19 @@ function topologyMeta(node) {
 
 function attachTopologyInteractions(container) {
   container.querySelectorAll('.topo-node').forEach((node) => {
+    node.addEventListener('click', handleTopologyNodeClick);
     node.addEventListener('pointerdown', startTopologyNodeDrag);
     node.addEventListener('keydown', handleTopologyNodeKeydown);
     node.addEventListener('dblclick', openTopologyNodeConsole);
   });
+}
+
+function handleTopologyNodeClick(event) {
+  const node = event.currentTarget;
+  if (topologyMode !== 'full' || node.dataset.resourceType !== 'vcn') return;
+  topologyVcnScope = topologyVcnScope === node.dataset.nodeId ? '' : node.dataset.nodeId;
+  topologyConnectedOnly = Boolean(topologyVcnScope) && topologyConnectedOnly;
+  if (currentDashboardData) renderDashboard(currentDashboardData, currentDashboardMode);
 }
 
 function openTopologyNodeConsole(event) {
@@ -2860,6 +3245,11 @@ function startTopologyNodeDrag(event) {
 
 function handleTopologyNodeKeydown(event) {
   const node = event.currentTarget;
+  if ((event.key === 'Enter' || event.key === ' ') && topologyMode === 'full' && node.dataset.resourceType === 'vcn') {
+    event.preventDefault();
+    handleTopologyNodeClick(event);
+    return;
+  }
   const current = topologyNodePositions[node.dataset.nodeId] || {
     x: Number.parseFloat(node.style.left) || 50,
     y: Number.parseFloat(node.style.top) || 50,
@@ -3765,10 +4155,32 @@ byId('topologyLayerGroup').addEventListener('change', (event) => {
 byId('topologyRegionScope').addEventListener('change', (event) => {
   topologyRegionScope = event.target.value;
   topologyVcnScope = '';
+  topologyConnectedOnly = false;
   if (currentDashboardData) renderDashboard(currentDashboardData, currentDashboardMode);
 });
 byId('topologyVcnScope').addEventListener('change', (event) => {
   topologyVcnScope = event.target.value;
+  topologyConnectedOnly = Boolean(topologyVcnScope) && topologyConnectedOnly;
+  if (currentDashboardData) renderDashboard(currentDashboardData, currentDashboardMode);
+});
+byId('topologySearch').addEventListener('input', (event) => {
+  topologySearchQuery = event.target.value;
+  if (currentDashboardData) renderDashboard(currentDashboardData, currentDashboardMode);
+});
+byId('topologyCompartmentScope').addEventListener('change', (event) => {
+  topologyCompartmentScope = event.target.value;
+  if (currentDashboardData) renderDashboard(currentDashboardData, currentDashboardMode);
+});
+byId('topologyResourceScope').addEventListener('change', (event) => {
+  topologyResourceScope = event.target.value;
+  if (currentDashboardData) renderDashboard(currentDashboardData, currentDashboardMode);
+});
+byId('topologyLifecycleScope').addEventListener('change', (event) => {
+  topologyLifecycleScope = event.target.value;
+  if (currentDashboardData) renderDashboard(currentDashboardData, currentDashboardMode);
+});
+byId('topologyConnectedOnly').addEventListener('change', (event) => {
+  topologyConnectedOnly = event.target.checked;
   if (currentDashboardData) renderDashboard(currentDashboardData, currentDashboardMode);
 });
 byId('regionMenuBtn').addEventListener('click', (event) => {

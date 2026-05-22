@@ -242,14 +242,28 @@ def test_topology_layout_modes_do_not_clip_horizontally(page) -> None:
     assert horizontally_clipped_topology_nodes(page) == []
 
     page.click('[data-topology-mode="full"]')
-    expect(page.locator("#topologyBadge")).to_contain_text("layers (gateways, routes) / 8 nodes / 7 links")
+    expect(page.locator("#topologyBadge")).to_contain_text("layers (gateways, routes) / 2 nodes / 0 links")
     assert horizontally_clipped_topology_nodes(page) == []
+
+    page.locator("#topologyVcnScope").select_option("vcn-prod-fra")
+    expect(page.locator("#topologyBadge")).to_contain_text("layers (gateways, routes) / 7 nodes / 7 links")
+    assert horizontally_clipped_topology_nodes(page) == []
+
+    page.fill("#topologySearch", "nat")
+    expect(page.locator("#topologyBadge")).to_contain_text("layers (gateways, routes) / 1 nodes / 0 links")
+    page.fill("#topologySearch", "")
+
+    page.locator("#topologyConnectedOnly").check()
+    expect(page.locator("#topologyBadge")).to_contain_text("layers (gateways, routes) / 6 nodes / 7 links")
+    page.locator("#topologyConnectedOnly").uncheck()
 
     page.click('[data-topology-mode="vcn"]')
-    expect(page.locator("#topologyBadge")).to_contain_text("vcn focus / 8 nodes / 7 links")
-    assert page.locator("#topologyVcnScope").input_value() == ""
+    expect(page.locator("#topologyBadge")).to_contain_text("vcn focus / 7 nodes / 8 links")
+    assert page.locator("#topologyVcnScope").input_value() == "vcn-prod-fra"
     assert horizontally_clipped_topology_nodes(page) == []
 
+    page.locator("#topologyVcnScope").select_option("vcn-dr-ams")
+    expect(page.locator("#topologyBadge")).to_contain_text("vcn focus / 1 nodes / 0 links")
     page.locator("#topologyVcnScope").select_option("vcn-prod-fra")
     expect(page.locator("#topologyBadge")).to_contain_text("vcn focus / 7 nodes / 8 links")
     assert page.locator("#topologyVcnScope").input_value() == "vcn-prod-fra"
