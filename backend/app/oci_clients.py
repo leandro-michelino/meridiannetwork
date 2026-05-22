@@ -1,5 +1,5 @@
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from .config import Settings
@@ -12,6 +12,7 @@ class OciClientError(RuntimeError):
 @dataclass(frozen=True)
 class OciClientFactory:
     settings: Settings
+    _signer_cache: Any | None = field(default=None, init=False, repr=False)
 
     def _load_oci(self) -> Any:
         try:
@@ -25,11 +26,17 @@ class OciClientFactory:
         selected_region = region or self.settings.home_region
 
         if self.settings.oci_auth == "instance_principal":
-            signer = oci.auth.signers.InstancePrincipalsSecurityTokenSigner()
+            signer = self._signer_cache
+            if signer is None:
+                signer = oci.auth.signers.InstancePrincipalsSecurityTokenSigner()
+                object.__setattr__(self, "_signer_cache", signer)
             return signer, {"region": selected_region}
 
         if self.settings.oci_auth == "resource_principal":
-            signer = oci.auth.signers.get_resource_principals_signer()
+            signer = self._signer_cache
+            if signer is None:
+                signer = oci.auth.signers.get_resource_principals_signer()
+                object.__setattr__(self, "_signer_cache", signer)
             return signer, {"region": selected_region}
 
         config = oci.config.from_file(profile_name=self.settings.oci_profile)
