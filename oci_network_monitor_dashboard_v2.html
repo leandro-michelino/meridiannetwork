@@ -350,6 +350,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
   padding: 7px 11px;
   background: var(--mn-surface-soft);
   border-bottom: 1px solid var(--mn-border-soft);
@@ -360,10 +361,27 @@ body {
   letter-spacing: .04em;
 }
 
+.cs-header-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 .cs-header-right {
   font-weight: 400;
   font-size: 11px;
   color: var(--mn-muted);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.cs-action-button,
+.cs-row-action {
+  min-height: 24px;
+  padding: 3px 7px;
+  font-size: 10px;
   text-transform: none;
   letter-spacing: 0;
 }
@@ -407,7 +425,7 @@ body {
 
 .cs-row {
   display: grid;
-  grid-template-columns: 14px minmax(140px, 1fr) auto minmax(220px, 2fr) auto;
+  grid-template-columns: 14px minmax(140px, 1fr) auto minmax(220px, 2fr) auto auto;
   align-items: center;
   gap: 8px;
   padding: 7px 11px;
@@ -1250,10 +1268,24 @@ tr:last-child td { border-bottom: 0; }
     grid-template-columns: 14px minmax(0, 1fr) auto;
   }
 
+  .cs-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .cs-header-actions {
+    justify-content: flex-start;
+  }
+
   .cs-count-grid,
   .cs-meta,
+  .cs-row-action,
   .cs-error {
     grid-column: 2 / -1;
+  }
+
+  .cs-row-action {
+    justify-self: start;
   }
 
   .button {
@@ -1325,7 +1357,7 @@ tr:last-child td { border-bottom: 0; }
           </div>
         </div>
       </div>
-      <button class="button" id="refreshNow" type="button">Refresh</button>
+      <button class="button" id="refreshNow" type="button">Refresh selected</button>
       <button class="button" id="exportInventoryBtn" type="button">Export inventory</button>
       <button class="button" id="demoToggle" type="button">Demo data</button>
     </div>
@@ -1866,8 +1898,8 @@ async function postJson(path, payload) {
   return response.json();
 }
 
-async function loadApiData() {
-  const dashboardPath = dashboardApiPath();
+async function loadApiData(options = {}) {
+  const dashboardPath = dashboardApiPath(options);
   if (!dashboardPath) {
     const [
       identityContext,
@@ -1919,14 +1951,28 @@ async function loadApiData() {
   };
 }
 
-function dashboardApiPath() {
+function dashboardApiPath({
+  refresh = false,
+  clearCache = false,
+  regionsOverride = null,
+  forceSelectedRegions = false,
+} = {}) {
   const params = new URLSearchParams();
-  if (selectedRegionIds !== null && selectedRegionIds.size === 0) return null;
-  const selectedRegions = selectedRegionIds === null ? [] : [...selectedRegionIds];
+  if (!regionsOverride && selectedRegionIds !== null && selectedRegionIds.size === 0) return null;
+  let selectedRegions = [];
+  if (Array.isArray(regionsOverride)) {
+    selectedRegions = regionsOverride.filter(Boolean);
+  } else if (selectedRegionIds !== null) {
+    selectedRegions = [...selectedRegionIds];
+  } else if (forceSelectedRegions) {
+    selectedRegions = [...currentDefaultRegionIds];
+  }
   if (selectedRegions.length) {
     params.set('regions', selectedRegions.join(','));
     params.set('async_collect', 'true');
   }
+  if (refresh) params.set('refresh', 'true');
+  if (clearCache) params.set('clear_cache', 'true');
   const query = params.toString();
   return query ? `${API_PATHS.dashboard}?${query}` : API_PATHS.dashboard;
 }
@@ -1949,18 +1995,42 @@ function emptyDashboardData(activeRegions, compartments) {
   };
 }
 
-async function refreshDashboard({ showLoading = false } = {}) {
-  if (refreshInFlight) return;
-  refreshInFlight = true;
+function isCollectionBusy(collection = currentDashboardData?.collection) {
+  if (!collection) return false;
+  return collection.status === 'collecting' || (collection.regions || []).some((region) => region.status === 'collecting');
+}
+
+function setManualRefreshControlsDisabled(disabled = false) {
+  const busy = Boolean(disabled || refreshInFlight || isCollectionBusy());
   const refreshButton = byId('refreshNow');
-  if (refreshButton) refreshButton.disabled = true;
-  if (showLoading) text('lastUpdated', 'Refreshing...');
+  if (refreshButton) refreshButton.disabled = busy;
+  const panel = byId('collectionStatusPanel');
+  if (panel) {
+    panel.querySelectorAll('button[data-refresh-region], button[data-refresh-selected], button[data-clear-cache]').forEach((button) => {
+      button.disabled = busy || useDemoData;
+    });
+  }
+}
+
+async function refreshDashboard({
+  showLoading = false,
+  refresh = false,
+  clearCache = false,
+  regionsOverride = null,
+  forceSelectedRegions = false,
+  manualRefresh = false,
+} = {}) {
+  if (refreshInFlight) return;
+  if (manualRefresh && isCollectionBusy()) return;
+  refreshInFlight = true;
+  setManualRefreshControlsDisabled(true);
+  if (showLoading) text('lastUpdated', clearCache ? 'Clearing cache...' : 'Refreshing...');
 
   try {
     let data;
     let mode = useDemoData ? 'demo' : 'api';
     try {
-      data = useDemoData ? DEMO_DATA : await loadApiData();
+      data = useDemoData ? DEMO_DATA : await loadApiData({ refresh, clearCache, regionsOverride, forceSelectedRegions });
     } catch (error) {
       data = DEMO_DATA;
       mode = 'demo fallback';
@@ -1971,7 +2041,7 @@ async function refreshDashboard({ showLoading = false } = {}) {
     renderDashboard(data, mode);
   } finally {
     refreshInFlight = false;
-    if (refreshButton) refreshButton.disabled = false;
+    setManualRefreshControlsDisabled();
   }
 }
 
@@ -2050,6 +2120,7 @@ function renderDashboard(data, mode) {
   renderSecurityActionHistory(securityActionHistory);
   renderNetworkTable(viewData.vcns, viewData.subnets, compartmentMap);
   text('lastUpdated', `Last refresh: ${new Date().toLocaleString()} / ${mode}`);
+  setManualRefreshControlsDisabled();
 }
 
 function dashboardRegions(data) {
@@ -2180,6 +2251,7 @@ function renderCollectionStatusPanel(collection) {
   const collectingCount = regions.filter((r) => r.status === 'collecting').length;
   const failedCount = regions.filter((r) => r.status === 'failed').length;
   const warnCount = regions.filter((r) => r.status === 'ready_with_warnings').length;
+  const controlsDisabled = refreshInFlight || useDemoData || status === 'collecting' || collectingCount > 0;
   const headerStatus = collectingCount
     ? `${collectingCount} collecting…`
     : failedCount
@@ -2193,7 +2265,11 @@ function renderCollectionStatusPanel(collection) {
     <div class="cs-panel">
       <div class="cs-header">
         <span>Collection status</span>
-        <span class="cs-header-right">${escapeHtml(headerStatus)}</span>
+        <div class="cs-header-actions">
+          <span class="cs-header-right">${escapeHtml(headerStatus)}</span>
+          <button class="button cs-action-button" type="button" data-refresh-selected ${controlsDisabled ? 'disabled' : ''}>Refresh selected</button>
+          <button class="button cs-action-button" type="button" data-clear-cache ${controlsDisabled ? 'disabled' : ''}>Clear cache</button>
+        </div>
       </div>
       <div class="cs-summary">
         ${collectionStat('Status', collectionStatusLabel(status || headerStatus))}
@@ -2202,14 +2278,14 @@ function renderCollectionStatusPanel(collection) {
         ${collectionStat('Last successful', collectionLastSuccess(regions))}
       </div>
       <div class="cs-rows">
-        ${regions.map((r) => renderRegionStatusRow(r)).join('')}
+        ${regions.map((r) => renderRegionStatusRow(r, controlsDisabled)).join('')}
       </div>
       ${renderCollectionIssueGroups(issues)}
     </div>
   `;
 }
 
-function renderRegionStatusRow(r) {
+function renderRegionStatusRow(r, controlsDisabled = false) {
   const status = r.status || 'collecting';
   const rowClass = status === 'collecting' ? 'cs-collecting'
     : status === 'failed' ? 'cs-failed'
@@ -2245,6 +2321,9 @@ function renderRegionStatusRow(r) {
 
   const counts = r.resource_counts || {};
   const countsGrid = renderCollectionCounts(counts);
+  const refreshLabel = status === 'collecting' || r.refreshing ? 'Refreshing' : 'Refresh';
+  const regionId = r.id || '';
+  const refreshDisabled = controlsDisabled || !regionId;
 
   const errorLine = r.error
     ? `<div class="cs-error" title="${escapeHtml(r.error)}">${escapeHtml(r.error.slice(0, 120))}</div>`
@@ -2257,6 +2336,7 @@ function renderRegionStatusRow(r) {
       <span class="cs-status-badge ${badgeClass}">${escapeHtml(badgeLabel)}</span>
       ${countsGrid}
       <span class="cs-meta">${escapeHtml(meta)}</span>
+      <button class="button cs-row-action" type="button" data-refresh-region="${escapeHtml(regionId)}" ${refreshDisabled ? 'disabled' : ''}>${escapeHtml(refreshLabel)}</button>
       ${errorLine}
     </div>
   `;
@@ -4310,7 +4390,53 @@ byId('demoToggle').addEventListener('click', () => {
   byId('demoToggle').textContent = useDemoData ? 'Use API' : 'Demo data';
   refreshDashboard({ showLoading: true });
 });
-byId('refreshNow').addEventListener('click', () => refreshDashboard({ showLoading: true }));
+byId('refreshNow').addEventListener('click', () => refreshDashboard({
+  showLoading: true,
+  refresh: true,
+  forceSelectedRegions: true,
+  manualRefresh: true,
+}));
+byId('collectionStatusPanel').addEventListener('click', (event) => {
+  const regionButton = event.target.closest('button[data-refresh-region]');
+  if (regionButton) {
+    event.preventDefault();
+    if (regionButton.disabled) return;
+    const region = regionButton.getAttribute('data-refresh-region');
+    refreshDashboard({
+      showLoading: true,
+      refresh: true,
+      regionsOverride: region ? [region] : [],
+      manualRefresh: true,
+    });
+    return;
+  }
+
+  const selectedButton = event.target.closest('button[data-refresh-selected]');
+  if (selectedButton) {
+    event.preventDefault();
+    if (selectedButton.disabled) return;
+    refreshDashboard({
+      showLoading: true,
+      refresh: true,
+      forceSelectedRegions: true,
+      manualRefresh: true,
+    });
+    return;
+  }
+
+  const clearButton = event.target.closest('button[data-clear-cache]');
+  if (clearButton) {
+    event.preventDefault();
+    if (clearButton.disabled) return;
+    refreshDashboard({
+      showLoading: true,
+      refresh: true,
+      clearCache: true,
+      forceSelectedRegions: true,
+      manualRefresh: true,
+    });
+  }
+});
 
 function exportQueryParams() {
   const params = new URLSearchParams();

@@ -98,6 +98,17 @@ def _read_persistent_snapshot(
         return None
 
 
+def _clear_dashboard_snapshot(network_inventory: NetworkInventoryService, key: _SnapshotKey) -> None:
+    _dashboard_snapshots.pop(key, None)
+    path = _snapshot_cache_file(network_inventory, key)
+    if not path:
+        return
+    try:
+        path.unlink(missing_ok=True)
+    except Exception:
+        pass
+
+
 def _failed_dashboard_snapshot(region: str, exc: Exception) -> dict[str, object]:
     error_msg = str(exc)[:500]
     now_iso = datetime.now(timezone.utc).isoformat()
@@ -197,6 +208,8 @@ def dashboard_snapshot(
     compartment_ids: str | None = Query(default=None, description="Comma-separated compartment OCIDs."),
     vcn_id: str | None = Query(default=None, description="Optional VCN OCID filter."),
     async_collect: bool = Query(default=False, description="Start collection in the background and return cached status."),
+    refresh: bool = Query(default=False, description="Force a background refresh for the requested regions."),
+    clear_cache: bool = Query(default=False, description="Clear cached dashboard snapshots before collecting."),
     network_inventory: NetworkInventoryService = Depends(get_network_inventory_service),
     region_service: RegionService = Depends(get_region_service),
     compartment_service: CompartmentService = Depends(get_compartment_service),
@@ -212,6 +225,8 @@ def dashboard_snapshot(
                 network_inventory=network_inventory,
                 region_service=region_service,
                 compartment_service=compartment_service,
+                refresh=refresh,
+                clear_cache=clear_cache,
             )
         return _build_dashboard_snapshot(
             selected_regions=selected_regions,
@@ -235,6 +250,8 @@ def _async_dashboard_snapshot(
     network_inventory: NetworkInventoryService,
     region_service: RegionService,
     compartment_service: CompartmentService,
+    refresh: bool = False,
+    clear_cache: bool = False,
 ) -> dict[str, object]:
     now = monotonic()
     ready_snapshots: dict[str, dict[str, object]] = {}
@@ -245,32 +262,37 @@ def _async_dashboard_snapshot(
     with _dashboard_lock:
         for region in selected_regions:
             key = (region, selected_compartment_key, vcn_key)
-            cached = _dashboard_snapshots.get(key)
-            if cached and _snapshot_is_fresh(cached[1], now, network_inventory):
-                snapshot = cached[1]
-                ready_snapshots[region] = snapshot
-                region_states.append(_region_collection_state(region, snapshot))
-                continue
+            if clear_cache:
+                _clear_dashboard_snapshot(network_inventory, key)
 
             job = _dashboard_jobs.get(key)
             if job and job.done():
-                try:
-                    snapshot = jsonable_encoder(job.result())
-                except Exception as exc:
-                    snapshot = _failed_dashboard_snapshot(region, exc)
-                _dashboard_snapshots[key] = (monotonic(), snapshot)
-                _write_persistent_snapshot(network_inventory, key, snapshot)
                 _dashboard_jobs.pop(key, None)
-                ready_snapshots[region] = snapshot
-                region_states.append(_region_collection_state(region, snapshot))
-                continue
+                if not clear_cache:
+                    try:
+                        snapshot = jsonable_encoder(job.result())
+                    except Exception as exc:
+                        snapshot = _failed_dashboard_snapshot(region, exc)
+                    _dashboard_snapshots[key] = (monotonic(), snapshot)
+                    _write_persistent_snapshot(network_inventory, key, snapshot)
+                    ready_snapshots[region] = snapshot
+                    region_states.append(_region_collection_state(region, snapshot))
+                    continue
+                job = None
+            else:
+                job = job if job and not job.done() else None
 
-            persisted = _read_persistent_snapshot(network_inventory, key)
-            if persisted:
-                _dashboard_snapshots[key] = (monotonic(), persisted)
-                ready_snapshots[region] = persisted
-                state = _region_collection_state(region, persisted)
-                if _snapshot_is_fresh(persisted, now, network_inventory):
+            cached = _dashboard_snapshots.get(key)
+            snapshot = cached[1] if cached else None
+            if snapshot is None:
+                snapshot = _read_persistent_snapshot(network_inventory, key)
+                if snapshot is not None:
+                    _dashboard_snapshots[key] = (monotonic(), snapshot)
+
+            if snapshot is not None:
+                state = _region_collection_state(region, snapshot)
+                if _snapshot_is_fresh(snapshot, now, network_inventory) and not refresh:
+                    ready_snapshots[region] = snapshot
                     region_states.append(state)
                     continue
                 if job is None:
@@ -284,6 +306,7 @@ def _async_dashboard_snapshot(
                         compartment_service=compartment_service,
                     )
                     _dashboard_jobs[key] = job
+                ready_snapshots[region] = snapshot
                 state["status"] = "collecting"
                 state["refreshing"] = True
                 region_states.append(state)

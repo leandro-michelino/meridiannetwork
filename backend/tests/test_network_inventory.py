@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 
 from app.config import Settings
 from app.main import create_app
+from app.routers import network as network_router
 from app.services.network_inventory import NetworkInventoryService, split_csv
 
 
@@ -459,6 +460,24 @@ def test_dashboard_async_starts_collection_without_live_oci():
     body = response.json()
     assert body["collection"]["status"] in {"collecting", "ready"}
     assert body["collection"]["requested_regions"] == ["eu-frankfurt-1"]
+
+
+def test_dashboard_async_refresh_can_clear_cache_without_live_oci():
+    network_router._dashboard_jobs.clear()
+    network_router._dashboard_snapshots.clear()
+    client = TestClient(create_app())
+
+    response = client.get("/api/dashboard?regions=eu-frankfurt-1&async_collect=true&refresh=true&clear_cache=true")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["collection"]["status"] in {"collecting", "ready"}
+    assert body["collection"]["requested_regions"] == ["eu-frankfurt-1"]
+
+    for job in list(network_router._dashboard_jobs.values()):
+        job.result(timeout=5)
+    network_router._dashboard_jobs.clear()
+    network_router._dashboard_snapshots.clear()
 
 
 def test_gateway_service_maps_supported_gateway_types():
