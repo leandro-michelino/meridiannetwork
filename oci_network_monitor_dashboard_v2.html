@@ -1342,6 +1342,7 @@ tr:last-child td { border-bottom: 0; }
     align-items: stretch;
     flex-direction: column;
     padding: 10px 12px;
+    position: static;
   }
 
   .brand { width: 100%; }
@@ -3038,7 +3039,7 @@ function renderTopology(data) {
     }
   }
 
-  setTopologyCanvasSize(topologyCanvasSize(nodes));
+  setTopologyCanvasSize(topologyCanvasSize(nodes, { fitWidth: useClusterShell || topologyMode === 'overview' }));
   const positions = topologyLayout(nodes);
   container.innerHTML = nodes.map((node, index) => {
     const domId = `topologyNode${index}`;
@@ -3055,7 +3056,8 @@ function renderTopology(data) {
 
   attachTopologyInteractions(container);
   if (shouldCenter) {
-    centerTopologyViewport(canvas);
+    if (useClusterShell || topologyMode === 'overview') resetTopologyViewport(canvas);
+    else centerTopologyViewport(canvas);
   } else {
     viewport.scrollLeft = previousScroll.left;
     viewport.scrollTop = previousScroll.top;
@@ -3385,7 +3387,7 @@ function topologySignature(nodes, edges) {
   return `${nodeIds}::${edgeIds}`;
 }
 
-function topologyCanvasSize(nodes) {
+function topologyCanvasSize(nodes, { fitWidth = false } = {}) {
   const viewport = byId('topology');
   const viewportWidth = Math.max(320, viewport.clientWidth || 980);
   const viewportHeight = Math.max(420, viewport.clientHeight || 560);
@@ -3398,7 +3400,9 @@ function topologyCanvasSize(nodes) {
   const nodeCount = nodes.length;
   const needsWideCanvas = nodeCount > 12 || maxColumnCount > 6;
   return {
-    width: needsWideCanvas
+    width: fitWidth
+      ? viewportWidth
+      : needsWideCanvas
       ? clamp(viewportWidth + Math.ceil(Math.max(nodeCount - 12, 0) / 12) * 220, viewportWidth, 12000)
       : viewportWidth,
     height: clamp(220 + maxColumnCount * 118, viewportHeight, 16000),
@@ -3419,6 +3423,15 @@ function applyTopologyZoom() {
   canvas.style.width = `${Math.round(topologyCanvasBaseSize.width * topologyZoom)}px`;
   canvas.style.height = `${Math.round(topologyCanvasBaseSize.height * topologyZoom)}px`;
   scheduleDrawTopologyLines();
+}
+
+function resetTopologyViewport(canvas) {
+  const viewport = byId('topology');
+  window.requestAnimationFrame(() => {
+    viewport.scrollLeft = 0;
+    viewport.scrollTop = 0;
+    scheduleDrawTopologyLines();
+  });
 }
 
 function centerTopologyViewport(canvas) {
