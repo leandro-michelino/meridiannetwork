@@ -51,6 +51,17 @@ class OciClientFactory:
             return oci.core.VirtualNetworkClient(config=config, signer=signer)
         return oci.core.VirtualNetworkClient(config)
 
+    def resource_search_client(self, region: str | None = None) -> Any:
+        oci = self._load_oci()
+        signer, config = self.signer_and_config(region=region)
+        if signer is not None:
+            return oci.resource_search.ResourceSearchClient(config=config, signer=signer)
+        return oci.resource_search.ResourceSearchClient(config)
+
+    def structured_search_details(self, query: str) -> Any:
+        oci = self._load_oci()
+        return oci.resource_search.models.StructuredSearchDetails(query=query, type="Structured")
+
     def object_storage_client(self) -> Any:
         oci = self._load_oci()
         signer, config = self.signer_and_config()

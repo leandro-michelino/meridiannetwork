@@ -329,60 +329,66 @@ def _build_dashboard_snapshot(
 ) -> dict[str, object]:
     started = monotonic()
     network_inventory.reset_collection_issues()
+    effective_regions = network_inventory.selected_region_ids(selected_regions)
     route_analysis = RouteAnalysisService(network_inventory=network_inventory)
     security_posture = SecurityPostureService(network_inventory=network_inventory)
     response = {
         "activeRegions": region_service.list_active(),
         "compartments": compartment_service.list_compartments(),
-        "vcns": network_inventory.list_vcns(regions=selected_regions, compartment_ids=selected_compartments),
+        "vcns": network_inventory.list_vcns(regions=effective_regions, compartment_ids=selected_compartments),
         "subnets": network_inventory.list_subnets(
-            regions=selected_regions,
+            regions=effective_regions,
             compartment_ids=selected_compartments,
             vcn_id=vcn_id,
         ),
         "gateways": network_inventory.list_gateways(
-            regions=selected_regions,
+            regions=effective_regions,
             compartment_ids=selected_compartments,
             vcn_id=vcn_id,
         ),
         "routeTables": network_inventory.list_route_tables(
-            regions=selected_regions,
+            regions=effective_regions,
             compartment_ids=selected_compartments,
             vcn_id=vcn_id,
         ),
         "routeIssues": route_analysis.summarize(
-            regions=selected_regions,
+            regions=effective_regions,
             compartment_ids=selected_compartments,
             vcn_id=vcn_id,
         ),
         "securityLists": network_inventory.list_security_lists(
-            regions=selected_regions,
+            regions=effective_regions,
             compartment_ids=selected_compartments,
             vcn_id=vcn_id,
         ),
         "networkSecurityGroups": network_inventory.list_network_security_groups(
-            regions=selected_regions,
+            regions=effective_regions,
             compartment_ids=selected_compartments,
             vcn_id=vcn_id,
         ),
         "topology": network_inventory.get_topology(
-            regions=selected_regions,
+            regions=effective_regions,
             compartment_ids=selected_compartments,
             vcn_id=vcn_id,
         ),
         "securityPosture": security_posture.summarize(
-            regions=selected_regions,
+            regions=effective_regions,
             compartment_ids=selected_compartments,
             vcn_id=vcn_id,
         ),
     }
+    response["activeRegions"] = _dashboard_active_regions(
+        region_service=region_service,
+        network_inventory=network_inventory,
+        response=response,
+    )
     now_iso = datetime.now(timezone.utc).isoformat()
     duration = round(monotonic() - started, 2)
     response["collected_at"] = now_iso
     response["duration_seconds"] = duration
     all_issues = network_inventory.collection_issues()
     region_rows: list[dict[str, object]] = []
-    for region in selected_regions:
+    for region in effective_regions:
         region_issues = [i for i in all_issues if i.get("region") == region]
         resource_counts = {
             "vcns": len([item for item in response["vcns"] if item.region == region]),
@@ -412,9 +418,9 @@ def _build_dashboard_snapshot(
         })
     response["collection"] = {
         "status": "ready_with_warnings" if all_issues else "ready",
-        "requested_regions": selected_regions,
+        "requested_regions": effective_regions,
         "issues": all_issues,
-        "completed_regions": selected_regions,
+        "completed_regions": effective_regions,
         "pending_regions": [],
         "regions": region_rows,
     }
@@ -466,6 +472,74 @@ def _aggregate_dashboard_snapshots(
         "regions": region_states,
     }
     return response
+
+
+def _dashboard_active_regions(
+    region_service: RegionService,
+    network_inventory: NetworkInventoryService,
+    response: dict[str, object],
+) -> list[dict[str, object]]:
+    configured_regions = region_service.list_active()
+    available_by_id = {region.id: region for region in region_service.list_available()}
+    home_region = network_inventory.settings.home_region
+    region_ids = list(
+        dict.fromkeys(
+            [
+                *(region.id for region in configured_regions),
+                *network_inventory.discovered_region_ids(),
+                *_observed_region_ids(response),
+            ]
+        )
+    )
+
+    def sort_key(region_id: str) -> tuple[int, str]:
+        return (0 if region_id == home_region else 1, region_id)
+
+    results: list[dict[str, object]] = []
+    for region_id in sorted(region_ids, key=sort_key):
+        detail = available_by_id.get(region_id)
+        results.append(
+            {
+                "id": region_id,
+                "geo": detail.geo if detail else _region_geo(region_id),
+                "is_home_region": region_id == home_region,
+                "is_active": True,
+            }
+        )
+    return results
+
+
+def _observed_region_ids(response: dict[str, object]) -> list[str]:
+    region_ids: list[str] = []
+    for field in (
+        "vcns",
+        "subnets",
+        "gateways",
+        "routeTables",
+        "securityLists",
+        "networkSecurityGroups",
+    ):
+        for item in list(response.get(field, [])):
+            region = getattr(item, "region", None)
+            if region:
+                region_ids.append(str(region))
+    return region_ids
+
+
+def _region_geo(region_id: str) -> str:
+    if region_id.startswith("eu-"):
+        return "Europe"
+    if region_id.startswith(("us-", "ca-", "mx-")):
+        return "North America"
+    if region_id.startswith("af-"):
+        return "Africa"
+    if region_id.startswith(("me-", "il-")):
+        return "Middle East"
+    if region_id.startswith("ap-"):
+        return "Asia Pacific"
+    if region_id.startswith("sa-"):
+        return "South America"
+    return "Region"
 
 
 def _region_collection_state(region: str, snapshot: dict[str, object]) -> dict[str, object]:

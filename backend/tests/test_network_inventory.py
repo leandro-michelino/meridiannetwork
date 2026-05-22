@@ -11,6 +11,9 @@ class OciObject:
 
 
 class FakeVirtualNetworkClient:
+    def __init__(self, region=None):
+        self.region = region
+
     def list_vcns(self, **kwargs):
         return kwargs
 
@@ -52,7 +55,7 @@ class FakeClientFactory:
         return FakeIdentityClient()
 
     def virtual_network_client(self, region=None):
-        return FakeVirtualNetworkClient()
+        return FakeVirtualNetworkClient(region=region)
 
     def list_all(self, list_func, *args, **kwargs):
         method_name = list_func.__name__
@@ -250,6 +253,7 @@ class FakeClientFactory:
 class TrackingClientFactory(FakeClientFactory):
     def __init__(self):
         self.vcn_compartment_ids = []
+        self.vcn_regions = []
         self.compartment_discovery_calls = 0
 
     def list_all(self, list_func, *args, **kwargs):
@@ -267,6 +271,7 @@ class TrackingClientFactory(FakeClientFactory):
             ]
         if method_name == "list_vcns":
             compartment_id = kwargs["compartment_id"]
+            self.vcn_regions.append(getattr(getattr(list_func, "__self__", None), "region", None))
             self.vcn_compartment_ids.append(compartment_id)
             return [
                 OciObject(
@@ -281,6 +286,51 @@ class TrackingClientFactory(FakeClientFactory):
                 )
             ]
         return super().list_all(list_func, *args, **kwargs)
+
+
+class FakeSearchResponse:
+    def __init__(self, items, next_page=None):
+        self.data = OciObject(items=items)
+        self.headers = {"opc-next-page": next_page} if next_page else {}
+
+
+class FakeResourceSearchClient:
+    def __init__(self, factory):
+        self.factory = factory
+
+    def search_resources(self, details, **kwargs):
+        self.factory.search_queries.append(details.query)
+        query_items = {
+            "query vcn resources": [
+                OciObject(
+                    compartment_id="search-compartment",
+                    identifier="ocid1.vcn.oc1.me-abudhabi-1.example",
+                ),
+                OciObject(
+                    compartment_id="dr-compartment",
+                    identifier="ocid1.vcn.oc1.af-johannesburg-1.example",
+                ),
+            ],
+            "query subnet resources": [
+                OciObject(
+                    compartment_id="search-compartment",
+                    identifier="ocid1.subnet.oc1.me-abudhabi-1.example",
+                ),
+            ],
+        }
+        return FakeSearchResponse(query_items.get(details.query, []))
+
+
+class ResourceSearchClientFactory(TrackingClientFactory):
+    def __init__(self):
+        super().__init__()
+        self.search_queries = []
+
+    def resource_search_client(self, region=None):
+        return FakeResourceSearchClient(self)
+
+    def structured_search_details(self, query):
+        return OciObject(query=query)
 
 
 def test_split_csv_trims_and_drops_empty_values():
@@ -347,6 +397,39 @@ def test_inventory_expands_default_scope_to_accessible_compartments():
     assert [vcn.compartment_id for vcn in vcns] == ["tenancy-1", "app-compartment"]
     assert factory.vcn_compartment_ids == ["tenancy-1", "app-compartment"]
     assert factory.compartment_discovery_calls == 1
+
+
+def test_inventory_uses_resource_search_scope_for_default_regions_and_compartments():
+    settings = Settings(
+        enable_live_oci=True,
+        tenancy_ocid="tenancy-1",
+        active_regions=["eu-frankfurt-1"],
+    )
+    factory = ResourceSearchClientFactory()
+    service = NetworkInventoryService(settings=settings, client_factory=factory)
+
+    assert service.selected_region_ids() == ["af-johannesburg-1", "me-abudhabi-1"]
+
+    service.list_vcns()
+
+    assert factory.compartment_discovery_calls == 0
+    assert factory.search_queries == ["query vcn resources", "query subnet resources"]
+    assert factory.vcn_regions == [
+        "af-johannesburg-1",
+        "af-johannesburg-1",
+        "af-johannesburg-1",
+        "me-abudhabi-1",
+        "me-abudhabi-1",
+        "me-abudhabi-1",
+    ]
+    assert factory.vcn_compartment_ids == [
+        "tenancy-1",
+        "dr-compartment",
+        "search-compartment",
+        "tenancy-1",
+        "dr-compartment",
+        "search-compartment",
+    ]
 
 
 def test_dashboard_returns_empty_snapshot_without_live_oci():
