@@ -1,195 +1,153 @@
 # API Reference
 
-This document describes the Meridian API surface. Some endpoints are implemented in the current FastAPI foundation; the remaining endpoint families are the working contract for future development.
+All endpoints are served by the Meridian FastAPI backend and proxied through Nginx.
+Base URL: `http://<host>/`
 
 ## Conventions
 
 - All endpoints return JSON.
-- All list endpoints support pagination once backed by live OCI calls.
-- All OCI resource responses should include `id`, `name`, `region`, `compartment_id`, `lifecycle_state`, and `time_created` where available.
-- Error responses should use a consistent structure:
+- Filter parameters accept comma-separated values: `regions=eu-frankfurt-1,me-abudhabi-1`.
+- Error responses use a consistent envelope:
 
 ```json
 {
-  "error": {
-    "code": "OCI_REQUEST_FAILED",
-    "message": "Human-readable error",
-    "request_id": "optional-provider-request-id"
+  "detail": {
+    "code": "OCI_CLIENT_ERROR",
+    "message": "Human-readable description"
   }
 }
 ```
 
+- When `MERIDIAN_ENABLE_LIVE_OCI=false` (default), inventory endpoints return empty lists without
+  hitting OCI APIs. Health and preflight endpoints always respond.
+
+---
+
 ## Health
 
-```text
-GET /healthz
-GET /readyz
-GET /api/preflight
-```
+| Method | Path      | Description                                                         |
+| ------ | --------- | ------------------------------------------------------------------- |
+| GET    | `/healthz` | Liveness — returns service name, version, environment, status      |
+| GET    | `/readyz`  | Readiness — indicates whether the API is ready to serve live OCI calls |
 
-Status: implemented.
+`/readyz` returns `status: degraded` when live OCI mode is enabled but `MERIDIAN_TENANCY_OCID` is
+not configured.
 
-`GET /api/preflight` returns runtime readiness checks for live OCI mode, auth mode, tenancy configuration, monitored
-compartments, configured regions, OCI SDK signer creation, compartment discovery permission, and required network
-inventory reads.
+---
+
+## Preflight
+
+| Method | Path             | Description                                                      |
+| ------ | ---------------- | ---------------------------------------------------------------- |
+| GET    | `/api/preflight` | Runtime readiness checks for OCI connectivity and permissions    |
+
+Runs checks for: auth mode, tenancy configuration, compartment discovery, and required network
+inventory reads (VCN list, security list, NSG list). Each check returns `name`, `status`
+(`pass` / `fail` / `skip`), `message`, and `action`.
+
+---
 
 ## Scope
 
-```text
-GET /api/regions/available
-GET /api/regions/active
-GET /api/compartments
+| Method | Path                       | Description                                                              |
+| ------ | -------------------------- | ------------------------------------------------------------------------ |
+| GET    | `/api/regions/available`   | All known OCI regions with geo and home-region flag                      |
+| GET    | `/api/regions/active`      | Regions configured via `MERIDIAN_HOME_REGION` + `MERIDIAN_ACTIVE_REGIONS` |
+| GET    | `/api/compartments`        | Accessible compartments discovered from the tenancy root                 |
+
+---
+
+## Dashboard (aggregate)
+
+| Method | Path             | Description                                            |
+| ------ | ---------------- | ------------------------------------------------------ |
+| GET    | `/api/dashboard` | Full inventory snapshot — all resource types in one response |
+
+Query parameters:
+
+| Parameter         | Type   | Description                                                              |
+| ----------------- | ------ | ------------------------------------------------------------------------ |
+| `regions`         | string | Comma-separated region IDs                                               |
+| `compartment_ids` | string | Comma-separated compartment OCIDs                                        |
+| `vcn_id`          | string | Optional VCN OCID filter                                                 |
+| `async_collect`   | bool   | `true` = return immediately with cached data, collect in background      |
+
+When `async_collect=true` the response includes a `collection` object:
+
+```json
+{
+  "collection": {
+    "status": "collecting | ready | ready_with_warnings | failed",
+    "requested_regions": ["me-abudhabi-1"],
+    "completed_regions": [],
+    "pending_regions": ["me-abudhabi-1"],
+    "issues": [],
+    "regions": [
+      {
+        "id": "me-abudhabi-1",
+        "status": "collecting",
+        "resource_counts": {},
+        "last_updated": null,
+        "duration_seconds": null,
+        "error": null
+      }
+    ]
+  }
+}
 ```
 
-Status: implemented.
+The UI polls every 3–15 s (exponential backoff) until `status` is no longer `collecting`.
+Completed snapshots are written to `MERIDIAN_INVENTORY_SNAPSHOT_DIR` and reused across restarts.
+
+---
 
 ## Network Inventory
 
-```text
-GET /api/vcns
-GET /api/subnets
-GET /api/gateways
-GET /api/route-tables
-GET /api/route-issues
-GET /api/security-lists
-GET /api/network-security-groups
-GET /api/topology
-GET /api/drgs
-GET /api/vpns
-GET /api/fastconnect
-```
+All endpoints accept `regions` and `compartment_ids` query parameters.
+`subnets`, `gateways`, `route-tables`, `security-lists`, `network-security-groups`, and `topology`
+also accept `vcn_id`.
 
-Status:
+| Method | Path                              | Status                                        |
+| ------ | --------------------------------- | --------------------------------------------- |
+| GET    | `/api/vcns`                       | Implemented                                   |
+| GET    | `/api/subnets`                    | Implemented                                   |
+| GET    | `/api/gateways`                   | Implemented — IGW, NAT, SGW, DRG              |
+| GET    | `/api/route-tables`               | Implemented                                   |
+| GET    | `/api/route-issues`               | Implemented — route table analysis            |
+| GET    | `/api/security-lists`             | Implemented                                   |
+| GET    | `/api/network-security-groups`    | Implemented — with ingress/egress rule summaries |
+| GET    | `/api/topology`                   | Implemented — graph derived from all inventory types |
+| GET    | `/api/drgs`                       | Planned                                       |
+| GET    | `/api/vpns`                       | Planned                                       |
+| GET    | `/api/fastconnect`                | Planned                                       |
 
-- `GET /api/vcns`: implemented.
-- `GET /api/subnets`: implemented.
-- `GET /api/gateways`: implemented for Internet Gateways, NAT Gateways, Service Gateways, and DRGs.
-- `GET /api/route-tables`: implemented.
-- `GET /api/route-issues`: implemented for route table analysis.
-- `GET /api/security-lists`: implemented.
-- `GET /api/network-security-groups`: implemented with ingress and egress rule summaries.
-- `GET /api/topology`: implemented as a graph derived from VCNs, subnets, gateways, route tables, security lists, and NSGs.
-- Remaining endpoints: planned.
-
-Implemented query parameters:
-
-```text
-GET /api/vcns?regions=eu-frankfurt-1,eu-madrid-1&compartment_ids=<ocid>,<ocid>
-GET /api/subnets?regions=eu-frankfurt-1&compartment_ids=<ocid>&vcn_id=<vcn_ocid>
-GET /api/gateways?regions=eu-frankfurt-1&compartment_ids=<ocid>&vcn_id=<vcn_ocid>
-GET /api/route-tables?regions=eu-frankfurt-1&compartment_ids=<ocid>&vcn_id=<vcn_ocid>
-GET /api/route-issues?regions=eu-frankfurt-1&compartment_ids=<ocid>&vcn_id=<vcn_ocid>
-GET /api/security-lists?regions=eu-frankfurt-1&compartment_ids=<ocid>&vcn_id=<vcn_ocid>
-GET /api/network-security-groups?regions=eu-frankfurt-1&compartment_ids=<ocid>&vcn_id=<vcn_ocid>
-GET /api/topology?regions=eu-frankfurt-1&compartment_ids=<ocid>&vcn_id=<vcn_ocid>
-```
-
-If live OCI mode is disabled, these endpoints return empty lists.
-
-## Metrics
-
-```text
-GET /api/gateways/metrics
-GET /api/vnics/top-consumers
-GET /api/vnics/instance/{instance_id}/metrics
-GET /api/vnics/anomalies
-GET /api/latency/interregion
-```
-
-## Logs and Audit
-
-```text
-GET /api/flow-logs
-GET /api/flow-logs/top-talkers
-GET /api/audit/network-changes
-```
+---
 
 ## Security
 
-```text
-GET /api/security/posture
-GET /api/security/risky-rules
-GET /api/security/report
-```
+| Method | Path                       | Status                                                              |
+| ------ | -------------------------- | ------------------------------------------------------------------- |
+| GET    | `/api/security/posture`    | Implemented — broad ingress/egress risk checks across SLs and NSGs |
+| GET    | `/api/security/risky-rules` | Planned                                                            |
+| GET    | `/api/security/report`     | Planned                                                             |
 
-Status:
+---
 
-- `GET /api/security/posture`: implemented for initial broad ingress checks.
-- Remaining endpoints: planned.
+## Planned Endpoint Families
 
-## Load Balancers
-
-```text
-GET /api/lb/list
-GET /api/lb/{load_balancer_id}/backends
-GET /api/lb/{load_balancer_id}/metrics
-GET /api/lb/certificates
-GET /api/lb/alerts
-```
-
-## DNS
+The following endpoint families are specified but not yet implemented:
 
 ```text
-GET /api/dns/zones
-GET /api/dns/resolvers
-GET /api/dns/views
-GET /api/dns/issues
-GET /api/dns/query-stats
-```
-
-## DRG
-
-```text
-GET /api/drg/list
-GET /api/drg/{drg_id}/routes
-GET /api/drg/{drg_id}/bgp
-GET /api/drg/{drg_id}/policies
-GET /api/drg/validation
-GET /api/drg/issues
-```
-
-## OKE
-
-```text
-GET /api/oke/clusters
-GET /api/oke/network-health
-```
-
-## Cost
-
-```text
-GET /api/cost/egress
-GET /api/cost/top-consumers
-```
-
-## Synthetic Checks
-
-```text
-GET /api/healthchecks
-POST /api/healthchecks
-GET /api/healthchecks/{healthcheck_id}/history
-```
-
-## Export
-
-```text
-GET /api/export/pdf
-GET /api/export/csv
-```
-
-## Notifications
-
-```text
-GET /api/notifications/config
-POST /api/notifications/webhook
-```
-
-## AI
-
-```text
-POST /api/genai/alarm/explain
-POST /api/genai/flowlogs/query
-POST /api/genai/security/narrative
-POST /api/genai/audit/impact
-POST /api/genai/dr/readiness-summary
+/api/gateways/metrics
+/api/flow-logs
+/api/audit/network-changes
+/api/lb/*
+/api/dns/*
+/api/drg/*
+/api/oke/*
+/api/cost/*
+/api/healthchecks
+/api/export/*
+/api/notifications/*
+/api/genai/*
 ```

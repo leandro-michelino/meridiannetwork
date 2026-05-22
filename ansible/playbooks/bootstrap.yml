@@ -37,6 +37,8 @@
           mode: "0750"
         - path: "{{ meridian_app_root }}/data"
           mode: "0750"
+        - path: "{{ meridian_app_root }}/data/snapshots"
+          mode: "0750"
         - path: "{{ meridian_app_root }}/logs"
           mode: "0750"
         - path: "{{ meridian_backend_root }}"

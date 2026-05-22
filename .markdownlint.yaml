@@ -1,0 +1,14 @@
+# markdownlint configuration
+# https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
+
+default: true
+
+# Allow longer lines in tables and code blocks
+MD013:
+  line_length: 160
+  tables: false
+  code_blocks: false
+
+# Table column style: compact (spaces around pipes, no column alignment required)
+MD060:
+  style: compact

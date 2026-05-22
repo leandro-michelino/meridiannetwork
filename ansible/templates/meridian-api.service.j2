@@ -9,9 +9,18 @@ User={{ meridian_runtime_user }}
 Group={{ meridian_runtime_user }}
 WorkingDirectory={{ meridian_backend_root }}
 EnvironmentFile={{ meridian_app_root }}/config/meridian.env
-ExecStart={{ meridian_backend_venv }}/bin/uvicorn app.main:app --app-dir {{ meridian_backend_root }} --host {{ meridian_api_host }} --port {{ meridian_app_port }}
+ExecStart={{ meridian_backend_venv }}/bin/uvicorn app.main:app \
+    --app-dir {{ meridian_backend_root }} \
+    --host {{ meridian_api_host }} \
+    --port {{ meridian_app_port }} \
+    --no-access-log
 Restart=on-failure
 RestartSec=5
+StartLimitBurst=5
+StartLimitIntervalSec=60
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=meridian-api
 
 [Install]
 WantedBy=multi-user.target

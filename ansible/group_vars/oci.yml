@@ -1,4 +1,5 @@
 ---
+# Application layout
 meridian_app_name: meridian
 meridian_app_port: 8080
 meridian_api_host: 127.0.0.1
@@ -9,9 +10,22 @@ meridian_web_root: /var/www/meridian
 meridian_server_name: _
 meridian_runtime_user: meridian
 meridian_environment: dev
-meridian_home_region: eu-frankfurt-1
-meridian_active_regions: eu-frankfurt-1
+
+# OCI scope — override in host_vars or via --extra-vars for each tenant
+meridian_home_region: me-abudhabi-1
+meridian_active_regions: me-abudhabi-1
 meridian_compartment_ids: ""
-meridian_oci_auth: instance_principal
-meridian_enable_live_oci: "false"
 meridian_tenancy_ocid: ""
+
+# OCI authentication
+meridian_oci_auth: instance_principal
+meridian_oci_profile: DEFAULT
+
+# Collection behaviour
+meridian_enable_live_oci: "false"
+meridian_enable_resource_search_scope: "true"
+meridian_inventory_cache_ttl: 30
+meridian_inventory_snapshot_ttl: 900
+# snapshot dir defaults to {{ meridian_app_root }}/data/snapshots (set in template)
+# override here to use a custom path:
+# meridian_inventory_snapshot_dir: /opt/meridian/data/snapshots

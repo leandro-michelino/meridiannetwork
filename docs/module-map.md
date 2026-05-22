@@ -1,78 +1,92 @@
 # Module Map
 
-This is a compact map of the product modules described in the full specification.
+Status key: **Implemented** · *Planned*
 
 ## Core Operations
 
-- VCN overview.
-- Gateway status panel.
-- VCN Flow Logs viewer.
-- Network alarms center.
-- Inter-region latency.
-- VNIC and Compute top consumers.
-- DR readiness panel.
+| Feature                                                              | Status              |
+| -------------------------------------------------------------------- | ------------------- |
+| Live VCN / Subnet / Gateway inventory                                | **Implemented**     |
+| Route table inventory and rule listing                               | **Implemented**     |
+| Route issue analysis (blackhole, duplicate default, invalid entity)  | **Implemented**     |
+| Security List and NSG inventory with rule summaries                  | **Implemented**     |
+| Interactive topology graph (Overview / Layers / VCN focus)           | **Implemented**     |
+| Security posture panel (risky ingress/egress rule detection)         | **Implemented**     |
+| Async per-region collection with status panel                        | **Implemented**     |
+| Persistent on-disk snapshot cache                                    | **Implemented**     |
+| OCI runtime preflight checks                                         | **Implemented**     |
+| VCN Flow Logs viewer                                                 | *Planned*           |
+| Inter-region latency                                                 | *Planned*           |
+| VNIC and Compute top consumers                                       | *Planned*           |
+| DR readiness panel                                                   | *Planned*           |
 
 ## Navigation and Scope
 
-- Region selector.
-- Compartment switcher.
-- Multi-region OCI API calls.
-- Multi-compartment filtering.
-- Runtime OCI preflight.
+| Feature                                                    | Status          |
+| ---------------------------------------------------------- | --------------- |
+| Region selector with multi-region support                  | **Implemented** |
+| Compartment discovery and filter                           | **Implemented** |
+| Per-region collection status (Ready / Collecting / Failed / No resources) | **Implemented** |
+| Compartment-tag-based scope filter                         | *Planned*       |
 
 ## Security and Governance
 
-- Security posture panel.
-- Risky Security List and NSG rule detection.
-- OCI Audit change feed.
-- Exportable security reports.
+| Feature                                                                | Status          |
+| ---------------------------------------------------------------------- | --------------- |
+| Security posture score and findings                                    | **Implemented** |
+| Risky Security List rule detection (SSH/RDP/all-protocol from 0.0.0.0/0) | **Implemented** |
+| NSG risky rule detection                                               | **Implemented** |
+| OCI Audit change feed                                                  | *Planned*       |
+| Exportable security reports                                            | *Planned*       |
 
 ## Network Deep Dives
 
-- OKE network health.
-- Cost-aware egress.
-- Synthetic health checks.
-- Load Balancer health panel.
-- Private DNS visibility.
-- DRG route inspector.
+| Feature                            | Status    |
+| ---------------------------------- | --------- |
+| DRG inventory (listed under gateways) | **Implemented** |
+| DRG route inspector                | *Planned* |
+| OKE network health                 | *Planned* |
+| Cost-aware egress                  | *Planned* |
+| Synthetic health checks            | *Planned* |
+| Load Balancer health panel         | *Planned* |
+| Private DNS visibility             | *Planned* |
+| FastConnect / IPSec VPN            | *Planned* |
 
-## Operations Views
+## Operations
 
-- NOC full-screen mode.
-- PDF and CSV export.
-- OCI Notifications.
-- Slack, Teams, and email notification targets.
+| Feature                                    | Status    |
+| ------------------------------------------ | --------- |
+| PDF and CSV export                         | *Planned* |
+| OCI Notifications                          | *Planned* |
+| Slack / Teams / email notification targets | *Planned* |
 
 ## Intelligence Layer
 
-- Alarm explainer.
-- Natural language Flow Logs query.
-- Security risk narrative.
-- Change feed impact analysis.
-- DR readiness summary.
+| Feature                            | Status    |
+| ---------------------------------- | --------- |
+| Alarm explainer (GenAI)            | *Planned* |
+| Natural language Flow Logs query   | *Planned* |
+| Security risk narrative            | *Planned* |
+| Change-feed impact analysis        | *Planned* |
+| DR readiness summary               | *Planned* |
 
-## Planned Backend Endpoint Families
+## Implemented API Endpoints
 
-- `/api/regions`
-- `/api/preflight`
-- `/api/compartments`
-- `/api/vcns`
-- `/api/gateways`
-- `/api/route-issues`
-- `/api/network-security-groups`
-- `/api/topology`
-- `/api/flow-logs`
-- `/api/alarms`
-- `/api/latency`
-- `/api/vnics`
-- `/api/security`
-- `/api/audit`
-- `/api/oke`
-- `/api/cost`
-- `/api/healthchecks`
-- `/api/export`
-- `/api/notifications`
-- `/api/lb`
-- `/api/dns`
-- `/api/drg`
-- `/api/genai`
+```text
+GET /healthz
+GET /readyz
+GET /api/preflight
+GET /api/regions/available
+GET /api/regions/active
+GET /api/compartments
+GET /api/dashboard
+GET /api/vcns
+GET /api/subnets
+GET /api/gateways
+GET /api/route-tables
+GET /api/route-issues
+GET /api/security-lists
+GET /api/network-security-groups
+GET /api/topology
+GET /api/security/posture
+```

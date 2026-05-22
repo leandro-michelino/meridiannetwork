@@ -43,3 +43,6 @@ class RegionService:
             )
             for region_id, geo in OCI_REGIONS
         ]
+
+    def list_active(self) -> list[RegionSummary]:
+        return [r for r in self.list_available() if r.is_active]

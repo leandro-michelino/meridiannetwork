@@ -16,7 +16,7 @@ def available_regions(service: RegionService = Depends(get_region_service)) -> l
 
 @router.get("/regions/active", response_model=list[RegionSummary])
 def active_regions(service: RegionService = Depends(get_region_service)) -> list[RegionSummary]:
-    return [region for region in service.list_available() if region.is_active]
+    return service.list_active()
 
 
 @router.get("/compartments", response_model=list[CompartmentSummary])

@@ -2,80 +2,157 @@
 
 ## Goal
 
-Meridian centralizes OCI network observability into one operational dashboard.
+Meridian centralises OCI network observability into a single operational dashboard: live inventory,
+topology visualisation, route-issue detection, and security-posture analysis — all running from a
+small OCI Compute VM inside the tenant it monitors.
 
-The first repository baseline focuses on deployment foundations and the initial API foundation:
+---
 
-- OCI network and Compute host.
-- Runtime bootstrap with Ansible.
-- Static dashboard publishing.
-- FastAPI health, readiness, region, and compartment endpoints.
-- Future-ready IAM model for instance principal authentication.
+## Runtime Architecture
 
-The product design adds API aggregation, scheduled collection, cache, charts, topology, alarms, flow logs, DR readiness, load balancer visibility, Private DNS visibility, DRG route inspection, and OCI GenAI-assisted explanations.
+```text
+┌─────────────────────────────────────────────────────────────────────┐
+│  Browser                                                            │
+│  oci_network_monitor_dashboard_v2.html (single-page app, no build)  │
+│                                                                     │
+│  • Region selector / async collection poll (3-15 s backoff)        │
+│  • Per-region status panel: Ready / Collecting / Failed             │
+│  • Topology canvas (Overview / Layers / VCN focus)                  │
+│  • Security posture findings, route-issue analysis                  │
+└────────────────────────────┬────────────────────────────────────────┘
+                             │ HTTP (port 80)
+                             ▼
+┌────────────────────────────────────────────────────────────────────┐
+│  Nginx                                                             │
+│  /            → serve /var/www/meridian/index.html                 │
+│  /api/*        → proxy_pass http://127.0.0.1:8080                  │
+│  /healthz      → proxy_pass http://127.0.0.1:8080                  │
+│  /readyz       → proxy_pass http://127.0.0.1:8080                  │
+│  /docs         → proxy_pass http://127.0.0.1:8080  (Swagger UI)    │
+└────────────────────────────┬───────────────────────────────────────┘
+                             │ loopback
+                             ▼
+┌────────────────────────────────────────────────────────────────────┐
+│  FastAPI / uvicorn  (127.0.0.1:8080)                               │
+│  systemd service: meridian-api                                     │
+│  EnvironmentFile: /opt/meridian/config/meridian.env                │
+│                                                                    │
+│  Routers                                                           │
+│  ├── health    GET /healthz  GET /readyz                           │
+│  ├── scope     GET /api/regions/available                          │
+│  │             GET /api/regions/active                             │
+│  │             GET /api/compartments                               │
+│  ├── preflight GET /api/preflight                                  │
+│  ├── network   GET /api/dashboard?regions=&async_collect=true      │
+│  │             GET /api/vcns                                       │
+│  │             GET /api/subnets                                    │
+│  │             GET /api/gateways                                   │
+│  │             GET /api/route-tables                               │
+│  │             GET /api/route-issues                               │
+│  │             GET /api/security-lists                             │
+│  │             GET /api/network-security-groups                    │
+│  │             GET /api/topology                                   │
+│  └── security  GET /api/security/posture                          │
+│                                                                    │
+│  Async collection pipeline                                         │
+│  ├── ThreadPoolExecutor (4 workers, one job per region)            │
+│  ├── In-memory snapshot cache  (MERIDIAN_INVENTORY_CACHE_TTL_SECONDS)│
+│  └── On-disk snapshot cache   (MERIDIAN_INVENTORY_SNAPSHOT_DIR)    │
+│       /opt/meridian/data/snapshots/snapshot_<region>_<hash>.json   │
+└────────────────────────────┬───────────────────────────────────────┘
+                             │ OCI SDK (oci-python-sdk)
+                             │ Auth: instance_principal | config_file
+                             ▼
+┌────────────────────────────────────────────────────────────────────┐
+│  OCI APIs                                                          │
+│  ├── Identity  – compartment discovery (list_compartments)         │
+│  ├── Core VCN  – VCNs, Subnets, IGW, NAT, SGW, DRG               │
+│  │              Route Tables, Security Lists, NSGs                 │
+│  └── Resource Search – optional scope narrowing (OCID-based)       │
+└────────────────────────────────────────────────────────────────────┘
+```
 
-## High-Level Components
+---
+
+## Deployment Topology (Terraform + Ansible)
 
 ```text
 OCI Tenancy
-  |
-  +-- VCN / Subnet / Gateways / DRG / VPN / FastConnect
-  +-- Monitoring / Logging / Audit / DNS / Load Balancer APIs
-  |
-  +-- Meridian Host
-        |
-        +-- Nginx
-        +-- Static dashboard
-        +-- Future FastAPI backend
-        +-- Future scheduler and cache
+└── Compartment: meridian_compartment_ocid
+    ├── VCN  (10.0.0.0/24)
+    │   ├── Public Subnet  (10.0.0.0/28)
+    │   │   └── Security List  (ingress: admin_cidr_blocks → 22, 80, 443)
+    │   └── Internet Gateway
+    │
+    ├── Compute Instance  (Oracle Linux, flex shape)
+    │   ├── Nginx             → serves dashboard + proxies /api
+    │   ├── meridian-api      → FastAPI / uvicorn on 127.0.0.1:8080
+    │   └── /opt/meridian/
+    │       ├── backend/          (copied by Ansible)
+    │       ├── config/meridian.env
+    │       └── data/snapshots/   (persistent region snapshots)
+    │
+    └── IAM (optional, Terraform-managed)
+        ├── Dynamic Group: meridian-dynamic-group
+        │   match: instance.id = <instance_ocid>
+        └── Policy: meridian-policy
+            allow dynamic-group meridian-dynamic-group to read
+              virtual-network-family, vcns, subnets, ...
+              in tenancy
 ```
 
-## Current Deployment Topology
+---
 
-Terraform creates:
+## Data Flow: Async Region Collection
 
-- One VCN.
-- One public subnet.
-- One internet gateway.
-- One route table.
-- One security list limited by `admin_cidr_blocks`.
-- One Compute instance using Oracle Linux.
-- Optional dynamic group and IAM policy.
+```text
+UI selects regions
+      │
+      │ GET /api/dashboard?regions=A,B&async_collect=true
+      ▼
+network.py: _async_dashboard_snapshot()
+      │
+      ├── for each region:
+      │   ├── cache HIT (fresh)?  → return snapshot immediately
+      │   ├── disk snapshot HIT?  → serve stale + launch refresh job
+      │   └── no cache?           → launch collection job
+      │
+      │   ThreadPoolExecutor.submit(_collect)
+      │         │
+      │         ▼
+      │   _build_dashboard_snapshot(regions=[region])
+      │         │  OCI SDK calls (VCN, Subnet, GW, RT, SL, NSG)
+      │         ▼
+      │   snapshot { vcns, subnets, ..., collected_at, duration_seconds }
+      │         │
+      │         ├── write → _dashboard_snapshots (in-memory)
+      │         └── write → data/snapshots/snapshot_<region>_<hash>.json
+      │
+      └── aggregate partial snapshots → return response
+            collection.regions[]: id, status, resource_counts,
+                                   last_updated, duration_seconds, error
 
-Ansible configures:
+UI receives response:
+  status=collecting → poll again after 3 s (backs off to 15 s)
+  status=ready      → render inventory + topology
+```
 
-- Base packages.
-- Runtime user and directories.
-- Nginx virtual host.
-- Meridian API systemd service.
-- Firewall rules for SSH, HTTP, and HTTPS.
-- Static dashboard copied to the web root.
-
-## Future Application Topology
-
-The intended production application is:
-
-- Frontend: React dashboard.
-- Backend: Python FastAPI.
-- Scheduler: APScheduler or Celery.
-- Cache: Redis or OCI Cache.
-- Auth to OCI: instance principal in production, API key in development.
-- Runtime: small OCI Compute VM first, with OCI Container Instances, OCI Functions for selected background tasks, or OKE only as future options.
-
-## Main Data Sources
-
-- OCI Monitoring metrics.
-- OCI Logging and Logging Analytics.
-- OCI Audit.
-- OCI Networking APIs.
-- OCI Load Balancer and Network Load Balancer APIs.
-- OCI Private DNS APIs.
-- OCI DRG, FastConnect, and IPSec APIs.
-- OCI Price List API for egress estimates.
-- OCI Generative AI for explanation and query assistance.
+---
 
 ## Security Boundary
 
-The Meridian host should run with the minimum OCI read permissions required for network observability. Write actions should remain out of scope until explicitly needed.
+- Meridian runs with read-only OCI permissions (network observability only).
+- The Compute instance authenticates via Instance Principal — no API keys on disk.
+- Nginx restricts SSH and web ingress to `admin_cidr_blocks` via the OCI Security List.
+- The API binds only to loopback (`127.0.0.1`); external access is exclusively through Nginx.
+- The env file (`meridian.env`) is mode `0640`, owned by the `meridian` system user.
+- No write actions to OCI resources are implemented.
 
-The current public subnet approach is for a practical initial deployment. A hardened production pattern should place Meridian behind a private load balancer, bastion, VPN, or identity-aware access layer.
+---
+
+## Planned Extensions
+
+- IAM domain user authentication (header-based, already stubbed in Settings).
+- OCI Object Storage archival for security action audit log.
+- Scheduled background refresh (APScheduler or systemd timer) for tenant-wide pre-warm.
+- Compartment-tag-based scope filtering (delta refresh for large tenants with 400+ compartments).

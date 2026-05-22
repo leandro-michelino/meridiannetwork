@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+- Add async per-region collection pipeline with `ThreadPoolExecutor` (4 workers).
+- Add in-memory snapshot cache with configurable TTL and persistent on-disk snapshot cache.
+- Add per-region collection status panel: collecting spinner, ready/failed/no-resources badges,
+  resource counts, duration, and relative timestamps with exponential backoff polling (3–15 s).
+- Add `RegionService.list_active()` and `/api/regions/active` endpoint for configured-region scope.
+- Fix topology DRG edges: regional gateways (vcn_id=None) now use a region-anchor fallback so they
+  appear in the graph and in VCN focus mode.
+- Fix topology VCN focus mode: DRGs are synthesised onto the selected VCN so edges render correctly.
+- Add topology hint when VCN focus mode returns only the VCN node with no children.
+- Add markdownlint configuration (compact table style, 160-char line limit for prose).
+- Rewrite architecture documentation with accurate ASCII diagrams for runtime, deployment, and
+  async data-flow.
+- Rewrite API reference with full endpoint documentation and `collection` response schema.
+- Rewrite module map with implemented/planned status across all feature categories.
+- Update roadmap to mark Phases 0–2 as complete.
+- Update project status to reflect current implementation.
+- Remove stale product specification document (superseded by docs/).
+- Fix Ansible environment template: remove bogus `MERIDIAN_APP_PORT`, add all missing variables
+  including snapshot TTL, snapshot dir, resource search scope, and OCI profile.
+- Fix Ansible group vars: correct home region, add all new variable defaults.
+- Harden systemd service unit: add restart limits, journal logging, and syslog identifier.
+- Add snapshot directory to Ansible bootstrap directory-creation loop.
+
 - Add FastAPI backend foundation.
 - Add health and readiness endpoints.
 - Add regions and compartments API endpoints.

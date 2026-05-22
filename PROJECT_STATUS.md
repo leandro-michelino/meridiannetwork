@@ -1,62 +1,61 @@
 # Project Status
 
-Date: 2026-05-21
+Date: 2026-05-22
 
 ## Current Stage
 
-Backend foundation scaffold.
+Backend operational with full network inventory, async regional collection, topology, route analysis,
+and security posture. Single-file dashboard deployed via Ansible to an OCI Compute VM.
 
-## Available Now
+## Implemented
 
-- Product specification document.
-- Static dashboard prototype.
-- API-aware static dashboard with demo fallback data.
-- Static dashboard inventory table with compartment context, subnet access classification, real OCI resource ID display, and pinned home-region navigation.
-- Static dashboard live mode refreshes in the background every 5 seconds.
-- Static dashboard operational panels use expanders to keep large inventories compact.
-- Static dashboard topology nodes are draggable and keyboard-navigable.
-- Static dashboard includes a top-bar access validation button for runtime IAM and network read validation.
-- FastAPI backend foundation.
-- Health and readiness endpoints.
-- OCI preflight endpoint.
-- Regions endpoints.
-- Compartments endpoint with optional live OCI support.
-- VCN inventory endpoint with optional live OCI support.
-- Subnet inventory endpoint with optional live OCI support.
-- Gateway inventory endpoint with optional live OCI support.
-- Route table inventory endpoint with optional live OCI support.
-- Route table issue endpoint and dashboard panel.
-- Security list inventory endpoint with optional live OCI support.
-- Network Security Group inventory endpoint with optional live OCI support.
-- Topology graph endpoint derived from live OCI inventory.
-- Initial security posture endpoint for broad Security List and NSG ingress exposure.
+### Infrastructure
+
+- Terraform baseline: VCN, subnet, internet gateway, compute instance, IAM dynamic group and policy.
+- Ansible bootstrap: Nginx, systemd service, environment configuration, persistent snapshot directory.
+- Instance principal authentication for production; OCI config-file profile for development.
+
+### Backend
+
+- FastAPI with uvicorn on `127.0.0.1:8080`, proxied through Nginx on port 80.
+- Health and readiness endpoints (`/healthz`, `/readyz`).
+- OCI runtime preflight checks (`/api/preflight`).
+- Region scope endpoints: available regions (all known OCI regions), active regions (configured subset).
+- Compartment discovery from tenancy root.
+- Full network inventory: VCNs, subnets, gateways (IGW, NAT, SGW, DRG), route tables, security lists, NSGs.
+- Route issue analysis: blackhole targets, duplicate default routes, invalid entity references.
+- Topology graph derived from live inventory relationships.
+- Security posture: risky ingress/egress rule detection across Security Lists and NSGs.
+- Async per-region collection pipeline with `ThreadPoolExecutor`.
+- In-memory snapshot cache with configurable TTL.
+- Persistent on-disk snapshot cache (survives restarts).
+- Per-region collection status: `collecting`, `ready`, `ready_with_warnings`, `no_resources`, `failed`.
 - OCI client factory abstraction.
-- OCI Terraform baseline.
-- Ansible bootstrap.
-- Documentation set.
-- Manual local validation commands.
-- Planned API reference.
-- Planned data model.
-- Deployment checklist.
-- Manual release process.
-- English-only product specification.
+- 27 backend tests covering all routers and services.
+
+### Dashboard
+
+- Single-file dashboard (`oci_network_monitor_dashboard_v2.html`) — no build step.
+- Per-region collection status panel with spinner, duration, resource counts, relative timestamps.
+- Async polling with exponential backoff (3–15 s).
+- Interactive topology graph: Overview, Layers, VCN focus modes.
+- Security posture panel with risky rule listings.
+- Route issue analysis panel.
+- Inventory tables for VCNs, subnets, gateways, route tables, security lists, NSGs.
+- Region selector and compartment filter.
+- OCI preflight access validation in top bar.
+- Demo fallback data when `MERIDIAN_ENABLE_LIVE_OCI=false`.
 
 ## Not Yet Implemented
 
-- React production frontend.
-- OCI SDK collectors beyond the current identity, preflight, and initial network inventory services.
-- Scheduler.
-- Cache.
-- Authentication UI.
-- Persisted application configuration.
-- Automated application tests.
+See [docs/module-map.md](docs/module-map.md) for the full planned feature list.
 
-## Recommended Next Work
+Key planned areas:
 
-1. Add richer security posture scoring.
-2. Add OCI response normalization for all collectors.
-3. Add dashboard filtering by configured compartment and region.
-4. Replace static HTML deployment with frontend build artifact deployment.
-5. Add remote Terraform state.
-6. Add HTTPS and private access pattern.
-7. Add Meridian self-monitoring.
+- VCN Flow Logs viewer.
+- OCI Audit change feed.
+- Metrics: gateway metrics, VNIC top consumers, inter-region latency.
+- Advanced modules: DRG route inspector, OKE network health, load balancer health, private DNS, FastConnect/VPN.
+- Intelligence layer: GenAI alarm explanation, natural language flow log query.
+- Operations: PDF/CSV export, OCI Notifications, Slack/Teams webhooks.
+- Production hardening: HTTPS, remote Terraform state, containerized deployment.

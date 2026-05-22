@@ -2,7 +2,7 @@
 
 ## Phase 0 - Repository and Deployment Foundation
 
-Status: in progress.
+Status: **complete**.
 
 - Terraform OCI baseline.
 - Ansible host bootstrap.
@@ -11,65 +11,61 @@ Status: in progress.
 
 ## Phase 1 - Backend Foundation
 
-Status: started.
+Status: **complete**.
 
-- Python FastAPI application.
+- Python FastAPI application with uvicorn and Nginx proxy.
 - OCI SDK client factory.
-- Instance principal support.
-- API key profile support for development.
-- Health endpoint.
-- Structured logging.
-
-Implemented so far:
-
-- FastAPI application factory.
+- Instance principal and API key profile auth modes.
 - Health and readiness endpoints.
-- Region scope endpoints.
-- Compartment endpoint with optional live OCI mode.
-- VCN and subnet inventory endpoints with optional live OCI mode.
-- Gateway inventory endpoint with optional live OCI mode.
-- Route table and security list inventory endpoints with optional live OCI mode.
-- Route table issue endpoint for empty tables, duplicate destinations, unresolved targets, disabled targets, and public default routes.
-- Network Security Group inventory endpoint with optional live OCI mode.
-- Topology graph endpoint derived from live OCI inventory.
-- OCI preflight endpoint for runtime IAM and network read validation.
-- Initial security posture endpoint for public SSH, public RDP, and public all-protocol ingress in Security Lists and NSGs.
-- OCI client factory.
-- Backend tests.
+- OCI preflight endpoint.
+- Structured logging via systemd journal.
 
 ## Phase 2 - Core Network Inventory
 
+Status: **complete**.
+
 - Regions and compartments.
-- VCNs, subnets, route tables, gateways, Security Lists, and NSGs.
-- DRG attachments.
-- VPN and FastConnect status.
-- Normalized resource model.
+- VCNs, subnets, route tables, security lists, NSGs.
+- Gateways: IGW, NAT, SGW, DRG.
+- Route issue analysis: blackhole, duplicate defaults, invalid targets.
+- Security posture: risky ingress/egress rule detection.
+- Topology graph derived from live inventory.
+- Async per-region collection with in-memory and on-disk snapshot cache.
+- Per-region collection status UI panel with backoff polling.
+- 27 backend tests.
 
 ## Phase 3 - Metrics and Alarms
 
 - OCI Monitoring queries.
-- Gateway metrics.
+- Gateway metrics (bytes, packets, drops, errors).
 - VNIC top consumers.
 - Active alarm aggregation.
-- Threshold configuration.
+- Inter-region latency matrix.
 
-## Phase 4 - Logs and Security Posture
+## Phase 4 - Logs and Audit
 
-- VCN Flow Logs.
+- VCN Flow Logs viewer.
 - Rejected traffic analysis.
-- Risky security list and NSG rules.
-- Audit change feed.
+- Audit change feed for network resources.
+- Change correlation across regions.
 
 ## Phase 5 - Advanced Network Modules
 
+- DRG route inspector (route tables, BGP routes, import/export policies).
 - OKE network health.
 - Load Balancer health and certificate expiry.
 - Private DNS visibility.
-- DRG route inspector.
 - Synthetic health checks.
-- Cost-aware egress.
+- Cost-aware egress analysis.
 
-## Phase 6 - Intelligence Layer
+## Phase 6 - Security and Governance
+
+- Exportable security posture reports (PDF, CSV).
+- Risky rule detail endpoint.
+- OCI Notifications integration.
+- Slack and Teams webhook targets.
+
+## Phase 7 - Intelligence Layer
 
 - Alarm explanation with OCI GenAI.
 - Natural language flow log query assistance.
@@ -77,14 +73,10 @@ Implemented so far:
 - Change impact analysis.
 - DR readiness summary.
 
-## Phase 7 - Production Hardening
+## Phase 8 - Production Hardening
 
-- Remote Terraform state.
-- HTTPS and private access pattern.
-- Containerized backend/frontend.
-- Keep the small OCI Compute VM as the first deployment target.
-- Evaluate OCI Container Instances only after containerization.
-- Evaluate OCI Functions only for asynchronous collectors and notifications.
-- Manual release/deployment procedure unless automation is explicitly approved later.
-- Automated tests.
-- Observability for Meridian itself.
+- HTTPS with OCI Certificate.
+- Private access pattern (no public IP).
+- Remote Terraform state (OCI Object Storage backend).
+- Containerized backend deployment.
+- Meridian self-monitoring and alerting.
