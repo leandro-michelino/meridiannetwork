@@ -408,12 +408,17 @@ def test_inventory_uses_resource_search_scope_for_default_regions_and_compartmen
     factory = ResourceSearchClientFactory()
     service = NetworkInventoryService(settings=settings, client_factory=factory)
 
-    assert service.selected_region_ids() == ["af-johannesburg-1", "me-abudhabi-1"]
+    assert service.selected_region_ids() == ["eu-frankfurt-1"]
 
-    service.list_vcns()
+    service.list_vcns(regions=["af-johannesburg-1", "me-abudhabi-1"])
 
     assert factory.compartment_discovery_calls == 0
-    assert factory.search_queries == ["query vcn resources", "query subnet resources"]
+    assert sorted(factory.search_queries) == [
+        "query subnet resources",
+        "query subnet resources",
+        "query vcn resources",
+        "query vcn resources",
+    ]
     assert factory.vcn_regions == [
         "af-johannesburg-1",
         "af-johannesburg-1",

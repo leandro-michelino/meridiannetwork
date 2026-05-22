@@ -50,8 +50,12 @@ class _NetworkResourceScope:
 class NetworkInventoryService:
     settings: Settings
     client_factory: OciClientFactory
-    _compartment_scope_cache: list[str] | None = field(default=None, init=False, repr=False)
-    _network_resource_scope_cache: _NetworkResourceScope | None = field(default=None, init=False, repr=False)
+    _compartment_scope_cache: dict[tuple[str, ...], list[str]] = field(default_factory=dict, init=False, repr=False)
+    _network_resource_scope_cache: dict[tuple[str, ...], _NetworkResourceScope] = field(
+        default_factory=dict,
+        init=False,
+        repr=False,
+    )
     _region_subscription_cache: list[str] | None = field(default=None, init=False, repr=False)
     _inventory_cache: dict[tuple[str, tuple[str, ...], tuple[str, ...], str], list[Any]] = field(
         default_factory=dict,
@@ -74,8 +78,8 @@ class NetworkInventoryService:
         if not self.settings.enable_live_oci:
             return []
 
-        selected_compartments = self._compartment_scope(compartment_ids)
         selected_regions = self._region_scope(regions)
+        selected_compartments = self._compartment_scope(compartment_ids, selected_regions)
         cached = self._cached_inventory("vcns", selected_regions, selected_compartments)
         if cached is not None:
             return cached
@@ -117,8 +121,8 @@ class NetworkInventoryService:
         if not self.settings.enable_live_oci:
             return []
 
-        selected_compartments = self._compartment_scope(compartment_ids)
         selected_regions = self._region_scope(regions)
+        selected_compartments = self._compartment_scope(compartment_ids, selected_regions)
         cached = self._cached_inventory("subnets", selected_regions, selected_compartments, vcn_id)
         if cached is not None:
             return cached
@@ -326,8 +330,8 @@ class NetworkInventoryService:
         if not self.settings.enable_live_oci:
             return []
 
-        selected_compartments = self._compartment_scope(compartment_ids)
         selected_regions = self._region_scope(regions)
+        selected_compartments = self._compartment_scope(compartment_ids, selected_regions)
         cached = self._cached_inventory("gateways", selected_regions, selected_compartments, vcn_id)
         if cached is not None:
             return cached
@@ -358,8 +362,8 @@ class NetworkInventoryService:
         if not self.settings.enable_live_oci:
             return []
 
-        selected_compartments = self._compartment_scope(compartment_ids)
         selected_regions = self._region_scope(regions)
+        selected_compartments = self._compartment_scope(compartment_ids, selected_regions)
         cached = self._cached_inventory("route_tables", selected_regions, selected_compartments, vcn_id)
         if cached is not None:
             return cached
@@ -412,8 +416,8 @@ class NetworkInventoryService:
         if not self.settings.enable_live_oci:
             return []
 
-        selected_compartments = self._compartment_scope(compartment_ids)
         selected_regions = self._region_scope(regions)
+        selected_compartments = self._compartment_scope(compartment_ids, selected_regions)
         cached = self._cached_inventory("security_lists", selected_regions, selected_compartments, vcn_id)
         if cached is not None:
             return cached
@@ -461,8 +465,8 @@ class NetworkInventoryService:
         if not self.settings.enable_live_oci:
             return []
 
-        selected_compartments = self._compartment_scope(compartment_ids)
         selected_regions = self._region_scope(regions)
+        selected_compartments = self._compartment_scope(compartment_ids, selected_regions)
         cached = self._cached_inventory("network_security_groups", selected_regions, selected_compartments, vcn_id)
         if cached is not None:
             return cached
@@ -664,30 +668,31 @@ class NetworkInventoryService:
         selected = regions or self._default_region_scope()
         return list(dict.fromkeys(selected or [self.settings.home_region]))
 
-    def _compartment_scope(self, compartment_ids: list[str] | None) -> list[str]:
+    def _compartment_scope(self, compartment_ids: list[str] | None, regions: list[str]) -> list[str]:
         selected = compartment_ids or self.settings.compartment_ids
         if selected:
             return list(dict.fromkeys(selected))
 
-        if self._compartment_scope_cache is not None:
-            return self._compartment_scope_cache
+        cache_key = tuple(regions)
+        if cache_key in self._compartment_scope_cache:
+            return self._compartment_scope_cache[cache_key]
 
-        selected = self._default_compartment_scope()
+        selected = self._default_compartment_scope(regions)
         if not selected:
             raise OciClientError(
                 "At least one compartment_id query value, MERIDIAN_COMPARTMENT_IDS, or MERIDIAN_TENANCY_OCID is "
                 "required for live OCI calls."
             )
-        object.__setattr__(self, "_compartment_scope_cache", selected)
+        self._compartment_scope_cache[cache_key] = selected
         return selected
 
-    def _default_compartment_scope(self) -> list[str]:
+    def _default_compartment_scope(self, regions: list[str]) -> list[str]:
         if not self.settings.tenancy_ocid:
             return []
         if not self.settings.enable_resource_search_scope:
             return [self.settings.tenancy_ocid]
 
-        search_scope = self._network_resource_search_scope()
+        search_scope = self._network_resource_search_scope(regions)
         if search_scope.compartment_ids:
             return list(dict.fromkeys([self.settings.tenancy_ocid, *search_scope.compartment_ids]))
 
@@ -709,40 +714,38 @@ class NetworkInventoryService:
         return list(dict.fromkeys([self.settings.tenancy_ocid, *compartment_ids]))
 
     def _default_region_scope(self) -> list[str]:
-        if self.settings.enable_live_oci and self.settings.enable_resource_search_scope:
-            search_scope = self._network_resource_search_scope()
-            if search_scope.regions:
-                return search_scope.regions
         return [self.settings.home_region, *self.settings.active_regions]
 
     def discovered_region_ids(self) -> list[str]:
-        if not self.settings.enable_live_oci or not self.settings.enable_resource_search_scope:
-            return []
-        return self._network_resource_search_scope().regions
+        regions: list[str] = []
+        for scope in self._network_resource_scope_cache.values():
+            regions.extend(scope.regions)
+        return sorted(set(regions))
 
-    def _network_resource_search_scope(self) -> _NetworkResourceScope:
-        if self._network_resource_scope_cache is not None:
-            return self._network_resource_scope_cache
+    def _network_resource_search_scope(self, regions: list[str] | None = None) -> _NetworkResourceScope:
+        selected_regions = list(dict.fromkeys(regions or self._subscribed_region_ids()))
+        cache_key = tuple(selected_regions)
+        if cache_key in self._network_resource_scope_cache:
+            return self._network_resource_scope_cache[cache_key]
 
         compartment_ids: set[str] = set()
-        regions: set[str] = set()
-        subscribed_regions = self._subscribed_region_ids()
-        max_workers = min(RESOURCE_SEARCH_MAX_WORKERS, max(len(subscribed_regions), 1))
+        resource_regions: set[str] = set()
+        max_workers = min(RESOURCE_SEARCH_MAX_WORKERS, max(len(selected_regions), 1))
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = {
                 executor.submit(self._network_resource_search_scope_for_region, search_region): search_region
-                for search_region in subscribed_regions
+                for search_region in selected_regions
             }
             for future in as_completed(futures):
                 search_compartments, search_regions = future.result()
                 compartment_ids.update(search_compartments)
-                regions.update(search_regions)
+                resource_regions.update(search_regions)
 
         scope = _NetworkResourceScope(
             compartment_ids=sorted(compartment_ids),
-            regions=sorted(regions),
+            regions=sorted(resource_regions),
         )
-        object.__setattr__(self, "_network_resource_scope_cache", scope)
+        self._network_resource_scope_cache[cache_key] = scope
         return scope
 
     def _network_resource_search_scope_for_region(self, search_region: str) -> tuple[set[str], set[str]]:
