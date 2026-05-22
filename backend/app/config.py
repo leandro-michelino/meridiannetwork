@@ -41,7 +41,7 @@ class Settings(BaseSettings):
     @field_validator("active_regions")
     @classmethod
     def default_active_regions(cls, value: list[str]) -> list[str]:
-        return value or ["eu-frankfurt-1"]
+        return value  # empty means "no active regions"; callers must handle this
 
 
 @lru_cache
