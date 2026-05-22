@@ -1376,6 +1376,7 @@ tr:last-child td { border-bottom: 0; }
 const API_PATHS = {
   health: '/healthz',
   dashboard: '/api/dashboard',
+  availableRegions: '/api/regions/available',
   activeRegions: '/api/regions/active',
   preflight: '/api/preflight',
   compartments: '/api/compartments',
@@ -1499,6 +1500,7 @@ let topologyVcnScope = '';
 const topologyTouchPoints = new Map();
 let topologyPinchDistance = 0;
 let topologyPanPoint = null;
+let topologyResizeTimer = 0;
 let currentSecurityFindings = [];
 let pendingSecurityFinding = null;
 let securityActionHistory = readSecurityActionHistory();
@@ -1515,6 +1517,7 @@ let currentDashboardMode = 'api';
 let currentHomeRegionId = '';
 let currentRegionIds = [];
 let currentActiveRegionDetails = [];
+let currentDefaultRegionIds = [];
 let currentDashboardData = null;
 let selectedRegionIds = readRegionFilter();
 let collectionPollTimer = 0;
@@ -1695,32 +1698,38 @@ async function loadApiData() {
   if (!dashboardPath) {
     const [
       identityContext,
+      availableRegions,
       activeRegions,
       compartments,
       securityActionHistory,
     ] = await Promise.all([
       getJson(API_PATHS.identityContext),
+      getJson(API_PATHS.availableRegions),
       getJson(API_PATHS.activeRegions),
       getJson(API_PATHS.compartments),
       getJson(API_PATHS.securityActions),
     ]);
     return {
       identityContext,
+      availableRegions,
       ...emptyDashboardData(activeRegions, compartments),
       securityActionHistory,
     };
   }
   const [
     identityContext,
+    availableRegions,
     dashboard,
     securityActionHistory,
   ] = await Promise.all([
     getJson(API_PATHS.identityContext),
+    getJson(API_PATHS.availableRegions),
     getJson(dashboardPath),
     getJson(API_PATHS.securityActions),
   ]);
   return {
     identityContext,
+    availableRegions,
     activeRegions: dashboard.activeRegions || [],
     compartments: dashboard.compartments || [],
     vcns: dashboard.vcns || [],
@@ -1752,6 +1761,7 @@ function dashboardApiPath() {
 function emptyDashboardData(activeRegions, compartments) {
   return {
     activeRegions,
+    availableRegions: activeRegions,
     compartments,
     vcns: [],
     subnets: [],
@@ -1796,6 +1806,7 @@ function renderDashboard(data, mode) {
   currentDashboardMode = mode;
   data.identityContext = data.identityContext || DEMO_DATA.identityContext;
   data.activeRegions = data.activeRegions || [];
+  data.availableRegions = data.availableRegions || data.activeRegions;
   data.compartments = data.compartments || [];
   data.vcns = data.vcns || [];
   data.subnets = data.subnets || [];
@@ -1820,9 +1831,10 @@ function renderDashboard(data, mode) {
   };
   if (mode === 'api') saveSecurityActionHistory(data.securityActionHistory.actions || []);
   const regions = dashboardRegions(data);
-  pruneRegionFilter(regions);
-  const viewData = filterDashboardDataByRegions(data);
   const homeRegion = homeRegionId(data.activeRegions, regions);
+  currentDefaultRegionIds = defaultRegionIds(regions, data.activeRegions, homeRegion);
+  pruneRegionFilter(regions, data.activeRegions, homeRegion);
+  const viewData = filterDashboardDataByRegions(data);
   const compartmentMap = buildCompartmentMap(viewData);
   const compartmentCount = Object.keys(compartmentMap).length;
 
@@ -1877,14 +1889,16 @@ function dashboardRegions(data) {
     ...data.networkSecurityGroups.map((item) => item.region),
   ].filter(Boolean));
   const activeRegionIds = data.activeRegions.map((item) => item.id).filter(Boolean);
-  return new Set([...activeRegionIds, ...observedRegions]);
+  const availableRegionIds = (data.availableRegions || []).map((item) => item.id).filter(Boolean);
+  return new Set([...availableRegionIds, ...activeRegionIds, ...observedRegions]);
 }
 
-function pruneRegionFilter(regions) {
+function pruneRegionFilter(regions, activeRegions, homeRegion) {
   if (selectedRegionIds === null) return;
   const validRegions = new Set([...regions]);
   selectedRegionIds = new Set([...selectedRegionIds].filter((region) => validRegions.has(region)));
-  if (selectedRegionIds.size === validRegions.size && [...validRegions].every((region) => selectedRegionIds.has(region))) {
+  const defaultRegions = new Set(defaultRegionIds(validRegions, activeRegions, homeRegion));
+  if (setsEqual(selectedRegionIds, defaultRegions)) {
     selectedRegionIds = null;
   }
   saveRegionFilter();
@@ -1892,33 +1906,36 @@ function pruneRegionFilter(regions) {
 
 function regionFilterSummary(regions) {
   const total = regions.size || 0;
-  if (selectedRegionIds === null) return `${defaultSelectedRegionCount(regions)}/${total} selected regions`;
+  if (selectedRegionIds === null) return `${currentDefaultRegionIds.length}/${total} selected regions`;
   return `${selectedRegionIds.size}/${total} selected regions`;
 }
 
-function defaultSelectedRegionCount(regions) {
-  if (!regions.size) return 0;
-  return regions.has(currentHomeRegionId) ? 1 : 0;
+function defaultRegionIds(regions, activeRegions, homeRegion) {
+  const activeIds = (activeRegions || [])
+    .filter((region) => region.is_active && regions.has(region.id))
+    .map((region) => region.id);
+  if (activeIds.length) return activeIds;
+  if (homeRegion && regions.has(homeRegion)) return [homeRegion];
+  return regions.size ? [[...regions][0]] : [];
+}
+
+function setsEqual(left, right) {
+  return left.size === right.size && [...left].every((value) => right.has(value));
 }
 
 function filterDashboardDataByRegions(data) {
-  if (selectedRegionIds === null) {
-    return {
-      ...data,
-      topology: data.topology || buildInventoryTopology(data),
-    };
-  }
-  const byRegion = (item) => selectedRegionIds.has(item.region);
+  const effectiveRegionIds = effectiveSelectedRegionIds();
+  const byRegion = (item) => effectiveRegionIds.has(item.region);
   const viewData = {
     ...data,
     vcns: data.vcns.filter(byRegion),
     subnets: data.subnets.filter(byRegion),
     gateways: data.gateways.filter(byRegion),
     routeTables: data.routeTables.filter(byRegion),
-    routeIssues: filterRouteIssuesByRegion(data.routeIssues),
+    routeIssues: filterRouteIssuesByRegion(data.routeIssues, effectiveRegionIds),
     securityLists: data.securityLists.filter(byRegion),
     networkSecurityGroups: data.networkSecurityGroups.filter(byRegion),
-    securityPosture: filterSecurityPostureByRegion(data.securityPosture),
+    securityPosture: filterSecurityPostureByRegion(data.securityPosture, effectiveRegionIds),
   };
   return {
     ...viewData,
@@ -1926,8 +1943,12 @@ function filterDashboardDataByRegions(data) {
   };
 }
 
-function filterRouteIssuesByRegion(routeIssues) {
-  const issues = (routeIssues.issues || []).filter((item) => selectedRegionIds.has(item.region));
+function effectiveSelectedRegionIds() {
+  return selectedRegionIds === null ? new Set(currentDefaultRegionIds) : selectedRegionIds;
+}
+
+function filterRouteIssuesByRegion(routeIssues, effectiveRegionIds) {
+  const issues = (routeIssues.issues || []).filter((item) => effectiveRegionIds.has(item.region));
   return {
     ...routeIssues,
     total_issues: issues.length,
@@ -1936,8 +1957,8 @@ function filterRouteIssuesByRegion(routeIssues) {
   };
 }
 
-function filterSecurityPostureByRegion(securityPosture) {
-  const findings = (securityPosture.findings || []).filter((item) => selectedRegionIds.has(item.region));
+function filterSecurityPostureByRegion(securityPosture, effectiveRegionIds) {
+  const findings = (securityPosture.findings || []).filter((item) => effectiveRegionIds.has(item.region));
   const countSeverity = (severity) => findings.filter((finding) => finding.severity === severity).length;
   return {
     ...securityPosture,
@@ -2155,6 +2176,7 @@ function renderRegionStrip(homeRegion, regions, activeRegions) {
   currentHomeRegionId = homeRegion;
   currentRegionIds = [...regions];
   currentActiveRegionDetails = activeRegions;
+  currentDefaultRegionIds = defaultRegionIds(regions, activeRegions, homeRegion);
   const regionDetails = activeRegions.reduce((acc, region) => {
     acc[region.id] = region;
     return acc;
@@ -2180,7 +2202,7 @@ function renderRegionStrip(homeRegion, regions, activeRegions) {
     : allRegions;
   text('homeRegionName', homeRegion);
   text('regionMenuTitle', regionFilterSummary(new Set(allRegions)));
-  button.textContent = `Regions ${selectedRegionIds === null ? defaultSelectedRegionCount(new Set(allRegions)) : selectedRegionIds.size}/${allRegions.length}`;
+  button.textContent = `Regions ${selectedRegionIds === null ? currentDefaultRegionIds.length : selectedRegionIds.size}/${allRegions.length}`;
   button.setAttribute('aria-expanded', String(wasOpen));
   menu.classList.toggle('open', wasOpen);
   if (!allRegions.length) {
@@ -2206,7 +2228,7 @@ function renderRegionStrip(homeRegion, regions, activeRegions) {
 }
 
 function isRegionSelected(region) {
-  return selectedRegionIds === null ? region === currentHomeRegionId : selectedRegionIds.has(region);
+  return selectedRegionIds === null ? currentDefaultRegionIds.includes(region) : selectedRegionIds.has(region);
 }
 
 function regionGeo(region) {
@@ -2287,7 +2309,7 @@ function renderTopology(data) {
 }
 
 function emptyTopologyMessage(data) {
-  const selected = selectedRegionIds === null ? currentRegionIds.length : selectedRegionIds.size;
+  const selected = selectedRegionIds === null ? currentDefaultRegionIds.length : selectedRegionIds.size;
   const issue = data.collection?.issues?.[0];
   if (issue) return `Collection issue: ${issue.message}`;
   if (selected === 0) return 'Select at least one subscribed region to collect topology data.';
@@ -2318,7 +2340,9 @@ function renderTopologyControls(data) {
 
   const vcns = topologyAvailableVcns(data);
   if (topologyVcnScope && !vcns.some((item) => item.id === topologyVcnScope)) topologyVcnScope = '';
-  if (topologyMode === 'vcn' && !topologyVcnScope && vcns.length) topologyVcnScope = vcns[0].id;
+  if (topologyMode === 'vcn' && !topologyVcnScope && vcns.length) {
+    topologyVcnScope = preferredTopologyVcnId(data, vcns);
+  }
   const vcnSelect = byId('topologyVcnScope');
   vcnSelect.innerHTML = [
     '<option value="">All VCNs</option>',
@@ -2362,7 +2386,7 @@ function topologyScopedData(data) {
   if (topologyMode !== 'vcn') return scoped;
 
   const vcns = topologyAvailableVcns(scoped);
-  const vcnId = topologyVcnScope || vcns[0]?.id || '';
+  const vcnId = topologyVcnScope || preferredTopologyVcnId(scoped, vcns);
   if (!vcnId) return { ...scoped, vcns: [], subnets: [], gateways: [], routeTables: [], securityLists: [], networkSecurityGroups: [] };
   const vcn = scoped.vcns.find((item) => item.id === vcnId);
   const sameVpc = (item) => item.vcn_id === vcnId;
@@ -2384,6 +2408,24 @@ function topologyScopedData(data) {
     securityLists: scoped.securityLists.filter(sameVpc),
     networkSecurityGroups: scoped.networkSecurityGroups.filter(sameVpc),
   };
+}
+
+function preferredTopologyVcnId(data, vcns) {
+  if (!vcns.length) return '';
+  return vcns
+    .map((vcn) => ({ id: vcn.id, score: topologyVcnResourceCount(data, vcn.id), name: `${vcn.region}/${vcn.name || vcn.id}` }))
+    .sort((left, right) => right.score - left.score || left.name.localeCompare(right.name))[0].id;
+}
+
+function topologyVcnResourceCount(data, vcnId) {
+  const sameVcn = (item) => item.vcn_id === vcnId;
+  return [
+    data.subnets,
+    data.gateways,
+    data.routeTables,
+    data.securityLists,
+    data.networkSecurityGroups,
+  ].reduce((count, items) => count + (items || []).filter(sameVcn).length, 0);
 }
 
 function filterTopologyData(data, predicate) {
@@ -2440,6 +2482,9 @@ function topologySignature(nodes, edges) {
 }
 
 function topologyCanvasSize(nodes) {
+  const viewport = byId('topology');
+  const viewportWidth = Math.max(320, viewport.clientWidth || 980);
+  const viewportHeight = Math.max(420, viewport.clientHeight || 560);
   const groups = nodes.reduce((acc, node) => {
     const key = topologyColumnKey(node.resource_type);
     acc[key] = (acc[key] || 0) + 1;
@@ -2447,9 +2492,12 @@ function topologyCanvasSize(nodes) {
   }, {});
   const maxColumnCount = Math.max(1, ...Object.values(groups));
   const nodeCount = nodes.length;
+  const needsWideCanvas = nodeCount > 12 || maxColumnCount > 6;
   return {
-    width: clamp(860 + Math.ceil(nodeCount / 18) * 220, 980, 12000),
-    height: clamp(220 + maxColumnCount * 118, 560, 16000),
+    width: needsWideCanvas
+      ? clamp(viewportWidth + Math.ceil(Math.max(nodeCount - 12, 0) / 12) * 220, viewportWidth, 12000)
+      : viewportWidth,
+    height: clamp(220 + maxColumnCount * 118, viewportHeight, 16000),
   };
 }
 
@@ -2560,6 +2608,18 @@ function handleTopologyPointerEnd(event) {
   topologyTouchPoints.delete(event.pointerId);
   if (topologyPanPoint?.id === event.pointerId) topologyPanPoint = null;
   if (topologyTouchPoints.size < 2) topologyPinchDistance = 0;
+}
+
+function handleTopologyResize() {
+  if (topologyResizeTimer) window.clearTimeout(topologyResizeTimer);
+  topologyResizeTimer = window.setTimeout(() => {
+    topologyResizeTimer = 0;
+    if (currentDashboardData && byId('topologyPanel')?.open) {
+      renderDashboard(currentDashboardData, currentDashboardMode);
+    } else {
+      scheduleDrawTopologyLines();
+    }
+  }, 120);
 }
 
 function topologyTouchDistance() {
@@ -2694,7 +2754,7 @@ function buildInventoryTopology(data) {
 function topologyLayout(nodes) {
   const columns = {
     region: {
-      x: 12,
+      x: 18,
       y1: 18,
       y2: 84,
       types: new Set(['region']),
@@ -2706,10 +2766,16 @@ function topologyLayout(nodes) {
       types: new Set(['subnet', 'security_list', 'network_security_group']),
     },
     center: {
-      x: 50,
+      x: 42,
       y1: 26,
       y2: 78,
-      types: new Set(['vcn', 'route_table']),
+      types: new Set(['vcn']),
+    },
+    route: {
+      x: 62,
+      y1: 26,
+      y2: 78,
+      types: new Set(['route_table']),
     },
     right: {
       x: 82,
@@ -2738,6 +2804,7 @@ function topologyLayout(nodes) {
 function topologyColumnKey(resourceType) {
   if (resourceType === 'region') return 'region';
   if (['subnet', 'security_list', 'network_security_group'].includes(resourceType)) return 'left';
+  if (resourceType === 'route_table') return 'route';
   if (['internet_gateway', 'nat_gateway', 'service_gateway', 'dynamic_routing_gateway'].includes(resourceType)) return 'right';
   return 'center';
 }
@@ -3692,7 +3759,7 @@ byId('regionClearAll').addEventListener('click', () => {
 byId('regionMenuList').addEventListener('change', (event) => {
   const input = event.target.closest('input[data-region-filter]');
   if (!input) return;
-  if (selectedRegionIds === null) selectedRegionIds = new Set(currentRegionIds);
+  if (selectedRegionIds === null) selectedRegionIds = new Set(currentDefaultRegionIds);
   const region = input.getAttribute('data-region-filter');
   if (input.checked) selectedRegionIds.add(region);
   else selectedRegionIds.delete(region);
@@ -3750,7 +3817,7 @@ document.querySelectorAll('details.expander').forEach((panel) => {
   });
 });
 
-window.addEventListener('resize', scheduleDrawTopologyLines);
+window.addEventListener('resize', handleTopologyResize);
 attachTopologyViewportInteractions();
 refreshDashboard({ showLoading: true });
 window.setInterval(() => {

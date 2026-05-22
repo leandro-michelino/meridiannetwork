@@ -6,7 +6,7 @@ import hashlib
 import json
 from pathlib import Path
 from threading import RLock
-from time import monotonic, time
+from time import monotonic
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.encoders import jsonable_encoder

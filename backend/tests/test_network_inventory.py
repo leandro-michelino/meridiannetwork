@@ -271,6 +271,30 @@ def test_topology_returns_empty_graph_without_live_oci():
     assert response.json() == {"nodes": [], "edges": []}
 
 
+def test_dashboard_returns_empty_snapshot_without_live_oci():
+    client = TestClient(create_app())
+
+    response = client.get("/api/dashboard")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["vcns"] == []
+    assert body["subnets"] == []
+    assert body["topology"] == {"nodes": [], "edges": []}
+    assert body["collection"]["status"] == "ready"
+
+
+def test_dashboard_async_starts_collection_without_live_oci():
+    client = TestClient(create_app())
+
+    response = client.get("/api/dashboard?regions=eu-frankfurt-1&async_collect=true")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["collection"]["status"] in {"collecting", "ready"}
+    assert body["collection"]["requested_regions"] == ["eu-frankfurt-1"]
+
+
 def test_gateway_service_maps_supported_gateway_types():
     settings = Settings(
         enable_live_oci=True,

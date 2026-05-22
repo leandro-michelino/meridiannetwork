@@ -38,6 +38,12 @@ class NetworkInventoryService:
     settings: Settings
     client_factory: OciClientFactory
 
+    def reset_collection_issues(self) -> None:
+        return None
+
+    def collection_issues(self) -> list[dict[str, str]]:
+        return []
+
     def list_vcns(self, regions: list[str] | None = None, compartment_ids: list[str] | None = None) -> list[VcnSummary]:
         if not self.settings.enable_live_oci:
             return []

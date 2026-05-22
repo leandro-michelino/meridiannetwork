@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     oci_auth: Literal["config_file", "instance_principal", "resource_principal"] = "config_file"
     enable_live_oci: bool = False
     enable_resource_search_scope: bool = True
+    inventory_cache_ttl_seconds: int = 30
+    inventory_snapshot_ttl_seconds: int = 900
+    inventory_snapshot_dir: str | None = None
 
     # Security action audit log — OCI Object Storage backend
     security_action_object_storage_enabled: bool = False

@@ -12,7 +12,9 @@ from app.services.security_posture import SecurityPostureService
 
 router = APIRouter(prefix="/api/export", tags=["export"])
 
-_NOW = lambda: datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+def _now() -> str:
+    return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
 
 def _csv_response(rows: list[list[str]], filename: str) -> StreamingResponse:
@@ -49,7 +51,7 @@ def export_security_posture_csv(
             f.region, f.compartment_id, f.vcn_id,
             f.description, f.recommendation,
         ])
-    return _csv_response(rows, f"meridian-security-posture-{_NOW()}.csv")
+    return _csv_response(rows, f"meridian-security-posture-{_now()}.csv")
 
 
 @router.get("/inventory.csv")
@@ -77,4 +79,4 @@ def export_inventory_csv(
     for g in gateways:
         rows.append(["gateway", g.name, g.id, g.region, g.compartment_id, g.vcn_id or "", g.lifecycle_state or "", g.gateway_type])
 
-    return _csv_response(rows, f"meridian-inventory-{_NOW()}.csv")
+    return _csv_response(rows, f"meridian-inventory-{_now()}.csv")
