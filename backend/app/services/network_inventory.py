@@ -52,6 +52,7 @@ class NetworkInventoryService:
     client_factory: OciClientFactory
     _compartment_scope_cache: list[str] | None = field(default=None, init=False, repr=False)
     _network_resource_scope_cache: _NetworkResourceScope | None = field(default=None, init=False, repr=False)
+    _region_subscription_cache: list[str] | None = field(default=None, init=False, repr=False)
     _inventory_cache: dict[tuple[str, tuple[str, ...], tuple[str, ...], str], list[Any]] = field(
         default_factory=dict,
         init=False,
@@ -725,23 +726,34 @@ class NetworkInventoryService:
 
         compartment_ids: set[str] = set()
         regions: set[str] = set()
-        try:
-            client = self.client_factory.resource_search_client(region=self.settings.home_region)
+        for search_region in self._subscribed_region_ids():
+            try:
+                client = self.client_factory.resource_search_client(region=search_region)
+            except Exception as exc:
+                self._add_collection_issue(
+                    region=search_region,
+                    resource_type="resource_search",
+                    compartment_id=self.settings.tenancy_ocid or "*",
+                    exc=exc,
+                )
+                continue
+
             for query in NETWORK_RESOURCE_SEARCH_QUERIES:
-                for item in self._resource_search_items(client, query):
+                try:
+                    items = self._resource_search_items(client, query)
+                except Exception as exc:
+                    self._add_collection_issue(
+                        region=search_region,
+                        resource_type="resource_search",
+                        compartment_id=self.settings.tenancy_ocid or "*",
+                        exc=exc,
+                    )
+                    continue
+                for item in items:
                     compartment_id = getattr(item, "compartment_id", None)
                     if compartment_id:
                         compartment_ids.add(str(compartment_id))
-                    region = self._region_from_resource_identifier(getattr(item, "identifier", None))
-                    if region:
-                        regions.add(region)
-        except Exception as exc:
-            self._add_collection_issue(
-                region=self.settings.home_region,
-                resource_type="resource_search",
-                compartment_id=self.settings.tenancy_ocid or "*",
-                exc=exc,
-            )
+                    regions.add(self._region_from_resource_identifier(getattr(item, "identifier", None)) or search_region)
 
         scope = _NetworkResourceScope(
             compartment_ids=sorted(compartment_ids),
@@ -749,6 +761,40 @@ class NetworkInventoryService:
         )
         object.__setattr__(self, "_network_resource_scope_cache", scope)
         return scope
+
+    def _subscribed_region_ids(self) -> list[str]:
+        if self._region_subscription_cache is not None:
+            return self._region_subscription_cache
+
+        fallback = list(dict.fromkeys([self.settings.home_region, *self.settings.active_regions]))
+        if not self.settings.enable_live_oci or not self.settings.tenancy_ocid:
+            object.__setattr__(self, "_region_subscription_cache", fallback)
+            return fallback
+
+        try:
+            client = self.client_factory.identity_client()
+            subscriptions = self.client_factory.list_all(
+                client.list_region_subscriptions,
+                self.settings.tenancy_ocid,
+            )
+            selected = [
+                str(item.region_name)
+                for item in subscriptions
+                if getattr(item, "region_name", None)
+                and str(getattr(item, "status", "READY")).upper() == "READY"
+            ]
+        except Exception as exc:
+            self._add_collection_issue(
+                region=self.settings.home_region,
+                resource_type="region_subscription",
+                compartment_id=self.settings.tenancy_ocid or "*",
+                exc=exc,
+            )
+            selected = fallback
+
+        selected = list(dict.fromkeys(selected or fallback))
+        object.__setattr__(self, "_region_subscription_cache", selected)
+        return selected
 
     def _resource_search_items(self, client: object, query: str) -> list[object]:
         details = self.client_factory.structured_search_details(query)

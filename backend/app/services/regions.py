@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 from app.config import Settings
 from app.models import RegionSummary
+from app.oci_clients import OciClientFactory
 
 
 OCI_REGIONS: tuple[tuple[str, str], ...] = (
@@ -56,8 +57,13 @@ OCI_REGIONS: tuple[tuple[str, str], ...] = (
 @dataclass(frozen=True)
 class RegionService:
     settings: Settings
+    client_factory: OciClientFactory | None = None
 
     def list_available(self) -> list[RegionSummary]:
+        subscribed = self._subscribed_regions()
+        if subscribed:
+            return subscribed
+
         active = {self.settings.home_region, *self.settings.active_regions}
         return [
             RegionSummary(
@@ -71,3 +77,45 @@ class RegionService:
 
     def list_active(self) -> list[RegionSummary]:
         return [r for r in self.list_available() if r.is_active]
+
+    def _subscribed_regions(self) -> list[RegionSummary]:
+        if not self.settings.enable_live_oci or not self.settings.tenancy_ocid or self.client_factory is None:
+            return []
+
+        try:
+            client = self.client_factory.identity_client()
+            subscriptions = self.client_factory.list_all(
+                client.list_region_subscriptions,
+                self.settings.tenancy_ocid,
+            )
+        except Exception:
+            return []
+        regions = [
+            RegionSummary(
+                id=str(item.region_name),
+                geo=self._region_geo(str(item.region_name)),
+                is_home_region=bool(getattr(item, "is_home_region", False)),
+                is_active=str(getattr(item, "status", "READY")).upper() == "READY",
+            )
+            for item in subscriptions
+            if getattr(item, "region_name", None)
+        ]
+        return sorted(regions, key=lambda item: (not item.is_home_region, item.id))
+
+    def _region_geo(self, region_id: str) -> str:
+        known = dict(OCI_REGIONS)
+        if region_id in known:
+            return known[region_id]
+        if region_id.startswith("eu-") or region_id.startswith("uk-"):
+            return "Europe"
+        if region_id.startswith(("us-", "ca-", "mx-")):
+            return "North America"
+        if region_id.startswith("af-"):
+            return "Africa"
+        if region_id.startswith(("me-", "il-")):
+            return "Middle East"
+        if region_id.startswith("ap-"):
+            return "Asia Pacific"
+        if region_id.startswith("sa-"):
+            return "South America"
+        return "Region"
