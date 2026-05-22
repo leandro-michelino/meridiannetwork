@@ -149,6 +149,11 @@ body {
   background: var(--mn-surface-soft);
 }
 
+.button:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
 .button.primary {
   background: var(--mn-orange);
   color: #fff;
@@ -160,8 +165,8 @@ body {
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  width: 280px;
-  max-width: min(280px, calc(100vw - 24px));
+  width: 360px;
+  max-width: min(360px, calc(100vw - 24px));
   border: 1px solid var(--mn-border);
   border-radius: 7px;
   background: var(--mn-surface);
@@ -192,10 +197,34 @@ body {
   padding: 4px 4px 8px;
 }
 
+.region-menu-tools {
+  padding: 0 4px 8px;
+}
+
+.region-menu-actions {
+  display: flex;
+  gap: 6px;
+  padding: 0 4px 8px;
+}
+
+.region-menu-tools input {
+  width: 100%;
+  min-height: 30px;
+  border: 1px solid var(--mn-border);
+  border-radius: 6px;
+  background: var(--mn-surface);
+  color: var(--mn-text);
+  font-size: 12px;
+  padding: 5px 8px;
+}
+
 .region-menu-list {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  max-height: min(420px, calc(100vh - 168px));
+  overflow: auto;
+  padding-right: 2px;
 }
 
 .region-menu-item {
@@ -209,9 +238,41 @@ body {
   font-size: 12px;
 }
 
+.region-menu-main {
+  min-width: 0;
+}
+
+.region-filter-option {
+  align-items: center;
+  cursor: pointer;
+}
+
+.region-filter-option input {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--mn-orange);
+  flex: 0 0 auto;
+}
+
 .region-menu-geo {
   color: var(--mn-muted);
   font-size: 11px;
+}
+
+.region-menu-tags {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+}
+
+.resource-link {
+  color: var(--mn-link);
+  text-decoration: none;
+}
+
+.resource-link:hover {
+  text-decoration: underline;
 }
 
 .content {
@@ -267,6 +328,146 @@ body {
   margin-top: 5px;
   color: var(--mn-muted);
   font-size: 11px;
+}
+
+.inventory-notice {
+  margin-top: 10px;
+}
+
+.inventory-notice[hidden] {
+  display: none;
+}
+
+.cs-panel {
+  margin-top: 10px;
+  border: 1px solid var(--mn-border-soft);
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 12px;
+}
+
+.cs-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 11px;
+  background: var(--mn-surface-soft);
+  border-bottom: 1px solid var(--mn-border-soft);
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--mn-muted);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.cs-header-right {
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--mn-muted);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.cs-rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.cs-row {
+  display: grid;
+  grid-template-columns: 14px 1fr auto auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 11px;
+  border-bottom: 1px solid var(--mn-border-soft);
+  background: var(--mn-surface);
+}
+
+.cs-row:last-child {
+  border-bottom: none;
+}
+
+.cs-row.cs-collecting {
+  background: #f7fbff;
+}
+
+.cs-row.cs-failed {
+  background: #fff5f5;
+}
+
+.cs-row.cs-no-resources {
+  background: var(--mn-surface);
+}
+
+.cs-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.cs-dot-ready { background: #2f9e44; }
+.cs-dot-warn  { background: #e67700; }
+.cs-dot-failed { background: #c92a2a; }
+.cs-dot-muted { background: #ced4da; }
+
+.cs-spinner {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid #228be6;
+  border-top-color: transparent;
+  animation: cs-spin .7s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes cs-spin {
+  to { transform: rotate(360deg); }
+}
+
+.cs-region-name {
+  font-weight: 600;
+  color: var(--mn-text);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cs-status-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.cs-badge-collecting { background: #e7f5ff; color: #1864ab; }
+.cs-badge-ready      { background: #ebfbee; color: #1b5e20; }
+.cs-badge-warn       { background: #fff3e0; color: #7c4a03; }
+.cs-badge-failed     { background: #fff0f0; color: #7d1a1a; }
+.cs-badge-no-res     { background: var(--mn-surface-soft); color: var(--mn-muted); }
+
+.cs-meta {
+  font-size: 11px;
+  color: var(--mn-muted);
+  white-space: nowrap;
+}
+
+.cs-error {
+  grid-column: 2 / -1;
+  font-size: 11px;
+  color: var(--mn-red);
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cs-counts {
+  font-size: 11px;
+  color: var(--mn-muted);
+  white-space: nowrap;
 }
 
 .grid-2 {
@@ -373,6 +574,24 @@ body {
   border-radius: 6px;
 }
 
+.finding-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.finding-state {
+  margin-top: 4px;
+  color: var(--mn-blue);
+  font-size: 11px;
+  font-weight: 650;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .resource-name,
 .finding-name {
   font-size: 12px;
@@ -390,6 +609,209 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.action-history,
+.security-history-menu {
+  margin-top: 10px;
+  border-top: 1px solid var(--mn-border-soft);
+  padding-top: 10px;
+}
+
+.security-posture-panel {
+  position: relative;
+}
+
+.security-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.security-history-menu {
+  position: absolute;
+  top: 46px;
+  right: 10px;
+  width: 620px;
+  max-width: min(620px, calc(100vw - 36px));
+  max-height: min(620px, calc(100vh - 120px));
+  overflow: auto;
+  border: 1px solid var(--mn-border);
+  border-radius: 7px;
+  background: var(--mn-surface);
+  box-shadow: 0 10px 24px rgba(31, 41, 51, 0.14);
+  padding: 10px;
+  z-index: 35;
+}
+
+.security-history-menu[hidden] {
+  display: none;
+}
+
+.history-toolbar {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) minmax(130px, auto) minmax(120px, auto) auto;
+  gap: 7px;
+  margin-bottom: 9px;
+}
+
+.history-toolbar input,
+.history-toolbar select {
+  min-height: 30px;
+  border: 1px solid var(--mn-border);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--mn-text);
+  font-size: 12px;
+  padding: 5px 8px;
+  min-width: 0;
+}
+
+.history-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 7px;
+  margin-bottom: 9px;
+}
+
+.history-stat {
+  border: 1px solid var(--mn-border-soft);
+  border-radius: 6px;
+  background: var(--mn-surface-soft);
+  padding: 8px;
+  min-width: 0;
+}
+
+.history-stat strong {
+  display: block;
+  font-size: 15px;
+  line-height: 1;
+}
+
+.history-stat span,
+.history-storage {
+  color: var(--mn-muted);
+  font-size: 11px;
+}
+
+.history-storage {
+  border: 1px solid var(--mn-border-soft);
+  border-radius: 6px;
+  background: #fbfcfd;
+  margin-bottom: 9px;
+  padding: 8px;
+}
+
+.history-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.history-day {
+  color: var(--mn-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.history-item {
+  border-left: 3px solid var(--mn-border);
+  padding-left: 9px;
+}
+
+.history-item.accept_risk,
+.history-item.dismiss,
+.history-item.ignore {
+  border-left-color: var(--mn-amber);
+}
+
+.history-item.assign_owner,
+.history-item.create_remediation_task {
+  border-left-color: var(--mn-green);
+}
+
+.history-item.note,
+.history-item.false_positive {
+  border-left-color: var(--mn-muted);
+}
+
+.modal-history {
+  max-height: 132px;
+  overflow: auto;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(31, 41, 51, 0.36);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  z-index: 60;
+}
+
+.modal-backdrop[hidden] {
+  display: none;
+}
+
+.modal {
+  width: min(460px, 100%);
+  background: var(--mn-surface);
+  border: 1px solid var(--mn-border);
+  border-radius: 7px;
+  box-shadow: 0 18px 48px rgba(31, 41, 51, 0.24);
+  padding: 14px;
+}
+
+.modal-title {
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.modal-subtitle {
+  margin-top: 3px;
+  color: var(--mn-muted);
+  font-size: 12px;
+}
+
+.field {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.field label {
+  color: var(--mn-muted);
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  border: 1px solid var(--mn-border);
+  border-radius: 6px;
+  padding: 8px;
+  color: var(--mn-text);
+  background: var(--mn-surface);
+  font: inherit;
+  font-size: 12px;
+}
+
+.field textarea {
+  min-height: 82px;
+  resize: vertical;
+}
+
+.modal-actions {
+  margin-top: 12px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .table-wrap {
@@ -439,12 +861,105 @@ tr:last-child td { border-bottom: 0; }
 .blue { color: var(--mn-blue); }
 
 .topology {
-  min-height: 360px;
+  height: clamp(420px, 56vh, 760px);
+  min-height: 420px;
   position: relative;
   border: 1px solid var(--mn-border-soft);
   border-radius: 7px;
   background: linear-gradient(180deg, #ffffff 0%, #f5f7fa 100%);
-  overflow: hidden;
+  overflow: auto;
+  scrollbar-gutter: stable both-edges;
+  touch-action: none;
+}
+
+.topology-hint {
+  margin-top: 6px;
+  padding: 6px 10px;
+  font-size: 11px;
+  color: var(--mn-muted);
+  background: var(--mn-surface-soft);
+  border: 1px solid var(--mn-border-soft);
+  border-radius: 6px;
+}
+
+.topology-hint[hidden] { display: none; }
+
+.topology-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.topology-modes {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--mn-border);
+  border-radius: 7px;
+  background: var(--mn-surface);
+}
+
+.topology-modes .button {
+  border-color: transparent;
+  min-height: 26px;
+}
+
+.topology-modes .button.active {
+  background: #fff2ed;
+  border-color: #e1a58f;
+  color: var(--mn-orange);
+}
+
+.topology-select {
+  min-height: 32px;
+  border: 1px solid var(--mn-border);
+  border-radius: 6px;
+  background: var(--mn-surface);
+  color: var(--mn-text);
+  font-size: 12px;
+  padding: 5px 8px;
+  max-width: min(280px, 100%);
+}
+
+.topology-select:disabled {
+  opacity: 0.55;
+}
+
+.topology-layers {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.topology-layers label {
+  min-height: 28px;
+  border: 1px solid var(--mn-border);
+  border-radius: 6px;
+  background: var(--mn-surface);
+  color: var(--mn-text);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 7px;
+}
+
+.topology-layers input {
+  accent-color: var(--mn-orange);
+}
+
+.topology-layers.disabled {
+  opacity: 0.55;
+}
+
+.topology-canvas {
+  min-height: 100%;
+  min-width: 100%;
+  position: relative;
 }
 
 .topology svg {
@@ -575,6 +1090,11 @@ tr:last-child td { border-bottom: 0; }
     width: 100%;
   }
 
+  .history-toolbar,
+  .history-summary {
+    grid-template-columns: 1fr;
+  }
+
   .button {
     justify-content: center;
   }
@@ -583,7 +1103,10 @@ tr:last-child td { border-bottom: 0; }
     grid-column: 1 / -1;
   }
 
-  .topology { min-height: 340px; }
+  .topology {
+    height: 460px;
+    min-height: 460px;
+  }
   .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .content { padding: 12px; }
 }
@@ -605,7 +1128,14 @@ tr:last-child td { border-bottom: 0; }
         <div class="pill home"><span class="home-dot"></span><span id="homeRegionName">eu-frankfurt-1</span><span>home</span></div>
         <button class="button" id="regionMenuBtn" type="button" aria-controls="regionMenu" aria-expanded="false">Regions</button>
         <div class="region-menu" id="regionMenu">
-          <div class="region-menu-title">Additional regions</div>
+          <div class="region-menu-title" id="regionMenuTitle">Subscribed regions</div>
+          <div class="region-menu-tools">
+            <input id="regionSearch" type="search" placeholder="Search region">
+          </div>
+          <div class="region-menu-actions">
+            <button class="button" id="regionSelectAll" type="button">Select all</button>
+            <button class="button" id="regionClearAll" type="button">Clear</button>
+          </div>
           <div class="region-menu-list" id="regionMenuList"></div>
         </div>
       </div>
@@ -621,6 +1151,7 @@ tr:last-child td { border-bottom: 0; }
           </div>
         </div>
       </div>
+      <button class="button" id="refreshNow" type="button">Refresh</button>
       <button class="button" id="demoToggle" type="button">Demo data</button>
     </div>
   </div>
@@ -637,8 +1168,10 @@ tr:last-child td { border-bottom: 0; }
         <div class="kpi"><div class="kpi-label"><span class="status-dot warn"></span>Route Issues</div><div class="kpi-value" id="kpiRouteIssues">0</div><div class="kpi-sub" id="kpiRouteIssueSub">Route analysis</div></div>
         <div class="kpi"><div class="kpi-label"><span class="status-dot ok"></span>Security Lists</div><div class="kpi-value" id="kpiSecLists">0</div><div class="kpi-sub" id="kpiSecListSub">Ingress / egress rules</div></div>
         <div class="kpi"><div class="kpi-label"><span class="status-dot ok"></span>NSGs</div><div class="kpi-value" id="kpiNsgs">0</div><div class="kpi-sub" id="kpiNsgSub">Network Security Groups</div></div>
-        <div class="kpi"><div class="kpi-label"><span class="status-dot warn"></span>Findings</div><div class="kpi-value" id="kpiFindings">0</div><div class="kpi-sub" id="kpiFindingSub">Security posture</div></div>
+        <div class="kpi"><div class="kpi-label"><span class="status-dot warn"></span>Risk Score</div><div class="kpi-value" id="kpiFindings">0</div><div class="kpi-sub" id="kpiFindingSub">Security posture</div></div>
       </div>
+      <div class="inventory-notice" id="inventoryNotice" hidden></div>
+      <div id="collectionStatusPanel" hidden></div>
     </section>
 
     <section class="grid-2">
@@ -647,18 +1180,65 @@ tr:last-child td { border-bottom: 0; }
           <div class="card-title">Network Topology</div>
           <span class="badge neutral" id="topologyBadge">inventory</span>
         </summary>
-        <div class="topology" id="topology">
-          <svg id="topologyLines" aria-hidden="true"></svg>
-          <div class="topology-nodes" id="topologyNodes"></div>
+        <div class="topology-toolbar">
+          <div class="topology-modes" id="topologyModeGroup" role="group" aria-label="Topology view">
+            <button class="button" type="button" data-topology-mode="overview">Overview</button>
+            <button class="button" type="button" data-topology-mode="full">Layers</button>
+            <button class="button" type="button" data-topology-mode="vcn">VCN focus</button>
+          </div>
+          <select class="topology-select" id="topologyRegionScope" aria-label="Topology region"></select>
+          <select class="topology-select" id="topologyVcnScope" aria-label="Topology VCN"></select>
+          <div class="topology-layers" id="topologyLayerGroup" aria-label="Topology layers">
+            <label><input type="checkbox" data-topology-layer="subnets"> Subnets</label>
+            <label><input type="checkbox" data-topology-layer="gateways"> Gateways</label>
+            <label><input type="checkbox" data-topology-layer="routes"> Routes</label>
+            <label><input type="checkbox" data-topology-layer="security"> Security</label>
+          </div>
         </div>
+        <div class="topology" id="topology">
+          <div class="topology-canvas" id="topologyCanvas">
+            <svg id="topologyLines" aria-hidden="true"></svg>
+            <div class="topology-nodes" id="topologyNodes"></div>
+          </div>
+        </div>
+        <div class="topology-hint" id="topologyHint" hidden></div>
       </details>
 
-      <details class="card expander" open>
+      <details class="card expander security-posture-panel" open id="securityPosturePanel">
         <summary class="card-header">
           <div class="card-title">Security Posture</div>
-          <span class="badge ok" id="postureBadge">ok</span>
+          <div class="security-header-actions">
+            <span class="badge ok" id="postureBadge">ok</span>
+            <button class="button" id="securityHistoryBtn" type="button" aria-expanded="false">History 0</button>
+          </div>
         </summary>
         <div class="finding-list" id="findingList"></div>
+        <div class="security-history-menu" id="securityHistoryMenu" hidden>
+          <div class="section-title">Action history</div>
+          <div class="history-toolbar">
+            <input id="historySearch" type="search" placeholder="Search user, resource, note">
+            <select id="historyActionFilter">
+              <option value="">All actions</option>
+              <option value="assign_owner">Assigned</option>
+              <option value="note">Notes</option>
+              <option value="accept_risk">Accepted risk</option>
+              <option value="false_positive">False positives</option>
+              <option value="create_remediation_task">Remediation tasks</option>
+              <option value="dismiss">Dismissed</option>
+            </select>
+            <select id="historySeverityFilter">
+              <option value="">All severities</option>
+              <option value="critical">Critical</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+            <button class="button" id="historyClearFilters" type="button">Clear</button>
+          </div>
+          <div class="history-summary" id="securityActionHistorySummary"></div>
+          <div class="history-storage" id="securityActionHistoryStorage"></div>
+          <div class="history-timeline" id="securityActionHistoryList"></div>
+        </div>
       </details>
     </section>
 
@@ -734,9 +1314,52 @@ tr:last-child td { border-bottom: 0; }
   </main>
 </div>
 
+<div class="modal-backdrop" id="securityActionModal" hidden>
+  <form class="modal" id="securityActionForm">
+    <div class="modal-title">Take Action</div>
+    <div class="modal-subtitle" id="securityActionFinding">Security finding</div>
+    <div class="field">
+      <label for="securityActionUser">User</label>
+      <input id="securityActionUser" name="user" autocomplete="name" placeholder="John" required>
+    </div>
+    <div class="field">
+      <label for="securityActionType">Action</label>
+      <select id="securityActionType" name="action_type">
+        <option value="assign_owner">Assign Owner</option>
+        <option value="note">Put Note</option>
+        <option value="accept_risk">Accept Risk</option>
+        <option value="false_positive">Mark False Positive</option>
+        <option value="create_remediation_task">Create Remediation Task</option>
+        <option value="dismiss">Dismiss</option>
+      </select>
+    </div>
+    <div class="field" id="securityActionAssigneeField" hidden>
+      <label for="securityActionAssignee">Owner</label>
+      <input id="securityActionAssignee" name="assignee" autocomplete="name" placeholder="John">
+    </div>
+    <div class="field" id="securityActionExpiryField" hidden>
+      <label for="securityActionExpiry">Risk Acceptance Expires</label>
+      <input id="securityActionExpiry" name="expires_at" type="date">
+    </div>
+    <div class="field">
+      <label for="securityActionNote">Note</label>
+      <textarea id="securityActionNote" name="note" placeholder="John will handle this issue."></textarea>
+    </div>
+    <div class="action-history">
+      <div class="section-title">Finding history</div>
+      <div class="resource-list modal-history" id="securityActionModalHistory"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="button" id="securityActionCancel" type="button">Cancel</button>
+      <button class="button primary" type="submit">Save Action</button>
+    </div>
+  </form>
+</div>
+
 <script>
 const API_PATHS = {
   health: '/healthz',
+  dashboard: '/api/dashboard',
   activeRegions: '/api/regions/active',
   preflight: '/api/preflight',
   compartments: '/api/compartments',
@@ -749,9 +1372,22 @@ const API_PATHS = {
   networkSecurityGroups: '/api/network-security-groups',
   topology: '/api/topology',
   securityPosture: '/api/security/posture',
+  securityActions: '/api/security/finding-actions',
+  identityContext: '/api/identity/context',
 };
 
 const DEMO_DATA = {
+  identityContext: {
+    enabled: false,
+    source: 'manual',
+    domain_name: 'Default',
+    current_user: null,
+    required_group: 'MeridianNetworkUsers',
+    groups_header: 'x-authenticated-groups',
+    is_authorized: false,
+    user_required: true,
+    message: 'IAM Domain user integration is disabled. Security actions require a manually entered user.',
+  },
   activeRegions: [
     { id: 'eu-frankfurt-1', geo: 'Europe', is_home_region: true, is_active: true },
     { id: 'eu-amsterdam-1', geo: 'Europe', is_home_region: false, is_active: true },
@@ -800,26 +1436,72 @@ const DEMO_DATA = {
   ],
   securityPosture: {
     status: 'high',
-    total_findings: 2,
+    risk_score: 62,
+    scanned_security_lists: 2,
+    scanned_network_security_groups: 2,
+    scanned_ingress_rules: 4,
+    scanned_egress_rules: 2,
+    total_findings: 6,
     critical_findings: 0,
     high_findings: 2,
     medium_findings: 0,
-    low_findings: 0,
+    low_findings: 4,
     findings: [
-      { severity: 'high', rule_type: 'public_ssh', resource_name: 'admin-risk-review', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', description: 'Ingress allows SSH from 0.0.0.0/0.', recommendation: 'Restrict SSH to VPN, Bastion, or administrator CIDR.' },
-      { severity: 'high', rule_type: 'nsg_public_rdp', resource_name: 'admin-risk-nsg', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', description: 'NSG ingress allows RDP from 0.0.0.0/0.', recommendation: 'Restrict RDP to VPN, Bastion, or administrator CIDR.' }
+      { severity: 'low', risk_score: 3, rule_type: 'public_web_ingress', resource_name: 'public-security-list', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', description: 'Ingress exposes web listener ports from 0.0.0.0/0: HTTPS (443).', recommendation: 'Confirm public web listeners are intended and protected by TLS and application controls.' },
+      { severity: 'low', risk_score: 3, rule_type: 'broad_public_egress', resource_name: 'public-security-list', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', description: 'Egress allows all protocols to 0.0.0.0/0.', recommendation: 'Confirm unrestricted outbound access is required or scope egress to approved destinations.' },
+      { severity: 'high', risk_score: 25, rule_type: 'public_ssh', resource_name: 'admin-risk-review', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', description: 'Ingress allows SSH from 0.0.0.0/0.', recommendation: 'Restrict SSH to a VPN, Bastion, or administrator source CIDR.' },
+      { severity: 'low', risk_score: 3, rule_type: 'nsg_public_web_ingress', resource_name: 'web-tier-nsg', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', description: 'Ingress exposes web listener ports from 0.0.0.0/0: HTTPS (443).', recommendation: 'Confirm public web listeners are intended and protected by TLS and application controls.' },
+      { severity: 'low', risk_score: 3, rule_type: 'nsg_broad_public_egress', resource_name: 'web-tier-nsg', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', description: 'Egress allows all protocols to 0.0.0.0/0.', recommendation: 'Confirm unrestricted outbound access is required or scope egress to approved destinations.' },
+      { severity: 'high', risk_score: 25, rule_type: 'nsg_public_rdp', resource_name: 'admin-risk-nsg', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', description: 'Ingress allows RDP from 0.0.0.0/0.', recommendation: 'Restrict RDP to a VPN, Bastion, or administrator source CIDR.' }
     ]
-  }
+  },
+  collection: { requested_regions: [], issues: [] },
+  securityActionHistory: { total_actions: 0, actions: [] }
 };
 
-const AUTO_REFRESH_MS = 5000;
+const AUTO_REFRESH_MS = 120000;
 const TOPOLOGY_POSITION_KEY = 'meridianTopologyNodePositions';
+const TOPOLOGY_ZOOM_KEY = 'meridianTopologyZoom';
+const TOPOLOGY_MODE_KEY = 'meridianTopologyMode';
+const TOPOLOGY_LAYER_KEY = 'meridianTopologyLayers';
+const DEFAULT_TOPOLOGY_LAYERS = { subnets: false, gateways: true, routes: true, security: false };
+const SECURITY_ACTION_HISTORY_KEY = 'meridianSecurityActionHistory';
+const REGION_FILTER_KEY = 'meridianRegionFilter';
 let useDemoData = false;
 let refreshInFlight = false;
 let topologyEdges = [];
 let topologyNodeDomIds = {};
 let topologyLineFrame = 0;
 let topologyNodePositions = readTopologyPositions();
+let topologyCanvasBaseSize = { width: 980, height: 560 };
+let topologyZoom = readTopologyZoom();
+let topologyViewSignature = '';
+let topologyMode = readTopologyMode();
+let topologyLayers = readTopologyLayers();
+let topologyRegionScope = '';
+let topologyVcnScope = '';
+const topologyTouchPoints = new Map();
+let topologyPinchDistance = 0;
+let topologyPanPoint = null;
+let currentSecurityFindings = [];
+let pendingSecurityFinding = null;
+let securityActionHistory = readSecurityActionHistory();
+let securityActionHistoryInfo = {
+  total_actions: 0,
+  retention_days: 365,
+  storage: 'local-jsonl',
+  archive_enabled: false,
+  archive_prefix: null,
+  archive_error: null,
+};
+let currentIdentityContext = DEMO_DATA.identityContext;
+let currentDashboardMode = 'api';
+let currentHomeRegionId = '';
+let currentRegionIds = [];
+let currentActiveRegionDetails = [];
+let currentDashboardData = null;
+let selectedRegionIds = readRegionFilter();
+let collectionPollTimer = 0;
 
 function byId(id) {
   return document.getElementById(id);
@@ -843,6 +1525,90 @@ function saveTopologyPositions() {
     window.localStorage.setItem(TOPOLOGY_POSITION_KEY, JSON.stringify(topologyNodePositions));
   } catch (error) {
     // Ignore storage failures; dragging should still work for the active render.
+  }
+}
+
+function readTopologyZoom() {
+  const value = Number.parseFloat(window.localStorage.getItem(TOPOLOGY_ZOOM_KEY) || '1');
+  return Number.isFinite(value) ? clamp(value, 0.35, 3) : 1;
+}
+
+function saveTopologyZoom() {
+  try {
+    window.localStorage.setItem(TOPOLOGY_ZOOM_KEY, String(topologyZoom));
+  } catch (error) {
+    // Ignore storage failures; zoom still works for the active render.
+  }
+}
+
+function readTopologyMode() {
+  const mode = window.localStorage.getItem(TOPOLOGY_MODE_KEY);
+  return ['overview', 'full', 'vcn'].includes(mode) ? mode : 'overview';
+}
+
+function saveTopologyMode() {
+  try {
+    window.localStorage.setItem(TOPOLOGY_MODE_KEY, topologyMode);
+  } catch (error) {
+    // Ignore storage failures; the current topology render still reflects the selected mode.
+  }
+}
+
+function readTopologyLayers() {
+  try {
+    const raw = window.localStorage.getItem(TOPOLOGY_LAYER_KEY);
+    if (!raw) return { ...DEFAULT_TOPOLOGY_LAYERS };
+    return { ...DEFAULT_TOPOLOGY_LAYERS, ...JSON.parse(raw) };
+  } catch (error) {
+    return { ...DEFAULT_TOPOLOGY_LAYERS };
+  }
+}
+
+function saveTopologyLayers() {
+  try {
+    window.localStorage.setItem(TOPOLOGY_LAYER_KEY, JSON.stringify(topologyLayers));
+  } catch (error) {
+    // Ignore storage failures; the active layer selection still works.
+  }
+}
+
+function readSecurityActionHistory() {
+  try {
+    return JSON.parse(window.localStorage.getItem(SECURITY_ACTION_HISTORY_KEY) || '[]');
+  } catch (error) {
+    return [];
+  }
+}
+
+function saveSecurityActionHistory(actions) {
+  securityActionHistory = actions;
+  try {
+    window.localStorage.setItem(SECURITY_ACTION_HISTORY_KEY, JSON.stringify(actions));
+  } catch (error) {
+    // Ignore storage failures; backend logging still works in API mode.
+  }
+}
+
+function readRegionFilter() {
+  try {
+    const raw = window.localStorage.getItem(REGION_FILTER_KEY);
+    if (!raw) return null;
+    const regions = JSON.parse(raw);
+    return Array.isArray(regions) ? new Set(regions) : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+function saveRegionFilter() {
+  try {
+    if (selectedRegionIds === null) {
+      window.localStorage.removeItem(REGION_FILTER_KEY);
+    } else {
+      window.localStorage.setItem(REGION_FILTER_KEY, JSON.stringify([...selectedRegionIds]));
+    }
+  } catch (error) {
+    // Ignore storage failures; the active dashboard filter should still work.
   }
 }
 
@@ -870,56 +1636,125 @@ function escapeHtml(value) {
   }[char]));
 }
 
+function ociConsoleUrl(resourceType, item) {
+  if (!item?.id || !item?.region) return '';
+  const path = {
+    vcn: 'networking/vcns',
+    subnet: 'networking/subnets',
+    route_table: 'networking/routetables',
+    security_list: 'networking/securitylists',
+    network_security_group: 'networking/networksecuritygroups',
+    internet_gateway: 'networking/internetgateways',
+    nat_gateway: 'networking/natgateways',
+    service_gateway: 'networking/servicegateways',
+    dynamic_routing_gateway: 'networking/drgs',
+  }[resourceType];
+  if (!path) return '';
+  return `https://cloud.oracle.com/${path}/${encodeURIComponent(item.id)}?region=${encodeURIComponent(item.region)}`;
+}
+
+function resourceLink(label, url, title = 'Open in OCI Console') {
+  if (!url) return escapeHtml(label);
+  return `<a class="resource-link" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(title)}">${escapeHtml(label)}</a>`;
+}
+
 async function getJson(path) {
-  const response = await fetch(path, { headers: { Accept: 'application/json' } });
+  const response = await fetch(path, { cache: 'no-store', headers: { Accept: 'application/json' } });
+  if (!response.ok) throw new Error(`${path} returned ${response.status}`);
+  return response.json();
+}
+
+async function postJson(path, payload) {
+  const response = await fetch(path, {
+    method: 'POST',
+    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
   if (!response.ok) throw new Error(`${path} returned ${response.status}`);
   return response.json();
 }
 
 async function loadApiData() {
+  const dashboardPath = dashboardApiPath();
+  if (!dashboardPath) {
+    const [
+      identityContext,
+      activeRegions,
+      compartments,
+      securityActionHistory,
+    ] = await Promise.all([
+      getJson(API_PATHS.identityContext),
+      getJson(API_PATHS.activeRegions),
+      getJson(API_PATHS.compartments),
+      getJson(API_PATHS.securityActions),
+    ]);
+    return {
+      identityContext,
+      ...emptyDashboardData(activeRegions, compartments),
+      securityActionHistory,
+    };
+  }
   const [
-    activeRegions,
-    compartments,
-    vcns,
-    subnets,
-    gateways,
-    routeTables,
-    routeIssues,
-    securityLists,
-    networkSecurityGroups,
-    topology,
-    securityPosture,
+    identityContext,
+    dashboard,
+    securityActionHistory,
   ] = await Promise.all([
-    getJson(API_PATHS.activeRegions),
-    getJson(API_PATHS.compartments),
-    getJson(API_PATHS.vcns),
-    getJson(API_PATHS.subnets),
-    getJson(API_PATHS.gateways),
-    getJson(API_PATHS.routeTables),
-    getJson(API_PATHS.routeIssues),
-    getJson(API_PATHS.securityLists),
-    getJson(API_PATHS.networkSecurityGroups),
-    getJson(API_PATHS.topology),
-    getJson(API_PATHS.securityPosture),
+    getJson(API_PATHS.identityContext),
+    getJson(dashboardPath),
+    getJson(API_PATHS.securityActions),
   ]);
+  return {
+    identityContext,
+    activeRegions: dashboard.activeRegions || [],
+    compartments: dashboard.compartments || [],
+    vcns: dashboard.vcns || [],
+    subnets: dashboard.subnets || [],
+    gateways: dashboard.gateways || [],
+    routeTables: dashboard.routeTables || [],
+    routeIssues: dashboard.routeIssues || {},
+    securityLists: dashboard.securityLists || [],
+    networkSecurityGroups: dashboard.networkSecurityGroups || [],
+    topology: dashboard.topology || {},
+    securityPosture: dashboard.securityPosture || {},
+    collection: dashboard.collection || { requested_regions: [], issues: [] },
+    securityActionHistory,
+  };
+}
+
+function dashboardApiPath() {
+  const params = new URLSearchParams();
+  if (selectedRegionIds !== null && selectedRegionIds.size === 0) return null;
+  const selectedRegions = selectedRegionIds === null ? [] : [...selectedRegionIds];
+  if (selectedRegions.length) {
+    params.set('regions', selectedRegions.join(','));
+    params.set('async_collect', 'true');
+  }
+  const query = params.toString();
+  return query ? `${API_PATHS.dashboard}?${query}` : API_PATHS.dashboard;
+}
+
+function emptyDashboardData(activeRegions, compartments) {
   return {
     activeRegions,
     compartments,
-    vcns,
-    subnets,
-    gateways,
-    routeTables,
-    routeIssues,
-    securityLists,
-    networkSecurityGroups,
-    topology,
-    securityPosture,
+    vcns: [],
+    subnets: [],
+    gateways: [],
+    routeTables: [],
+    routeIssues: { status: 'ok', total_issues: 0, issues: [] },
+    securityLists: [],
+    networkSecurityGroups: [],
+    topology: { nodes: [], edges: [] },
+    securityPosture: { status: 'ok', risk_score: 0, total_findings: 0, findings: [] },
+    collection: { status: 'idle', requested_regions: [], issues: [] },
   };
 }
 
 async function refreshDashboard({ showLoading = false } = {}) {
   if (refreshInFlight) return;
   refreshInFlight = true;
+  const refreshButton = byId('refreshNow');
+  if (refreshButton) refreshButton.disabled = true;
   if (showLoading) text('lastUpdated', 'Refreshing...');
 
   try {
@@ -933,13 +1768,17 @@ async function refreshDashboard({ showLoading = false } = {}) {
     }
 
     byId('demoToggle').textContent = useDemoData ? 'Use API' : 'Demo data';
+    currentDashboardData = data;
     renderDashboard(data, mode);
   } finally {
     refreshInFlight = false;
+    if (refreshButton) refreshButton.disabled = false;
   }
 }
 
 function renderDashboard(data, mode) {
+  currentDashboardMode = mode;
+  data.identityContext = data.identityContext || DEMO_DATA.identityContext;
   data.activeRegions = data.activeRegions || [];
   data.compartments = data.compartments || [];
   data.vcns = data.vcns || [];
@@ -949,55 +1788,297 @@ function renderDashboard(data, mode) {
   data.routeIssues = data.routeIssues || { status: 'ok', total_issues: 0, issues: [] };
   data.securityLists = data.securityLists || [];
   data.networkSecurityGroups = data.networkSecurityGroups || [];
-  data.securityPosture = data.securityPosture || { status: 'ok', total_findings: 0, findings: [] };
-  data.topology = data.topology || buildInventoryTopology(data);
+  data.securityPosture = data.securityPosture || { status: 'ok', risk_score: 0, total_findings: 0, findings: [] };
+  data.collection = data.collection || { requested_regions: [], issues: [] };
+  data.securityActionHistory = mode === 'api'
+    ? data.securityActionHistory || { total_actions: 0, actions: [] }
+    : { total_actions: securityActionHistory.length, actions: securityActionHistory };
+  currentIdentityContext = data.identityContext;
+  securityActionHistoryInfo = {
+    total_actions: data.securityActionHistory.total_actions || 0,
+    retention_days: data.securityActionHistory.retention_days || 365,
+    storage: data.securityActionHistory.storage || (mode === 'api' ? 'local-jsonl' : 'browser-local'),
+    archive_enabled: Boolean(data.securityActionHistory.archive_enabled),
+    archive_prefix: data.securityActionHistory.archive_prefix || null,
+    archive_error: data.securityActionHistory.archive_error || null,
+  };
+  if (mode === 'api') saveSecurityActionHistory(data.securityActionHistory.actions || []);
+  const regions = dashboardRegions(data);
+  pruneRegionFilter(regions);
+  const viewData = filterDashboardDataByRegions(data);
+  const homeRegion = homeRegionId(data.activeRegions, regions);
+  const compartmentMap = buildCompartmentMap(viewData);
+  const compartmentCount = Object.keys(compartmentMap).length;
+
+  text('kpiVcns', viewData.vcns.length);
+  text('kpiCompartments', compartmentCount);
+  text('kpiSubnets', viewData.subnets.length);
+  text('kpiGateways', viewData.gateways.length);
+  text('kpiRoutes', viewData.routeTables.length);
+  text('kpiRouteIssues', viewData.routeIssues.total_issues || 0);
+  text('kpiSecLists', viewData.securityLists.length);
+  text('kpiNsgs', viewData.networkSecurityGroups.length);
+  text('kpiFindings', `${viewData.securityPosture.risk_score || 0}/100`);
+  text('kpiVcnSub', regionFilterSummary(regions));
+  text('kpiCompartmentSub', `${viewData.compartments.length || compartmentCount} in scope`);
+  text('kpiSubnetSub', `${uniqueCount(viewData.subnets, 'vcn_id')} VCN links`);
+  text('kpiGatewaySub', gatewayTypeSummary(viewData.gateways));
+  text('kpiRouteSub', `${sum(viewData.routeTables, (item) => item.route_rules?.length || 0)} rules`);
+  text('kpiRouteIssueSub', `${viewData.routeIssues.status || 'ok'} route status`);
+  text('kpiSecListSub', `${sum(viewData.securityLists, (item) => item.ingress_rules?.length || 0)} ingress rules`);
+  text('kpiNsgSub', `${sum(viewData.networkSecurityGroups, (item) => item.ingress_rules?.length || 0)} ingress rules`);
+  text('kpiFindingSub', `${viewData.securityPosture.total_findings || 0} findings / ${viewData.securityPosture.status || 'ok'}`);
+  text('securityHistoryBtn', `History ${securityActionHistoryInfo.total_actions || securityActionHistory.length}`);
+  text('dataModeBadge', mode);
+  text('topologyBadge', `${viewData.vcns.length} VCN / ${viewData.gateways.length} gateways`);
+
+  const postureBadge = byId('postureBadge');
+  postureBadge.textContent = viewData.securityPosture.status || 'ok';
+  postureBadge.className = badgeClass(viewData.securityPosture.status || 'ok');
+
+  renderRegionStrip(homeRegion, regions, data.activeRegions);
+  renderTopology(viewData);
+  renderGateways(viewData.gateways, compartmentMap);
+  renderRouteTables(viewData.routeTables, compartmentMap);
+  renderRouteIssues(viewData.routeIssues);
+  renderSecurityLists(viewData.securityLists, compartmentMap);
+  renderNetworkSecurityGroups(viewData.networkSecurityGroups, compartmentMap);
+  renderFindings(viewData.securityPosture.findings || []);
+  renderInventoryNotice(data.collection);
+  scheduleCollectionPoll(data.collection);
+  renderSecurityActionHistory(securityActionHistory);
+  renderNetworkTable(viewData.vcns, viewData.subnets, compartmentMap);
+  text('lastUpdated', `Last refresh: ${new Date().toLocaleString()} / ${mode}`);
+}
+
+function dashboardRegions(data) {
   const observedRegions = new Set([
     ...data.vcns.map((item) => item.region),
     ...data.subnets.map((item) => item.region),
     ...data.gateways.map((item) => item.region),
+    ...data.routeTables.map((item) => item.region),
+    ...data.securityLists.map((item) => item.region),
     ...data.networkSecurityGroups.map((item) => item.region),
   ].filter(Boolean));
   const activeRegionIds = data.activeRegions.map((item) => item.id).filter(Boolean);
-  const regions = new Set([...activeRegionIds, ...observedRegions]);
-  const homeRegion = homeRegionId(data.activeRegions, regions);
-  const compartmentMap = buildCompartmentMap(data);
-  const compartmentCount = Object.keys(compartmentMap).length;
+  return new Set([...activeRegionIds, ...observedRegions]);
+}
 
-  text('kpiVcns', data.vcns.length);
-  text('kpiCompartments', compartmentCount);
-  text('kpiSubnets', data.subnets.length);
-  text('kpiGateways', data.gateways.length);
-  text('kpiRoutes', data.routeTables.length);
-  text('kpiRouteIssues', data.routeIssues.total_issues || 0);
-  text('kpiSecLists', data.securityLists.length);
-  text('kpiNsgs', data.networkSecurityGroups.length);
-  text('kpiFindings', data.securityPosture.total_findings || 0);
-  text('kpiVcnSub', `${regions.size || 0} active regions`);
-  text('kpiCompartmentSub', `${data.compartments.length || compartmentCount} in scope`);
-  text('kpiSubnetSub', `${uniqueCount(data.subnets, 'vcn_id')} VCN links`);
-  text('kpiGatewaySub', gatewayTypeSummary(data.gateways));
-  text('kpiRouteSub', `${sum(data.routeTables, (item) => item.route_rules?.length || 0)} rules`);
-  text('kpiRouteIssueSub', `${data.routeIssues.status || 'ok'} route status`);
-  text('kpiSecListSub', `${sum(data.securityLists, (item) => item.ingress_rules?.length || 0)} ingress rules`);
-  text('kpiNsgSub', `${sum(data.networkSecurityGroups, (item) => item.ingress_rules?.length || 0)} ingress rules`);
-  text('kpiFindingSub', `${data.securityPosture.status || 'ok'} posture`);
-  text('dataModeBadge', mode);
-  text('topologyBadge', `${data.vcns.length} VCN / ${data.gateways.length} gateways`);
+function pruneRegionFilter(regions) {
+  if (selectedRegionIds === null) return;
+  const validRegions = new Set([...regions]);
+  selectedRegionIds = new Set([...selectedRegionIds].filter((region) => validRegions.has(region)));
+  if (selectedRegionIds.size === validRegions.size && [...validRegions].every((region) => selectedRegionIds.has(region))) {
+    selectedRegionIds = null;
+  }
+  saveRegionFilter();
+}
 
-  const postureBadge = byId('postureBadge');
-  postureBadge.textContent = data.securityPosture.status || 'ok';
-  postureBadge.className = badgeClass(data.securityPosture.status || 'ok');
+function regionFilterSummary(regions) {
+  const total = regions.size || 0;
+  if (selectedRegionIds === null) return `${defaultSelectedRegionCount(regions)}/${total} selected regions`;
+  return `${selectedRegionIds.size}/${total} selected regions`;
+}
 
-  renderRegionStrip(homeRegion, regions, data.activeRegions);
-  renderTopology(data);
-  renderGateways(data.gateways, compartmentMap);
-  renderRouteTables(data.routeTables, compartmentMap);
-  renderRouteIssues(data.routeIssues);
-  renderSecurityLists(data.securityLists, compartmentMap);
-  renderNetworkSecurityGroups(data.networkSecurityGroups, compartmentMap);
-  renderFindings(data.securityPosture.findings || []);
-  renderNetworkTable(data.vcns, data.subnets, compartmentMap);
-  text('lastUpdated', `Last refresh: ${new Date().toLocaleString()} / ${mode}`);
+function defaultSelectedRegionCount(regions) {
+  if (!regions.size) return 0;
+  return regions.has(currentHomeRegionId) ? 1 : 0;
+}
+
+function filterDashboardDataByRegions(data) {
+  if (selectedRegionIds === null) {
+    return {
+      ...data,
+      topology: data.topology || buildInventoryTopology(data),
+    };
+  }
+  const byRegion = (item) => selectedRegionIds.has(item.region);
+  const viewData = {
+    ...data,
+    vcns: data.vcns.filter(byRegion),
+    subnets: data.subnets.filter(byRegion),
+    gateways: data.gateways.filter(byRegion),
+    routeTables: data.routeTables.filter(byRegion),
+    routeIssues: filterRouteIssuesByRegion(data.routeIssues),
+    securityLists: data.securityLists.filter(byRegion),
+    networkSecurityGroups: data.networkSecurityGroups.filter(byRegion),
+    securityPosture: filterSecurityPostureByRegion(data.securityPosture),
+  };
+  return {
+    ...viewData,
+    topology: buildInventoryTopology(viewData),
+  };
+}
+
+function filterRouteIssuesByRegion(routeIssues) {
+  const issues = (routeIssues.issues || []).filter((item) => selectedRegionIds.has(item.region));
+  return {
+    ...routeIssues,
+    total_issues: issues.length,
+    issues,
+    status: routeIssueStatus(issues),
+  };
+}
+
+function filterSecurityPostureByRegion(securityPosture) {
+  const findings = (securityPosture.findings || []).filter((item) => selectedRegionIds.has(item.region));
+  const countSeverity = (severity) => findings.filter((finding) => finding.severity === severity).length;
+  return {
+    ...securityPosture,
+    findings,
+    total_findings: findings.length,
+    critical_findings: countSeverity('critical'),
+    high_findings: countSeverity('high'),
+    medium_findings: countSeverity('medium'),
+    low_findings: countSeverity('low'),
+    risk_score: Math.min(100, sum(findings, (finding) => finding.risk_score || 0)),
+    status: securityPostureStatus(findings),
+  };
+}
+
+function routeIssueStatus(issues) {
+  if (issues.some((issue) => issue.severity === 'critical' || issue.severity === 'high')) return 'degraded';
+  if (issues.some((issue) => issue.severity === 'medium' || issue.severity === 'low')) return 'warn';
+  return 'ok';
+}
+
+function securityPostureStatus(findings) {
+  if (findings.some((finding) => finding.severity === 'critical' || finding.severity === 'high')) return 'degraded';
+  if (findings.some((finding) => finding.severity === 'medium' || finding.severity === 'low')) return 'warn';
+  return 'ok';
+}
+
+function renderInventoryNotice(collection) {
+  const notice = byId('inventoryNotice');
+  notice.hidden = true;
+  notice.textContent = '';
+  renderCollectionStatusPanel(collection);
+}
+
+function renderCollectionStatusPanel(collection) {
+  const panel = byId('collectionStatusPanel');
+  const regions = collection?.regions || [];
+  const status = collection?.status || '';
+
+  if (!regions.length && status !== 'collecting') {
+    panel.hidden = true;
+    panel.innerHTML = '';
+    return;
+  }
+
+  const collectingCount = regions.filter((r) => r.status === 'collecting').length;
+  const failedCount = regions.filter((r) => r.status === 'failed').length;
+  const warnCount = regions.filter((r) => r.status === 'ready_with_warnings').length;
+  const headerStatus = collectingCount
+    ? `${collectingCount} collecting…`
+    : failedCount
+    ? `${failedCount} failed`
+    : warnCount
+    ? `${warnCount} with warnings`
+    : 'Ready';
+
+  panel.hidden = false;
+  panel.innerHTML = `
+    <div class="cs-panel">
+      <div class="cs-header">
+        <span>Collection status</span>
+        <span class="cs-header-right">${escapeHtml(headerStatus)}</span>
+      </div>
+      <div class="cs-rows">
+        ${regions.map((r) => renderRegionStatusRow(r)).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function renderRegionStatusRow(r) {
+  const status = r.status || 'collecting';
+  const rowClass = status === 'collecting' ? 'cs-collecting'
+    : status === 'failed' ? 'cs-failed'
+    : status === 'no_resources' ? 'cs-no-resources'
+    : '';
+
+  const indicator = status === 'collecting'
+    ? '<span class="cs-spinner" aria-label="Collecting"></span>'
+    : status === 'ready'
+    ? '<span class="cs-dot cs-dot-ready" aria-label="Ready"></span>'
+    : status === 'ready_with_warnings'
+    ? '<span class="cs-dot cs-dot-warn" aria-label="Warning"></span>'
+    : status === 'failed'
+    ? '<span class="cs-dot cs-dot-failed" aria-label="Failed"></span>'
+    : '<span class="cs-dot cs-dot-muted" aria-label="No resources"></span>';
+
+  const badgeClass = status === 'collecting' ? 'cs-badge-collecting'
+    : status === 'ready' ? 'cs-badge-ready'
+    : status === 'ready_with_warnings' ? 'cs-badge-warn'
+    : status === 'failed' ? 'cs-badge-failed'
+    : 'cs-badge-no-res';
+
+  const badgeLabel = status === 'collecting' ? 'Collecting'
+    : status === 'ready' ? 'Ready'
+    : status === 'ready_with_warnings' ? 'Warnings'
+    : status === 'failed' ? 'Failed'
+    : 'No resources';
+
+  const duration = r.duration_seconds != null ? `${r.duration_seconds}s` : '';
+  const lastUpdated = r.last_updated ? relativeTime(r.last_updated) : '';
+  const metaParts = [duration, lastUpdated].filter(Boolean);
+  const meta = metaParts.length ? metaParts.join(' · ') : '';
+
+  const counts = r.resource_counts || {};
+  const totalResources = Object.values(counts).reduce((sum, n) => sum + (n || 0), 0);
+  const countsText = status !== 'collecting' && totalResources > 0
+    ? `${totalResources} resources`
+    : '';
+
+  const errorLine = r.error
+    ? `<div class="cs-error" title="${escapeHtml(r.error)}">${escapeHtml(r.error.slice(0, 120))}</div>`
+    : '';
+
+  return `
+    <div class="cs-row ${rowClass}">
+      ${indicator}
+      <span class="cs-region-name">${escapeHtml(r.id || '')}</span>
+      <span class="cs-status-badge ${badgeClass}">${escapeHtml(badgeLabel)}</span>
+      <span class="cs-counts">${escapeHtml(countsText)}</span>
+      <span class="cs-meta">${escapeHtml(meta)}</span>
+      ${errorLine}
+    </div>
+  `;
+}
+
+function relativeTime(isoString) {
+  try {
+    const ms = Date.now() - new Date(isoString).getTime();
+    if (ms < 0) return 'just now';
+    const sec = Math.floor(ms / 1000);
+    if (sec < 5) return 'just now';
+    if (sec < 60) return `${sec}s ago`;
+    const min = Math.floor(sec / 60);
+    if (min < 60) return `${min}m ago`;
+    const hr = Math.floor(min / 60);
+    return `${hr}h ago`;
+  } catch (_) {
+    return '';
+  }
+}
+
+let _collectionPollDelay = 3000;
+
+function scheduleCollectionPoll(collection) {
+  if (collectionPollTimer) {
+    window.clearTimeout(collectionPollTimer);
+    collectionPollTimer = 0;
+  }
+  if (collection?.status !== 'collecting' || useDemoData) {
+    _collectionPollDelay = 3000;
+    return;
+  }
+  collectionPollTimer = window.setTimeout(() => {
+    collectionPollTimer = 0;
+    _collectionPollDelay = Math.min(_collectionPollDelay * 1.5, 15000);
+    refreshDashboard();
+  }, _collectionPollDelay);
 }
 
 function buildCompartmentMap(data) {
@@ -1055,28 +2136,61 @@ function homeRegionId(activeRegions, regions) {
 }
 
 function renderRegionStrip(homeRegion, regions, activeRegions) {
+  currentHomeRegionId = homeRegion;
+  currentRegionIds = [...regions];
+  currentActiveRegionDetails = activeRegions;
   const regionDetails = activeRegions.reduce((acc, region) => {
     acc[region.id] = region;
     return acc;
   }, {});
-  const extras = [...regions].filter((region) => region !== homeRegion).sort();
+  const allRegions = [...regions].sort((left, right) => {
+    if (left === homeRegion) return -1;
+    if (right === homeRegion) return 1;
+    return left.localeCompare(right);
+  });
   const button = byId('regionMenuBtn');
   const menu = byId('regionMenu');
   const list = byId('regionMenuList');
+  const search = byId('regionSearch');
+  const wasOpen = menu.classList.contains('open');
+  const query = search?.value.trim().toLowerCase() || '';
+  const visibleRegions = query
+    ? allRegions.filter((region) => {
+      const detail = regionDetails[region] || {};
+      return [region, detail.geo, detail.name, detail.realm_key]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(query));
+    })
+    : allRegions;
   text('homeRegionName', homeRegion);
-  button.textContent = extras.length ? `Regions +${extras.length}` : 'Regions';
-  button.setAttribute('aria-expanded', 'false');
-  menu.classList.remove('open');
-  if (!extras.length) {
-    list.innerHTML = '<div class="empty">No additional regions returned by the API.</div>';
+  text('regionMenuTitle', regionFilterSummary(new Set(allRegions)));
+  button.textContent = `Regions ${selectedRegionIds === null ? defaultSelectedRegionCount(new Set(allRegions)) : selectedRegionIds.size}/${allRegions.length}`;
+  button.setAttribute('aria-expanded', String(wasOpen));
+  menu.classList.toggle('open', wasOpen);
+  if (!allRegions.length) {
+    list.innerHTML = '<div class="empty">No subscribed regions returned by the API.</div>';
     return;
   }
-  list.innerHTML = extras.map((region) => `
-    <div class="region-menu-item">
-      <strong>${escapeHtml(region)}</strong>
-      <span class="region-menu-geo">${escapeHtml(regionDetails[region]?.geo || regionGeo(region))}</span>
-    </div>
+  if (!visibleRegions.length) {
+    list.innerHTML = '<div class="empty">No regions match this search.</div>';
+    return;
+  }
+  list.innerHTML = visibleRegions.map((region) => `
+    <label class="region-menu-item region-filter-option">
+      <input type="checkbox" data-region-filter="${escapeHtml(region)}" ${isRegionSelected(region) ? 'checked' : ''}>
+      <div class="region-menu-main">
+        <strong>${escapeHtml(region)}</strong>
+        <div class="region-menu-geo">${escapeHtml(regionDetails[region]?.geo || regionGeo(region))}</div>
+      </div>
+      <div class="region-menu-tags">
+        ${region === homeRegion ? '<span class="badge warn">home</span>' : ''}
+      </div>
+    </label>
   `).join('');
+}
+
+function isRegionSelected(region) {
+  return selectedRegionIds === null ? region === currentHomeRegionId : selectedRegionIds.has(region);
 }
 
 function regionGeo(region) {
@@ -1090,26 +2204,55 @@ function regionGeo(region) {
 }
 
 function renderTopology(data) {
-  const topology = data.topology || buildInventoryTopology(data);
+  renderTopologyControls(data);
+  const topologyData = topologyScopedData(data);
+  const rawTopology = topologyMode === 'overview'
+    ? buildTopologyOverview(topologyData)
+    : buildInventoryTopology(topologyData);
+  const topology = topologyMode === 'overview' ? rawTopology : filterTopologyLayers(rawTopology);
   const nodes = topology.nodes || [];
   topologyEdges = topology.edges || [];
   topologyNodeDomIds = {};
-  text('topologyBadge', `${nodes.length} nodes / ${topologyEdges.length} links`);
+  text('topologyBadge', `${topologyModeLabel(topologyMode)} / ${nodes.length} nodes / ${topologyEdges.length} links`);
 
+  const viewport = byId('topology');
   const container = byId('topologyNodes');
+  const canvas = byId('topologyCanvas');
+  const previousScroll = { left: viewport.scrollLeft, top: viewport.scrollTop };
+  const nextSignature = topologySignature(nodes, topologyEdges);
+  const shouldCenter = nextSignature !== topologyViewSignature;
+  topologyViewSignature = nextSignature;
+
+  const hintEl = byId('topologyHint');
   if (!nodes.length) {
-    container.innerHTML = '<div class="empty">No topology graph returned yet. Enable live OCI mode or use demo data.</div>';
+    setTopologyCanvasSize({ width: 0, height: 0 });
+    container.innerHTML = `<div class="empty">${escapeHtml(emptyTopologyMessage(data))}</div>`;
     byId('topologyLines').innerHTML = '';
+    if (hintEl) hintEl.hidden = true;
     return;
   }
 
+  // Hint: VCN focus shows only the VCN anchor (no children) despite enabled layers
+  if (hintEl) {
+    const onlyVcns = nodes.every((n) => n.resource_type === 'vcn');
+    const hasEnabledLayers = Object.values(topologyLayers).some(Boolean);
+    if (topologyMode === 'vcn' && onlyVcns && hasEnabledLayers) {
+      const vcnName = nodes[0]?.name || topologyVcnScope || 'this VCN';
+      hintEl.textContent = `No resources found for "${vcnName}" in the enabled layers. The VCN may have no gateways, subnets, or routing resources in the selected scope.`;
+      hintEl.hidden = false;
+    } else {
+      hintEl.hidden = true;
+    }
+  }
+
+  setTopologyCanvasSize(topologyCanvasSize(nodes));
   const positions = topologyLayout(nodes);
   container.innerHTML = nodes.map((node, index) => {
     const domId = `topologyNode${index}`;
     topologyNodeDomIds[node.id] = domId;
     const position = topologyNodePositions[node.id] || positions[node.id] || { x: 50, y: 50 };
     return `
-      <div class="topo-node" id="${domId}" data-node-id="${escapeHtml(node.id)}" role="button" tabindex="0" aria-label="${escapeHtml(`${node.name || node.id} topology node`)}" style="left:${position.x}%;top:${position.y}%;" title="${escapeHtml(node.id)}">
+      <div class="topo-node" id="${domId}" data-node-id="${escapeHtml(node.id)}" data-console-url="${escapeHtml(node.console_url || '')}" role="button" tabindex="0" aria-label="${escapeHtml(`${node.name || node.id} topology node`)}" style="left:${position.x}%;top:${position.y}%;" title="${escapeHtml(node.id)}">
         <div class="topo-icon">${escapeHtml(topologyIcon(node.resource_type))}</div>
         <div class="topo-label">${escapeHtml(node.name || node.id)}</div>
         <div class="topo-meta">${escapeHtml(topologyMeta(node))}</div>
@@ -1118,7 +2261,303 @@ function renderTopology(data) {
   }).join('');
 
   attachTopologyInteractions(container);
+  if (shouldCenter) {
+    centerTopologyViewport(canvas);
+  } else {
+    viewport.scrollLeft = previousScroll.left;
+    viewport.scrollTop = previousScroll.top;
+  }
   scheduleDrawTopologyLines();
+}
+
+function emptyTopologyMessage(data) {
+  const selected = selectedRegionIds === null ? currentRegionIds.length : selectedRegionIds.size;
+  const issue = data.collection?.issues?.[0];
+  if (issue) return `Collection issue: ${issue.message}`;
+  if (selected === 0) return 'Select at least one subscribed region to collect topology data.';
+  if (topologyMode === 'vcn' && !topologyVcnScope) return 'Select a VCN from the dropdown to focus the topology view.';
+  if (topologyMode !== 'overview' && !Object.values(topologyLayers).some(Boolean)) {
+    return 'No layers enabled. Check Subnets, Gateways, Routes, or Security to show resources.';
+  }
+  if (currentDashboardMode === 'api') {
+    const scope = selected === 1 ? 'the selected region' : `${selected} selected regions`;
+    return `No topology resources found in ${scope}. Confirm the region scope and compartment access.`;
+  }
+  return 'No topology data yet. Enable live OCI mode or switch to demo data.';
+}
+
+function renderTopologyControls(data) {
+  document.querySelectorAll('[data-topology-mode]').forEach((button) => {
+    button.classList.toggle('active', button.getAttribute('data-topology-mode') === topologyMode);
+  });
+
+  const regions = topologyAvailableRegions(data);
+  if (topologyRegionScope && !regions.includes(topologyRegionScope)) topologyRegionScope = '';
+  const regionSelect = byId('topologyRegionScope');
+  regionSelect.innerHTML = [
+    '<option value="">All selected regions</option>',
+    ...regions.map((region) => `<option value="${escapeHtml(region)}">${escapeHtml(region)}</option>`),
+  ].join('');
+  regionSelect.value = topologyRegionScope;
+
+  const vcns = topologyAvailableVcns(data);
+  if (topologyVcnScope && !vcns.some((item) => item.id === topologyVcnScope)) topologyVcnScope = '';
+  if (topologyMode === 'vcn' && !topologyVcnScope && vcns.length) topologyVcnScope = vcns[0].id;
+  const vcnSelect = byId('topologyVcnScope');
+  vcnSelect.innerHTML = [
+    '<option value="">All VCNs</option>',
+    ...vcns.map((vcn) => `<option value="${escapeHtml(vcn.id)}">${escapeHtml(vcn.name || vcn.id)} / ${escapeHtml(vcn.region)}</option>`),
+  ].join('');
+  vcnSelect.value = topologyVcnScope;
+  vcnSelect.disabled = topologyMode !== 'vcn';
+
+  const layers = byId('topologyLayerGroup');
+  layers.classList.toggle('disabled', topologyMode === 'overview');
+  layers.querySelectorAll('input[data-topology-layer]').forEach((input) => {
+    const layer = input.getAttribute('data-topology-layer');
+    input.checked = Boolean(topologyLayers[layer]);
+    input.disabled = topologyMode === 'overview';
+  });
+}
+
+function topologyAvailableRegions(data) {
+  return [...new Set([
+    ...data.vcns.map((item) => item.region),
+    ...data.subnets.map((item) => item.region),
+    ...data.gateways.map((item) => item.region),
+    ...data.routeTables.map((item) => item.region),
+    ...data.securityLists.map((item) => item.region),
+    ...data.networkSecurityGroups.map((item) => item.region),
+  ].filter(Boolean))].sort();
+}
+
+function topologyAvailableVcns(data) {
+  return data.vcns
+    .filter((vcn) => !topologyRegionScope || vcn.region === topologyRegionScope)
+    .slice()
+    .sort((left, right) => `${left.region}/${left.name}`.localeCompare(`${right.region}/${right.name}`));
+}
+
+function topologyScopedData(data) {
+  let scoped = data;
+  if (topologyRegionScope) {
+    scoped = filterTopologyData(scoped, (item) => item.region === topologyRegionScope);
+  }
+  if (topologyMode !== 'vcn') return scoped;
+
+  const vcns = topologyAvailableVcns(scoped);
+  const vcnId = topologyVcnScope || vcns[0]?.id || '';
+  if (!vcnId) return { ...scoped, vcns: [], subnets: [], gateways: [], routeTables: [], securityLists: [], networkSecurityGroups: [] };
+  const vcn = scoped.vcns.find((item) => item.id === vcnId);
+  const sameVpc = (item) => item.vcn_id === vcnId;
+  return {
+    ...scoped,
+    vcns: scoped.vcns.filter((item) => item.id === vcnId),
+    subnets: scoped.subnets.filter(sameVpc),
+    gateways: scoped.gateways
+      .map((item) => {
+        if (sameVpc(item)) return item;
+        // DRGs are regional (vcn_id is null); synthesize vcn_id to selected VCN so the edge is drawn
+        if (vcn && item.gateway_type === 'dynamic_routing_gateway' && item.region === vcn.region) {
+          return { ...item, vcn_id: vcnId };
+        }
+        return null;
+      })
+      .filter(Boolean),
+    routeTables: scoped.routeTables.filter(sameVpc),
+    securityLists: scoped.securityLists.filter(sameVpc),
+    networkSecurityGroups: scoped.networkSecurityGroups.filter(sameVpc),
+  };
+}
+
+function filterTopologyData(data, predicate) {
+  return {
+    ...data,
+    vcns: data.vcns.filter(predicate),
+    subnets: data.subnets.filter(predicate),
+    gateways: data.gateways.filter(predicate),
+    routeTables: data.routeTables.filter(predicate),
+    securityLists: data.securityLists.filter(predicate),
+    networkSecurityGroups: data.networkSecurityGroups.filter(predicate),
+  };
+}
+
+function filterTopologyLayers(topology) {
+  const nodes = (topology.nodes || []).filter((node) => topologyLayerEnabled(node.resource_type));
+  const nodeIds = new Set(nodes.map((node) => node.id));
+  return {
+    nodes,
+    edges: (topology.edges || []).filter((edge) => nodeIds.has(edge.source_id) && nodeIds.has(edge.target_id)),
+  };
+}
+
+function topologyLayerEnabled(resourceType) {
+  if (resourceType === 'region' || resourceType === 'vcn') return true;
+  if (resourceType === 'subnet') return Boolean(topologyLayers.subnets);
+  if (resourceType === 'route_table') return Boolean(topologyLayers.routes);
+  if (resourceType === 'security_list' || resourceType === 'network_security_group') return Boolean(topologyLayers.security);
+  if (['internet_gateway', 'nat_gateway', 'service_gateway', 'dynamic_routing_gateway'].includes(resourceType)) {
+    return Boolean(topologyLayers.gateways);
+  }
+  return true;
+}
+
+function topologyModeLabel(mode) {
+  return {
+    overview: 'overview',
+    full: `layers ${topologyLayerSummary()}`,
+    vcn: 'vcn focus',
+  }[mode] || mode;
+}
+
+function topologyLayerSummary() {
+  const enabled = Object.entries(topologyLayers)
+    .filter(([, value]) => value)
+    .map(([key]) => key);
+  return enabled.length ? `(${enabled.join(', ')})` : '(VCN only)';
+}
+
+function topologySignature(nodes, edges) {
+  const nodeIds = nodes.map((node) => node.id).sort().join('|');
+  const edgeIds = edges.map((edge) => edge.id || `${edge.source_id}:${edge.target_id}:${edge.relationship}`).sort().join('|');
+  return `${nodeIds}::${edgeIds}`;
+}
+
+function topologyCanvasSize(nodes) {
+  const groups = nodes.reduce((acc, node) => {
+    const key = topologyColumnKey(node.resource_type);
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+  const maxColumnCount = Math.max(1, ...Object.values(groups));
+  const nodeCount = nodes.length;
+  return {
+    width: clamp(860 + Math.ceil(nodeCount / 18) * 220, 980, 12000),
+    height: clamp(220 + maxColumnCount * 118, 560, 16000),
+  };
+}
+
+function setTopologyCanvasSize(size) {
+  const canvas = byId('topologyCanvas');
+  topologyCanvasBaseSize = {
+    width: size.width || byId('topology').clientWidth,
+    height: size.height || byId('topology').clientHeight,
+  };
+  applyTopologyZoom();
+}
+
+function applyTopologyZoom() {
+  const canvas = byId('topologyCanvas');
+  canvas.style.width = `${Math.round(topologyCanvasBaseSize.width * topologyZoom)}px`;
+  canvas.style.height = `${Math.round(topologyCanvasBaseSize.height * topologyZoom)}px`;
+  scheduleDrawTopologyLines();
+}
+
+function centerTopologyViewport(canvas) {
+  const viewport = byId('topology');
+  window.requestAnimationFrame(() => {
+    viewport.scrollLeft = Math.max(0, (canvas.scrollWidth - viewport.clientWidth) / 2);
+    viewport.scrollTop = Math.max(0, (canvas.scrollHeight - viewport.clientHeight) / 2);
+    scheduleDrawTopologyLines();
+  });
+}
+
+function zoomTopologyAt(factor, clientX, clientY) {
+  const viewport = byId('topology');
+  const rect = viewport.getBoundingClientRect();
+  const oldZoom = topologyZoom;
+  const nextZoom = clamp(oldZoom * factor, 0.35, 3);
+  if (Math.abs(nextZoom - oldZoom) < 0.001) return;
+
+  const focusX = clientX - rect.left;
+  const focusY = clientY - rect.top;
+  const baseX = (viewport.scrollLeft + focusX) / oldZoom;
+  const baseY = (viewport.scrollTop + focusY) / oldZoom;
+
+  topologyZoom = nextZoom;
+  applyTopologyZoom();
+  viewport.scrollLeft = baseX * nextZoom - focusX;
+  viewport.scrollTop = baseY * nextZoom - focusY;
+  saveTopologyZoom();
+}
+
+function handleTopologyWheel(event) {
+  if (!event.ctrlKey && !event.metaKey) return;
+  event.preventDefault();
+  zoomTopologyAt(Math.exp(-event.deltaY * 0.002), event.clientX, event.clientY);
+}
+
+function attachTopologyViewportInteractions() {
+  const viewport = byId('topology');
+  viewport.addEventListener('wheel', handleTopologyWheel, { passive: false });
+  viewport.addEventListener('scroll', scheduleDrawTopologyLines, { passive: true });
+  viewport.addEventListener('pointerdown', handleTopologyPointerDown);
+  viewport.addEventListener('pointermove', handleTopologyPointerMove);
+  viewport.addEventListener('pointerup', handleTopologyPointerEnd);
+  viewport.addEventListener('pointercancel', handleTopologyPointerEnd);
+  viewport.addEventListener('pointerleave', handleTopologyPointerEnd);
+}
+
+function handleTopologyPointerDown(event) {
+  if (event.pointerType !== 'touch' || event.target.closest?.('.topo-node')) return;
+  byId('topology').setPointerCapture?.(event.pointerId);
+  topologyTouchPoints.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  if (topologyTouchPoints.size === 2) {
+    topologyPinchDistance = topologyTouchDistance();
+    topologyPanPoint = null;
+    event.preventDefault();
+  } else {
+    topologyPanPoint = {
+      id: event.pointerId,
+      x: event.clientX,
+      y: event.clientY,
+      scrollLeft: byId('topology').scrollLeft,
+      scrollTop: byId('topology').scrollTop,
+    };
+  }
+}
+
+function handleTopologyPointerMove(event) {
+  if (!topologyTouchPoints.has(event.pointerId)) return;
+  topologyTouchPoints.set(event.pointerId, { x: event.clientX, y: event.clientY });
+  if (topologyTouchPoints.size === 1 && topologyPanPoint?.id === event.pointerId) {
+    event.preventDefault();
+    const viewport = byId('topology');
+    viewport.scrollLeft = topologyPanPoint.scrollLeft - (event.clientX - topologyPanPoint.x);
+    viewport.scrollTop = topologyPanPoint.scrollTop - (event.clientY - topologyPanPoint.y);
+    return;
+  }
+  if (topologyTouchPoints.size < 2) return;
+
+  event.preventDefault();
+  const nextDistance = topologyTouchDistance();
+  if (!topologyPinchDistance || !nextDistance) {
+    topologyPinchDistance = nextDistance;
+    return;
+  }
+  const center = topologyTouchCenter();
+  zoomTopologyAt(nextDistance / topologyPinchDistance, center.x, center.y);
+  topologyPinchDistance = nextDistance;
+}
+
+function handleTopologyPointerEnd(event) {
+  topologyTouchPoints.delete(event.pointerId);
+  if (topologyPanPoint?.id === event.pointerId) topologyPanPoint = null;
+  if (topologyTouchPoints.size < 2) topologyPinchDistance = 0;
+}
+
+function topologyTouchDistance() {
+  const points = [...topologyTouchPoints.values()];
+  if (points.length < 2) return 0;
+  return Math.hypot(points[0].x - points[1].x, points[0].y - points[1].y);
+}
+
+function topologyTouchCenter() {
+  const points = [...topologyTouchPoints.values()];
+  return {
+    x: (points[0].x + points[1].x) / 2,
+    y: (points[0].y + points[1].y) / 2,
+  };
 }
 
 function buildInventoryTopology(data) {
@@ -1141,6 +2580,7 @@ function buildInventoryTopology(data) {
       region: item.region,
       compartment_id: item.compartment_id,
       lifecycle_state: item.lifecycle_state,
+      console_url: ociConsoleUrl('vcn', item),
       metadata: { cidr_blocks: item.cidr_blocks?.join(', ') || '', dns_label: item.dns_label || '' },
     });
   });
@@ -1153,6 +2593,7 @@ function buildInventoryTopology(data) {
       compartment_id: item.compartment_id,
       vcn_id: item.vcn_id,
       lifecycle_state: item.lifecycle_state,
+      console_url: ociConsoleUrl('subnet', item),
       metadata: { cidr_block: item.cidr_block, subnet_access: subnetAccessMode(item).toLowerCase() },
     });
     addEdge(item.vcn_id, item.id, 'contains_subnet');
@@ -1168,9 +2609,11 @@ function buildInventoryTopology(data) {
       compartment_id: item.compartment_id,
       vcn_id: item.vcn_id,
       lifecycle_state: item.lifecycle_state,
+      console_url: ociConsoleUrl(item.gateway_type, item),
       metadata: { enabled: String(item.is_enabled ?? '') },
     });
-    addEdge(item.vcn_id, item.id, 'has_gateway');
+    // DRGs have no vcn_id (regional resource); connect to region anchor if present, else leave floating
+    addEdge(item.vcn_id || `region:${item.region}`, item.id, item.vcn_id ? 'has_gateway' : 'regional_gateway');
   });
   data.routeTables.forEach((item) => {
     nodes.push({
@@ -1181,6 +2624,7 @@ function buildInventoryTopology(data) {
       compartment_id: item.compartment_id,
       vcn_id: item.vcn_id,
       lifecycle_state: item.lifecycle_state,
+      console_url: ociConsoleUrl('route_table', item),
       metadata: { route_rules: String(item.route_rules?.length || 0) },
     });
     addEdge(item.vcn_id, item.id, 'has_route_table');
@@ -1201,6 +2645,7 @@ function buildInventoryTopology(data) {
       compartment_id: item.compartment_id,
       vcn_id: item.vcn_id,
       lifecycle_state: item.lifecycle_state,
+      console_url: ociConsoleUrl('security_list', item),
       metadata: {
         ingress_rules: String(item.ingress_rules?.length || 0),
         egress_rules: String(item.egress_rules?.length || 0),
@@ -1217,6 +2662,7 @@ function buildInventoryTopology(data) {
       compartment_id: item.compartment_id,
       vcn_id: item.vcn_id,
       lifecycle_state: item.lifecycle_state,
+      console_url: ociConsoleUrl('network_security_group', item),
       metadata: {
         ingress_rules: String(item.ingress_rules?.length || 0),
         egress_rules: String(item.egress_rules?.length || 0),
@@ -1231,6 +2677,12 @@ function buildInventoryTopology(data) {
 
 function topologyLayout(nodes) {
   const columns = {
+    region: {
+      x: 12,
+      y1: 18,
+      y2: 84,
+      types: new Set(['region']),
+    },
     left: {
       x: 18,
       y1: 20,
@@ -1250,16 +2702,15 @@ function topologyLayout(nodes) {
       types: new Set(['internet_gateway', 'nat_gateway', 'service_gateway', 'dynamic_routing_gateway']),
     },
   };
-  const columnFor = (node) => Object.values(columns).find((column) => column.types.has(node.resource_type)) || columns.center;
   const groups = nodes.reduce((acc, node) => {
-    const key = Object.entries(columns).find(([, column]) => column.types.has(node.resource_type))?.[0] || 'center';
+    const key = topologyColumnKey(node.resource_type);
     acc[key] = acc[key] || [];
     acc[key].push(node);
     return acc;
   }, {});
   const positions = {};
   Object.entries(groups).forEach(([key, group]) => {
-    const band = columns[key] || columnFor(group[0]);
+    const band = columns[key] || columns.center;
     group.forEach((node, index) => {
       const ratio = group.length === 1 ? 0.5 : index / (group.length - 1);
       positions[node.id] = { x: band.x, y: band.y1 + (band.y2 - band.y1) * ratio };
@@ -1268,8 +2719,16 @@ function topologyLayout(nodes) {
   return positions;
 }
 
+function topologyColumnKey(resourceType) {
+  if (resourceType === 'region') return 'region';
+  if (['subnet', 'security_list', 'network_security_group'].includes(resourceType)) return 'left';
+  if (['internet_gateway', 'nat_gateway', 'service_gateway', 'dynamic_routing_gateway'].includes(resourceType)) return 'right';
+  return 'center';
+}
+
 function topologyIcon(type) {
   return {
+    region: 'REG',
     vcn: 'VCN',
     subnet: 'SUB',
     route_table: 'RT',
@@ -1284,6 +2743,7 @@ function topologyIcon(type) {
 
 function topologyMeta(node) {
   const metadata = node.metadata || {};
+  if (metadata.summary) return metadata.summary;
   if (metadata.cidr_blocks) return metadata.cidr_blocks;
   if (metadata.cidr_block) return metadata.cidr_block;
   if (metadata.route_rules) return `${metadata.route_rules} rules`;
@@ -1295,7 +2755,13 @@ function attachTopologyInteractions(container) {
   container.querySelectorAll('.topo-node').forEach((node) => {
     node.addEventListener('pointerdown', startTopologyNodeDrag);
     node.addEventListener('keydown', handleTopologyNodeKeydown);
+    node.addEventListener('dblclick', openTopologyNodeConsole);
   });
+}
+
+function openTopologyNodeConsole(event) {
+  const url = event.currentTarget.dataset.consoleUrl;
+  if (url) window.open(url, '_blank', 'noopener,noreferrer');
 }
 
 function startTopologyNodeDrag(event) {
@@ -1347,7 +2813,7 @@ function handleTopologyNodeKeydown(event) {
 }
 
 function updateTopologyNodePosition(node, clientX, clientY) {
-  const rect = byId('topology').getBoundingClientRect();
+  const rect = byId('topologyCanvas').getBoundingClientRect();
   const x = ((clientX - rect.left) / rect.width) * 100;
   const y = ((clientY - rect.top) / rect.height) * 100;
   setTopologyNodePosition(node, x, y);
@@ -1355,8 +2821,8 @@ function updateTopologyNodePosition(node, clientX, clientY) {
 
 function setTopologyNodePosition(node, x, y) {
   const position = {
-    x: clamp(x, 7, 93),
-    y: clamp(y, 9, 91),
+    x: clamp(x, 2, 98),
+    y: clamp(y, 2, 98),
   };
   node.style.left = `${position.x}%`;
   node.style.top = `${position.y}%`;
@@ -1378,7 +2844,7 @@ function scheduleDrawTopologyLines() {
 
 function drawTopologyLines() {
   const svg = byId('topologyLines');
-  const area = byId('topology');
+  const area = byId('topologyCanvas');
   const rect = area.getBoundingClientRect();
   svg.innerHTML = '';
   topologyEdges.forEach((edge) => {
@@ -1402,7 +2868,9 @@ function drawTopologyLines() {
 
 function topologyEdgeColor(relationship) {
   return {
+    contains_vcn: '#185fa5',
     contains_subnet: '#185fa5',
+    regional_gateway: '#2f6b2f',
     has_gateway: '#2f6b2f',
     has_route_table: '#8a5a00',
     routes_to: '#534ab7',
@@ -1427,9 +2895,9 @@ function renderGateways(gateways, compartmentMap) {
   text('gatewayCountBadge', gateways.length);
   renderResourceList('gatewayList', gateways.slice(0, 8), (item) => ({
     title: `${shortGatewayType(item.gateway_type)} / ${item.name}`,
-    meta: `${compartmentName(compartmentMap, item.compartment_id)} / ${item.region} / ${item.lifecycle_state || 'unknown'} / ${item.vcn_id || 'regional'}`,
-    badge: item.is_enabled === false ? 'blocked' : 'available',
-    badgeClass: item.is_enabled === false ? 'badge warn' : badgeClass(item.lifecycle_state === 'AVAILABLE'),
+    consoleUrl: ociConsoleUrl(item.gateway_type, item),
+    meta: `${compartmentName(compartmentMap, item.compartment_id)} / ${item.region} / ${item.vcn_id || 'regional'}`,
+    badge: resourceAttentionBadge(item.lifecycle_state, item.is_enabled),
   }));
 }
 
@@ -1437,9 +2905,9 @@ function renderRouteTables(routeTables, compartmentMap) {
   text('routeCountBadge', routeTables.length);
   renderResourceList('routeList', routeTables.slice(0, 8), (item) => ({
     title: item.name,
+    consoleUrl: ociConsoleUrl('route_table', item),
     meta: `${compartmentName(compartmentMap, item.compartment_id)} / ${item.region} / ${item.route_rules?.length || 0} route rules / ${item.vcn_id}`,
-    badge: item.lifecycle_state || 'unknown',
-    badgeClass: badgeClass(item.lifecycle_state === 'AVAILABLE'),
+    badge: resourceAttentionBadge(item.lifecycle_state),
   }));
 }
 
@@ -1457,7 +2925,7 @@ function renderRouteIssues(routeIssues) {
   list.innerHTML = issues.slice(0, 8).map((issue) => `
     <div class="resource-row">
       <div>
-        <div class="resource-name">${escapeHtml(issue.issue_type)} / ${escapeHtml(issue.route_table_name)}</div>
+        <div class="resource-name">${escapeHtml(issue.issue_type)} / ${resourceLink(issue.route_table_name, ociConsoleUrl('route_table', { id: issue.route_table_id, region: issue.region }))}</div>
         <div class="resource-meta">${escapeHtml(routeIssueMeta(issue))}</div>
       </div>
       <span class="${badgeClass(issue.severity)}">${escapeHtml(issue.severity)}</span>
@@ -1470,13 +2938,75 @@ function routeIssueMeta(issue) {
   return route ? `${issue.description} / ${route}` : issue.description;
 }
 
+function buildTopologyOverview(data) {
+  const nodes = [];
+  const edges = [];
+  const edgeKeys = new Set();
+  const addEdge = (sourceId, targetId, relationship, metadata = {}) => {
+    if (!sourceId || !targetId) return;
+    const key = `${sourceId}|${targetId}|${relationship}`;
+    if (edgeKeys.has(key)) return;
+    edgeKeys.add(key);
+    edges.push({ id: key, source_id: sourceId, target_id: targetId, relationship, metadata });
+  };
+
+  const regions = topologyAvailableRegions(data);
+  regions.forEach((region) => {
+    const regionVcns = data.vcns.filter((item) => item.region === region);
+    const regionGateways = data.gateways.filter((item) => item.region === region);
+    nodes.push({
+      id: `region:${region}`,
+      name: region,
+      resource_type: 'region',
+      region,
+      metadata: {
+        summary: `${regionVcns.length} VCN / ${regionGateways.length} gateways`,
+      },
+    });
+  });
+
+  data.vcns.forEach((item) => {
+    nodes.push({
+      id: item.id,
+      name: item.name,
+      resource_type: 'vcn',
+      region: item.region,
+      compartment_id: item.compartment_id,
+      lifecycle_state: item.lifecycle_state,
+      console_url: ociConsoleUrl('vcn', item),
+      metadata: { cidr_blocks: item.cidr_blocks?.join(', ') || '', dns_label: item.dns_label || '' },
+    });
+    addEdge(`region:${item.region}`, item.id, 'contains_vcn');
+  });
+
+  data.gateways
+    .filter((item) => ['internet_gateway', 'nat_gateway', 'service_gateway', 'dynamic_routing_gateway'].includes(item.gateway_type))
+    .forEach((item) => {
+      nodes.push({
+        id: item.id,
+        name: item.name,
+        resource_type: item.gateway_type,
+        region: item.region,
+        compartment_id: item.compartment_id,
+        vcn_id: item.vcn_id,
+        lifecycle_state: item.lifecycle_state,
+        console_url: ociConsoleUrl(item.gateway_type, item),
+        metadata: { enabled: String(item.is_enabled ?? '') },
+      });
+      addEdge(item.vcn_id || `region:${item.region}`, item.id, item.vcn_id ? 'has_gateway' : 'regional_gateway');
+    });
+
+  const nodeIds = new Set(nodes.map((node) => node.id));
+  return { nodes, edges: edges.filter((edge) => nodeIds.has(edge.source_id) && nodeIds.has(edge.target_id)) };
+}
+
 function renderSecurityLists(securityLists, compartmentMap) {
   text('securityListBadge', securityLists.length);
   renderResourceList('securityList', securityLists.slice(0, 8), (item) => ({
     title: item.name,
+    consoleUrl: ociConsoleUrl('security_list', item),
     meta: `${compartmentName(compartmentMap, item.compartment_id)} / ${item.region} / ${item.ingress_rules?.length || 0} ingress / ${item.egress_rules?.length || 0} egress`,
-    badge: item.lifecycle_state || 'unknown',
-    badgeClass: badgeClass(item.lifecycle_state === 'AVAILABLE'),
+    badge: resourceAttentionBadge(item.lifecycle_state),
   }));
 }
 
@@ -1484,9 +3014,9 @@ function renderNetworkSecurityGroups(networkSecurityGroups, compartmentMap) {
   text('nsgBadge', networkSecurityGroups.length);
   renderResourceList('nsgList', networkSecurityGroups.slice(0, 8), (item) => ({
     title: item.name,
+    consoleUrl: ociConsoleUrl('network_security_group', item),
     meta: `${compartmentName(compartmentMap, item.compartment_id)} / ${item.region} / ${item.ingress_rules?.length || 0} ingress / ${item.egress_rules?.length || 0} egress`,
-    badge: item.lifecycle_state || 'unknown',
-    badgeClass: badgeClass(item.lifecycle_state === 'AVAILABLE'),
+    badge: resourceAttentionBadge(item.lifecycle_state),
   }));
 }
 
@@ -1505,7 +3035,7 @@ async function validateAccess() {
   try {
     const preflight = await getJson(API_PATHS.preflight);
     renderAccessCheck(preflight);
-    label.textContent = accessLabel(preflight.status);
+    label.textContent = accessLabel(preflight);
     dot.className = `status-dot ${dotStatus(preflight.status)}`;
   } catch (error) {
     renderAccessCheck({
@@ -1533,16 +3063,28 @@ function renderAccessCheck(preflight) {
     list.innerHTML = '<div class="empty">No access validation result returned yet.</div>';
     return;
   }
+  const visibleChecks = checks.filter((check) => check.status !== 'pass');
+  const passedCount = checks.filter((check) => check.status === 'pass').length;
+  const hiddenCount = Math.max(0, visibleChecks.length - 8);
   const summary = `
     <div class="resource-row">
       <div>
         <div class="resource-name">Overall status</div>
         <div class="resource-meta">${escapeHtml(accessSummary(preflight))}</div>
       </div>
-      <span class="${badgeClass(preflight.status)}">${escapeHtml(preflight.status || 'unknown')}</span>
+      <span class="${badgeClass(preflight.status)}">${escapeHtml(accessBadgeText(preflight))}</span>
     </div>
   `;
-  list.innerHTML = summary + checks.map((check) => `
+  const compactSuccess = `
+    <div class="resource-row">
+      <div>
+        <div class="resource-name">Validation checks</div>
+        <div class="resource-meta">${escapeHtml(`${passedCount} checks passed. No OCI access issues found.`)}</div>
+      </div>
+      <span class="badge ok">pass</span>
+    </div>
+  `;
+  const checkRows = visibleChecks.slice(0, 8).map((check) => `
     <div class="resource-row">
       <div>
         <div class="resource-name">${escapeHtml(check.name)}</div>
@@ -1551,36 +3093,268 @@ function renderAccessCheck(preflight) {
       <span class="${badgeClass(check.status)}">${escapeHtml(check.status)}</span>
     </div>
   `).join('');
+  const overflowRow = hiddenCount ? `
+    <div class="resource-row">
+      <div>
+        <div class="resource-name">Additional checks</div>
+        <div class="resource-meta">${escapeHtml(`${hiddenCount} more non-passing checks hidden from this summary.`)}</div>
+      </div>
+      <span class="badge warn">${hiddenCount}</span>
+    </div>
+  ` : '';
+  list.innerHTML = summary + (visibleChecks.length ? checkRows + overflowRow : compactSuccess);
 }
 
 function accessSummary(preflight) {
   const regions = preflight.active_regions?.length || 0;
   const compartments = preflight.compartment_ids?.length || 0;
   const auth = preflight.auth_mode || 'unknown auth';
+  if (preflight.live_oci_enabled === false) {
+    return `${auth} configured / live OCI disabled / ${regions} regions / ${compartments} compartments`;
+  }
   return `${auth} / ${regions} regions / ${compartments} compartments`;
 }
 
-function accessLabel(status) {
+function accessLabel(preflight) {
+  const status = typeof preflight === 'string' ? preflight : preflight?.status;
   if (status === 'pass') return 'Access valid';
-  if (status === 'skipped') return 'Access skipped';
+  if (status === 'skipped') return preflight?.live_oci_enabled === false ? 'Live OCI disabled' : 'Access skipped';
   return 'Access issues';
+}
+
+function accessBadgeText(preflight) {
+  if (preflight?.status === 'skipped' && preflight?.live_oci_enabled === false) return 'disabled';
+  return preflight?.status || 'unknown';
 }
 
 function renderFindings(findings) {
   const list = byId('findingList');
+  currentSecurityFindings = findings;
   if (!findings.length) {
     list.innerHTML = '<div class="empty">No broad ingress exposure detected by the current backend checks.</div>';
     return;
   }
-  list.innerHTML = findings.slice(0, 8).map((finding) => `
-    <div class="finding-row">
-      <div>
-        <div class="finding-name">${escapeHtml(finding.rule_type)} / ${escapeHtml(finding.resource_name)}</div>
-        <div class="finding-meta">${escapeHtml(finding.description)}</div>
+  list.innerHTML = findings.slice(0, 8).map((finding) => {
+    const latestAction = latestActionForFinding(findingKey(finding));
+    const consoleUrl = ociConsoleUrl(findingResourceType(finding), { id: finding.resource_id, region: finding.region });
+    return `
+      <div class="finding-row">
+        <div>
+          <div class="finding-name">${escapeHtml(finding.rule_type)} / ${resourceLink(finding.resource_name, consoleUrl)}</div>
+          <div class="finding-meta">${escapeHtml(finding.description)}</div>
+          ${latestAction ? `<div class="finding-state">${escapeHtml(actionStateText(latestAction))}</div>` : ''}
+        </div>
+        <div class="finding-actions">
+          <span class="${badgeClass(finding.severity)}">${escapeHtml(finding.severity)}</span>
+          ${latestAction ? `<span class="${actionBadgeClass(latestAction.action_type)}">${escapeHtml(actionShortLabel(latestAction.action_type))}</span>` : ''}
+          <button class="button" type="button" data-finding-key="${escapeHtml(findingKey(finding))}">Take Action</button>
+        </div>
       </div>
-      <span class="${badgeClass(finding.severity)}">${escapeHtml(finding.severity)}</span>
+    `;
+  }).join('');
+}
+
+function findingResourceType(finding) {
+  return String(finding.rule_type || '').startsWith('nsg_') ? 'network_security_group' : 'security_list';
+}
+
+function renderSecurityActionHistory(actions) {
+  const list = byId('securityActionHistoryList');
+  const filteredActions = filteredSecurityActionHistory(actions);
+  renderSecurityActionHistorySummary(actions, filteredActions);
+  renderSecurityActionHistoryStorage();
+  if (!actions.length) {
+    list.innerHTML = '<div class="empty">No security posture actions recorded yet.</div>';
+    return;
+  }
+  if (!filteredActions.length) {
+    list.innerHTML = '<div class="empty">No actions match the current filters.</div>';
+    return;
+  }
+  list.innerHTML = groupedActionHistory(filteredActions).map((group) => `
+    <div class="history-day">${escapeHtml(group.label)}</div>
+    ${group.actions.map((action) => `
+      <div class="history-item ${escapeHtml(action.action_type)}">
+        <div class="resource-row">
+          <div>
+            <div class="resource-name">${escapeHtml(actionLabel(action.action_type))} / ${escapeHtml(action.resource_name || 'resource')}</div>
+            <div class="resource-meta">${escapeHtml(actionHistoryMeta(action))}</div>
+          </div>
+          <span class="${actionBadgeClass(action.action_type)}">${escapeHtml(actionShortLabel(action.action_type))}</span>
+        </div>
+      </div>
+    `).join('')}
+  `).join('');
+}
+
+function renderSecurityActionHistorySummary(allActions, filteredActions) {
+  const summary = byId('securityActionHistorySummary');
+  const accepted = allActions.filter((action) => action.action_type === 'accept_risk').length;
+  const assigned = allActions.filter((action) => action.action_type === 'assign_owner').length;
+  const tasks = allActions.filter((action) => action.action_type === 'create_remediation_task').length;
+  summary.innerHTML = [
+    historyStat(securityActionHistoryInfo.total_actions || allActions.length, 'total actions'),
+    historyStat(filteredActions.length, 'shown now'),
+    historyStat(assigned + tasks, 'owned or tasked'),
+    historyStat(accepted, 'risk accepted'),
+  ].join('');
+}
+
+function historyStat(value, label) {
+  return `<div class="history-stat"><strong>${escapeHtml(value)}</strong><span>${escapeHtml(label)}</span></div>`;
+}
+
+function renderSecurityActionHistoryStorage() {
+  const storage = byId('securityActionHistoryStorage');
+  const retention = `${securityActionHistoryInfo.retention_days || 365} days`;
+  const mode = storageModeLabel(securityActionHistoryInfo.storage);
+  const archive = securityActionHistoryInfo.archive_enabled
+    ? `Object Storage archive active at ${securityActionHistoryInfo.archive_prefix || 'configured prefix'}`
+    : 'Local JSONL cache with log rotation';
+  const warning = securityActionHistoryInfo.archive_error
+    ? ` / archive warning: ${securityActionHistoryInfo.archive_error}`
+    : '';
+  storage.textContent = `${mode} / retention ${retention} / ${archive}${warning}`;
+}
+
+function storageModeLabel(storageMode) {
+  return {
+    'local-cache+object-storage': 'Local cache plus Object Storage',
+    'object-storage': 'Object Storage',
+    'local-jsonl': 'Local JSONL',
+    'browser-local': 'Browser local demo history',
+    memory: 'In-memory history',
+  }[storageMode] || storageMode || 'History storage';
+}
+
+function filteredSecurityActionHistory(actions) {
+  const query = byId('historySearch')?.value.trim().toLowerCase() || '';
+  const actionType = byId('historyActionFilter')?.value || '';
+  const severity = byId('historySeverityFilter')?.value || '';
+  return actions.filter((action) => {
+    if (actionType && action.action_type !== actionType) return false;
+    if (severity && action.severity !== severity) return false;
+    if (!query) return true;
+    return [
+      action.user,
+      action.resource_name,
+      action.rule_type,
+      action.region,
+      action.note,
+      action.assignee,
+      action.description,
+    ].some((value) => String(value || '').toLowerCase().includes(query));
+  });
+}
+
+function groupedActionHistory(actions) {
+  const groups = [];
+  const byDay = new Map();
+  actions.slice(0, 80).forEach((action) => {
+    const label = actionDayLabel(action.created_at);
+    if (!byDay.has(label)) {
+      const group = { label, actions: [] };
+      byDay.set(label, group);
+      groups.push(group);
+    }
+    byDay.get(label).actions.push(action);
+  });
+  return groups;
+}
+
+function renderFindingActionHistory(findingKeyValue) {
+  const list = byId('securityActionModalHistory');
+  const actions = securityActionHistory.filter((action) => action.finding_key === findingKeyValue);
+  if (!actions.length) {
+    list.innerHTML = '<div class="empty">No action has been recorded for this finding yet.</div>';
+    return;
+  }
+  list.innerHTML = actions.slice(0, 5).map((action) => `
+    <div class="resource-row">
+      <div>
+        <div class="resource-name">${escapeHtml(actionLabel(action.action_type))}</div>
+        <div class="resource-meta">${escapeHtml(actionHistoryMeta(action))}</div>
+      </div>
+      <span class="${actionBadgeClass(action.action_type)}">${escapeHtml(actionShortLabel(action.action_type))}</span>
     </div>
   `).join('');
+}
+
+function actionLabel(actionType) {
+  return {
+    assign_owner: 'Assign Owner',
+    note: 'Put Note',
+    accept_risk: 'Accept Risk',
+    false_positive: 'False Positive',
+    create_remediation_task: 'Remediation Task',
+    dismiss: 'Dismiss',
+    ignore: 'Dismiss',
+  }[actionType] || actionType;
+}
+
+function actionHistoryMeta(action) {
+  const parts = [action.user, formatActionTime(action.created_at), action.severity, action.rule_type];
+  if (action.assignee) parts.push(`owner: ${action.assignee}`);
+  if (action.expires_at) parts.push(`expires: ${action.expires_at}`);
+  if (action.note) parts.push(action.note);
+  return parts.filter(Boolean).join(' / ');
+}
+
+function latestActionForFinding(findingKeyValue) {
+  return securityActionHistory.find((action) => action.finding_key === findingKeyValue) || null;
+}
+
+function actionStateText(action) {
+  const parts = [`${actionLabel(action.action_type)} by ${action.user}`];
+  if (action.assignee) parts.push(`owner: ${action.assignee}`);
+  if (action.expires_at) parts.push(`expires: ${action.expires_at}`);
+  if (action.note) parts.push(action.note);
+  return parts.join(' / ');
+}
+
+function actionShortLabel(actionType) {
+  return {
+    assign_owner: 'assigned',
+    note: 'noted',
+    accept_risk: 'accepted',
+    false_positive: 'false positive',
+    create_remediation_task: 'task',
+    dismiss: 'dismissed',
+    ignore: 'dismissed',
+  }[actionType] || actionType;
+}
+
+function actionBadgeClass(actionType) {
+  if (actionType === 'accept_risk' || actionType === 'dismiss' || actionType === 'ignore') return 'badge warn';
+  if (actionType === 'false_positive') return 'badge neutral';
+  if (actionType === 'create_remediation_task' || actionType === 'assign_owner') return 'badge ok';
+  return 'badge neutral';
+}
+
+function findingKey(finding) {
+  return [
+    finding.resource_id,
+    finding.rule_type,
+    finding.direction || '',
+    finding.protocol || '',
+    finding.source || '',
+    finding.destination || '',
+    finding.min_port ?? '',
+    finding.max_port ?? '',
+  ].join('|');
+}
+
+function formatActionTime(value) {
+  if (!value) return 'unknown time';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString();
+}
+
+function actionDayLabel(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Unknown date';
+  return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function renderResourceList(id, items, mapItem) {
@@ -1591,16 +3365,35 @@ function renderResourceList(id, items, mapItem) {
   }
   list.innerHTML = items.map((item) => {
     const mapped = mapItem(item);
+    const badgeConfig = typeof mapped.badge === 'object'
+      ? mapped.badge
+      : { badge: mapped.badge, badgeClass: mapped.badgeClass };
+    const badge = badgeConfig?.badge
+      ? `<span class="${badgeConfig.badgeClass || badgeClass(badgeConfig.badge)}">${escapeHtml(badgeConfig.badge)}</span>`
+      : '';
     return `
       <div class="resource-row">
         <div>
-          <div class="resource-name">${escapeHtml(mapped.title)}</div>
+          <div class="resource-name">${resourceLink(mapped.title, mapped.consoleUrl)}</div>
           <div class="resource-meta">${escapeHtml(mapped.meta)}</div>
         </div>
-        <span class="${mapped.badgeClass}">${escapeHtml(mapped.badge)}</span>
+        ${badge}
       </div>
     `;
   }).join('');
+}
+
+function resourceAttentionBadge(lifecycleState, isEnabled = true) {
+  if (isEnabled === false) {
+    return { badge: 'disabled', badgeClass: 'badge warn' };
+  }
+  if (!lifecycleState || lifecycleState === 'AVAILABLE' || lifecycleState === 'ACTIVE') {
+    return null;
+  }
+  return {
+    badge: lifecycleState.toLowerCase(),
+    badgeClass: badgeClass(lifecycleState),
+  };
 }
 
 function renderNetworkTable(vcns, subnets, compartmentMap) {
@@ -1608,6 +3401,7 @@ function renderNetworkTable(vcns, subnets, compartmentMap) {
     ...vcns.map((item) => ({
       type: 'VCN',
       name: item.name,
+      consoleUrl: ociConsoleUrl('vcn', item),
       compartment: compartmentName(compartmentMap, item.compartment_id),
       region: item.region,
       cidr: item.cidr_blocks?.join(', ') || '',
@@ -1620,6 +3414,7 @@ function renderNetworkTable(vcns, subnets, compartmentMap) {
     ...subnets.map((item) => ({
       type: 'Subnet',
       name: item.name,
+      consoleUrl: ociConsoleUrl('subnet', item),
       compartment: compartmentName(compartmentMap, item.compartment_id),
       region: item.region,
       cidr: item.cidr_block,
@@ -1638,14 +3433,14 @@ function renderNetworkTable(vcns, subnets, compartmentMap) {
   body.innerHTML = rows.map((row) => `
     <tr>
       <td>${escapeHtml(row.type)}</td>
-      <td>${escapeHtml(row.name)}</td>
+      <td>${resourceLink(row.name, row.consoleUrl)}</td>
       <td>${escapeHtml(row.compartment)}</td>
       <td>${escapeHtml(row.region)}</td>
       <td class="mono">${escapeHtml(row.cidr)}</td>
       <td class="mono">${escapeHtml(row.vcn)}</td>
       <td>${escapeHtml(row.dns)}</td>
       <td>${escapeHtml(row.subnetAccess)}</td>
-      <td class="mono id-cell" title="${escapeHtml(row.id)}">${escapeHtml(shortId(row.id))}</td>
+      <td class="mono id-cell" title="${escapeHtml(row.id)}">${resourceLink(shortId(row.id), row.consoleUrl)}</td>
       <td><span class="${badgeClass(row.state === 'AVAILABLE')}">${escapeHtml(row.state || 'unknown')}</span></td>
     </tr>
   `).join('');
@@ -1663,14 +3458,230 @@ function shortId(id) {
   return `${id.slice(0, 18)}...${id.slice(-8)}`;
 }
 
+function openSecurityActionModal(findingKeyValue) {
+  const finding = currentSecurityFindings.find((item) => findingKey(item) === findingKeyValue);
+  if (!finding) return;
+  pendingSecurityFinding = finding;
+  text('securityActionFinding', `${finding.rule_type} / ${finding.resource_name}`);
+  renderFindingActionHistory(findingKeyValue);
+  const userInput = byId('securityActionUser');
+  userInput.value = currentIdentityContext.current_user || '';
+  userInput.disabled = Boolean(currentIdentityContext.enabled);
+  userInput.placeholder = currentIdentityContext.enabled ? 'Authenticated IAM user required' : 'John';
+  byId('securityActionType').value = 'assign_owner';
+  byId('securityActionAssignee').value = '';
+  byId('securityActionExpiry').value = '';
+  byId('securityActionExpiry').min = todayDateInputValue();
+  byId('securityActionNote').value = '';
+  updateSecurityActionFields();
+  byId('securityActionModal').hidden = false;
+  (userInput.disabled ? byId('securityActionType') : userInput).focus();
+}
+
+function closeSecurityActionModal() {
+  pendingSecurityFinding = null;
+  byId('securityActionModal').hidden = true;
+  byId('securityActionForm').reset();
+  byId('securityActionUser').disabled = false;
+  byId('securityActionUser').placeholder = 'John';
+  updateSecurityActionFields();
+}
+
+async function submitSecurityAction(event) {
+  event.preventDefault();
+  if (!pendingSecurityFinding) return;
+
+  const actionType = byId('securityActionType').value;
+  const user = (currentIdentityContext.enabled ? currentIdentityContext.current_user || '' : byId('securityActionUser').value).trim();
+  const assignee = byId('securityActionAssignee').value.trim();
+  const expiresAt = byId('securityActionExpiry').value;
+  const note = byId('securityActionNote').value.trim();
+  if (!user) {
+    text(
+      'lastUpdated',
+      currentIdentityContext.enabled
+        ? 'Security action blocked: authenticated IAM user header is required.'
+        : 'Security action blocked: user is required.'
+    );
+    if (!currentIdentityContext.enabled) byId('securityActionUser').focus();
+    return;
+  }
+  if (currentIdentityContext.enabled && !currentIdentityContext.is_authorized) {
+    text(
+      'lastUpdated',
+      `Security action blocked: authenticated user must belong to ${currentIdentityContext.required_group || 'the Meridian access group'}.`
+    );
+    return;
+  }
+  if (actionType === 'assign_owner' && !assignee) {
+    byId('securityActionAssignee').focus();
+    return;
+  }
+  if (actionType === 'accept_risk' && !expiresAt) {
+    byId('securityActionExpiry').focus();
+    return;
+  }
+  if (requiresSecurityActionNote(actionType) && !note) {
+    byId('securityActionNote').focus();
+    return;
+  }
+
+  const payload = securityActionPayload(pendingSecurityFinding, actionType, user, note, assignee, expiresAt);
+  try {
+    const action = currentDashboardMode === 'api'
+      ? await postJson(API_PATHS.securityActions, payload)
+      : { ...payload, id: localActionId(), created_at: new Date().toISOString() };
+    saveSecurityActionHistory([action, ...securityActionHistory]);
+    renderFindings(currentSecurityFindings);
+    renderSecurityActionHistory(securityActionHistory);
+    closeSecurityActionModal();
+  } catch (error) {
+    text('lastUpdated', `Security action failed: ${error.message}`);
+  }
+}
+
+function securityActionPayload(finding, actionType, user, note, assignee, expiresAt) {
+  return {
+    finding_key: findingKey(finding),
+    action_type: actionType,
+    user,
+    note: note || null,
+    assignee: assignee || null,
+    expires_at: expiresAt || null,
+    resource_id: finding.resource_id || '',
+    resource_name: finding.resource_name || '',
+    rule_type: finding.rule_type || '',
+    severity: finding.severity || '',
+    region: finding.region || '',
+    compartment_id: finding.compartment_id || '',
+    vcn_id: finding.vcn_id || '',
+    description: finding.description || '',
+  };
+}
+
+function updateSecurityActionFields() {
+  const actionType = byId('securityActionType').value;
+  const assigneeField = byId('securityActionAssigneeField');
+  const expiryField = byId('securityActionExpiryField');
+  const assigneeInput = byId('securityActionAssignee');
+  const expiryInput = byId('securityActionExpiry');
+  const noteInput = byId('securityActionNote');
+
+  assigneeField.hidden = actionType !== 'assign_owner';
+  expiryField.hidden = actionType !== 'accept_risk';
+  assigneeInput.required = actionType === 'assign_owner';
+  expiryInput.required = actionType === 'accept_risk';
+  noteInput.required = requiresSecurityActionNote(actionType);
+  noteInput.placeholder = actionPlaceholder(actionType);
+}
+
+function requiresSecurityActionNote(actionType) {
+  return ['note', 'accept_risk', 'false_positive', 'create_remediation_task'].includes(actionType);
+}
+
+function actionPlaceholder(actionType) {
+  if (actionType === 'assign_owner') return 'John will handle this issue.';
+  if (actionType === 'accept_risk') return 'Accepted for the migration window; compensating control is in place.';
+  if (actionType === 'false_positive') return 'Explain why this finding is not applicable.';
+  if (actionType === 'create_remediation_task') return 'Describe the remediation task to create.';
+  if (actionType === 'dismiss') return 'Optional dismissal reason.';
+  return 'Add context for later review.';
+}
+
+function localActionId() {
+  if (window.crypto?.randomUUID) return window.crypto.randomUUID();
+  return `local-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function todayDateInputValue() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 byId('demoToggle').addEventListener('click', () => {
   useDemoData = !useDemoData;
   byId('demoToggle').textContent = useDemoData ? 'Use API' : 'Demo data';
   refreshDashboard({ showLoading: true });
 });
+byId('refreshNow').addEventListener('click', () => refreshDashboard({ showLoading: true }));
 byId('accessCheckBtn').addEventListener('click', (event) => {
   event.stopPropagation();
   validateAccess();
+});
+byId('securityHistoryBtn').addEventListener('click', (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  const menu = byId('securityHistoryMenu');
+  const isOpen = menu.hidden;
+  menu.hidden = !isOpen;
+  event.currentTarget.setAttribute('aria-expanded', String(isOpen));
+});
+['historySearch', 'historyActionFilter', 'historySeverityFilter'].forEach((id) => {
+  byId(id).addEventListener('input', () => renderSecurityActionHistory(securityActionHistory));
+});
+byId('historyClearFilters').addEventListener('click', () => {
+  byId('historySearch').value = '';
+  byId('historyActionFilter').value = '';
+  byId('historySeverityFilter').value = '';
+  renderSecurityActionHistory(securityActionHistory);
+});
+byId('findingList').addEventListener('click', (event) => {
+  const button = event.target.closest('button[data-finding-key]');
+  if (!button) return;
+  openSecurityActionModal(button.getAttribute('data-finding-key'));
+});
+byId('securityActionForm').addEventListener('submit', submitSecurityAction);
+byId('securityActionCancel').addEventListener('click', closeSecurityActionModal);
+byId('securityActionModal').addEventListener('click', (event) => {
+  if (event.target.id === 'securityActionModal') closeSecurityActionModal();
+});
+byId('securityActionType').addEventListener('change', (event) => {
+  updateSecurityActionFields();
+});
+byId('regionSearch').addEventListener('input', () => {
+  renderRegionStrip(currentHomeRegionId || byId('homeRegionName').textContent, new Set(currentRegionIds), currentActiveRegionDetails);
+});
+byId('regionSelectAll').addEventListener('click', () => {
+  selectedRegionIds = new Set(currentRegionIds);
+  saveRegionFilter();
+  refreshDashboard({ showLoading: true });
+});
+byId('regionClearAll').addEventListener('click', () => {
+  selectedRegionIds = new Set();
+  saveRegionFilter();
+  renderDashboard(currentDashboardData || DEMO_DATA, currentDashboardMode);
+});
+byId('regionMenuList').addEventListener('change', (event) => {
+  const input = event.target.closest('input[data-region-filter]');
+  if (!input) return;
+  if (selectedRegionIds === null) selectedRegionIds = new Set(currentRegionIds);
+  const region = input.getAttribute('data-region-filter');
+  if (input.checked) selectedRegionIds.add(region);
+  else selectedRegionIds.delete(region);
+  saveRegionFilter();
+  refreshDashboard({ showLoading: true });
+});
+byId('topologyModeGroup').addEventListener('click', (event) => {
+  const button = event.target.closest('button[data-topology-mode]');
+  if (!button) return;
+  topologyMode = button.getAttribute('data-topology-mode');
+  saveTopologyMode();
+  if (currentDashboardData) renderDashboard(currentDashboardData, currentDashboardMode);
+});
+byId('topologyLayerGroup').addEventListener('change', (event) => {
+  const input = event.target.closest('input[data-topology-layer]');
+  if (!input) return;
+  topologyLayers[input.getAttribute('data-topology-layer')] = input.checked;
+  saveTopologyLayers();
+  if (currentDashboardData) renderDashboard(currentDashboardData, currentDashboardMode);
+});
+byId('topologyRegionScope').addEventListener('change', (event) => {
+  topologyRegionScope = event.target.value;
+  topologyVcnScope = '';
+  if (currentDashboardData) renderDashboard(currentDashboardData, currentDashboardMode);
+});
+byId('topologyVcnScope').addEventListener('change', (event) => {
+  topologyVcnScope = event.target.value;
+  if (currentDashboardData) renderDashboard(currentDashboardData, currentDashboardMode);
 });
 byId('regionMenuBtn').addEventListener('click', (event) => {
   event.stopPropagation();
@@ -1689,6 +3700,10 @@ document.addEventListener('click', (event) => {
     byId('accessMenu').classList.remove('open');
     byId('accessCheckBtn').setAttribute('aria-expanded', 'false');
   }
+  if (!byId('securityPosturePanel').contains(event.target)) {
+    byId('securityHistoryMenu').hidden = true;
+    byId('securityHistoryBtn').setAttribute('aria-expanded', 'false');
+  }
 });
 document.querySelectorAll('details.expander').forEach((panel) => {
   panel.addEventListener('toggle', () => {
@@ -1697,9 +3712,10 @@ document.querySelectorAll('details.expander').forEach((panel) => {
 });
 
 window.addEventListener('resize', scheduleDrawTopologyLines);
+attachTopologyViewportInteractions();
 refreshDashboard({ showLoading: true });
 window.setInterval(() => {
-  if (!useDemoData) refreshDashboard();
+  if (!useDemoData && document.visibilityState === 'visible') refreshDashboard();
 }, AUTO_REFRESH_MS);
 </script>
 </body>
