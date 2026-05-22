@@ -1,5 +1,5 @@
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 
 from app.config import Settings
@@ -37,6 +37,7 @@ def _timestamp(value: object) -> str | None:
 class NetworkInventoryService:
     settings: Settings
     client_factory: OciClientFactory
+    _compartment_scope_cache: list[str] | None = field(default=None, init=False, repr=False)
 
     def reset_collection_issues(self) -> None:
         return None
@@ -549,14 +550,38 @@ class NetworkInventoryService:
         return list(dict.fromkeys(selected or [self.settings.home_region]))
 
     def _compartment_scope(self, compartment_ids: list[str] | None) -> list[str]:
-        selected = (
-            compartment_ids
-            or self.settings.compartment_ids
-            or ([self.settings.tenancy_ocid] if self.settings.tenancy_ocid else [])
-        )
+        selected = compartment_ids or self.settings.compartment_ids
+        if selected:
+            return list(dict.fromkeys(selected))
+
+        if self._compartment_scope_cache is not None:
+            return self._compartment_scope_cache
+
+        selected = self._default_compartment_scope()
         if not selected:
             raise OciClientError(
                 "At least one compartment_id query value, MERIDIAN_COMPARTMENT_IDS, or MERIDIAN_TENANCY_OCID is "
                 "required for live OCI calls."
             )
+        object.__setattr__(self, "_compartment_scope_cache", selected)
         return selected
+
+    def _default_compartment_scope(self) -> list[str]:
+        if not self.settings.tenancy_ocid:
+            return []
+        if not self.settings.enable_resource_search_scope:
+            return [self.settings.tenancy_ocid]
+
+        client = self.client_factory.identity_client()
+        compartments = self.client_factory.list_all(
+            client.list_compartments,
+            compartment_id=self.settings.tenancy_ocid,
+            compartment_id_in_subtree=True,
+            access_level="ACCESSIBLE",
+        )
+        compartment_ids = [
+            item.id
+            for item in compartments
+            if str(getattr(item, "lifecycle_state", "ACTIVE")).upper() == "ACTIVE"
+        ]
+        return list(dict.fromkeys([self.settings.tenancy_ocid, *compartment_ids]))

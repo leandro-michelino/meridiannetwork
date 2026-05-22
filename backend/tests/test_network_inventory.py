@@ -42,12 +42,37 @@ class FakeVirtualNetworkClient:
         return kwargs
 
 
+class FakeIdentityClient:
+    def list_compartments(self, **kwargs):
+        return kwargs
+
+
 class FakeClientFactory:
+    def identity_client(self):
+        return FakeIdentityClient()
+
     def virtual_network_client(self, region=None):
         return FakeVirtualNetworkClient()
 
     def list_all(self, list_func, *args, **kwargs):
         method_name = list_func.__name__
+        if method_name == "list_compartments":
+            return [
+                OciObject(
+                    id="compartment-1",
+                    name="Application",
+                    description="Application compartment",
+                    lifecycle_state="ACTIVE",
+                    compartment_id="tenancy-1",
+                ),
+                OciObject(
+                    id="compartment-deleted",
+                    name="Deleted",
+                    description="Deleted compartment",
+                    lifecycle_state="DELETED",
+                    compartment_id="tenancy-1",
+                ),
+            ]
         if method_name == "list_vcns":
             return [
                 OciObject(
@@ -222,6 +247,42 @@ class FakeClientFactory:
         return []
 
 
+class TrackingClientFactory(FakeClientFactory):
+    def __init__(self):
+        self.vcn_compartment_ids = []
+        self.compartment_discovery_calls = 0
+
+    def list_all(self, list_func, *args, **kwargs):
+        method_name = list_func.__name__
+        if method_name == "list_compartments":
+            self.compartment_discovery_calls += 1
+            return [
+                OciObject(
+                    id="app-compartment",
+                    name="Application",
+                    description="Application compartment",
+                    lifecycle_state="ACTIVE",
+                    compartment_id="tenancy-1",
+                )
+            ]
+        if method_name == "list_vcns":
+            compartment_id = kwargs["compartment_id"]
+            self.vcn_compartment_ids.append(compartment_id)
+            return [
+                OciObject(
+                    id=f"vcn-{compartment_id}",
+                    display_name=f"vcn-{compartment_id}",
+                    compartment_id=compartment_id,
+                    cidr_blocks=["10.0.0.0/16"],
+                    cidr_block="10.0.0.0/16",
+                    lifecycle_state="AVAILABLE",
+                    dns_label="vcn",
+                    time_created=None,
+                )
+            ]
+        return super().list_all(list_func, *args, **kwargs)
+
+
 def test_split_csv_trims_and_drops_empty_values():
     assert split_csv("eu-frankfurt-1, eu-madrid-1,,") == ["eu-frankfurt-1", "eu-madrid-1"]
 
@@ -269,6 +330,23 @@ def test_topology_returns_empty_graph_without_live_oci():
 
     assert response.status_code == 200
     assert response.json() == {"nodes": [], "edges": []}
+
+
+def test_inventory_expands_default_scope_to_accessible_compartments():
+    settings = Settings(
+        enable_live_oci=True,
+        tenancy_ocid="tenancy-1",
+        active_regions=["eu-frankfurt-1"],
+    )
+    factory = TrackingClientFactory()
+    service = NetworkInventoryService(settings=settings, client_factory=factory)
+
+    vcns = service.list_vcns(regions=["eu-frankfurt-1"])
+    service.list_subnets(regions=["eu-frankfurt-1"])
+
+    assert [vcn.compartment_id for vcn in vcns] == ["tenancy-1", "app-compartment"]
+    assert factory.vcn_compartment_ids == ["tenancy-1", "app-compartment"]
+    assert factory.compartment_discovery_calls == 1
 
 
 def test_dashboard_returns_empty_snapshot_without_live_oci():
