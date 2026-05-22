@@ -21,10 +21,8 @@ from app.models import (
 from app.oci_clients import OciClientFactory, OciClientError
 
 
-NETWORK_RESOURCE_SEARCH_QUERIES: tuple[str, ...] = (
-    "query vcn resources",
-    "query subnet resources",
-)
+VCN_RESOURCE_SEARCH_QUERY = "query vcn resources"
+SUBNET_RESOURCE_SEARCH_QUERY = "query subnet resources"
 RESOURCE_SEARCH_MAX_WORKERS = 8
 
 
@@ -761,23 +759,39 @@ class NetworkInventoryService:
             )
             return compartment_ids, regions
 
-        for query in NETWORK_RESOURCE_SEARCH_QUERIES:
-            try:
-                items = self._resource_search_items(client, query)
-            except Exception as exc:
-                self._add_collection_issue(
-                    region=search_region,
-                    resource_type="resource_search",
-                    compartment_id=self.settings.tenancy_ocid or "*",
-                    exc=exc,
-                )
-                continue
-            for item in items:
-                compartment_id = getattr(item, "compartment_id", None)
-                if compartment_id:
-                    compartment_ids.add(str(compartment_id))
-                regions.add(self._region_from_resource_identifier(getattr(item, "identifier", None)) or search_region)
+        vcn_items = self._safe_resource_search_items(client, search_region, VCN_RESOURCE_SEARCH_QUERY)
+        self._add_resource_search_items(vcn_items, search_region, compartment_ids, regions)
+        if not vcn_items:
+            return compartment_ids, regions
+
+        subnet_items = self._safe_resource_search_items(client, search_region, SUBNET_RESOURCE_SEARCH_QUERY)
+        self._add_resource_search_items(subnet_items, search_region, compartment_ids, regions)
         return compartment_ids, regions
+
+    def _safe_resource_search_items(self, client: object, search_region: str, query: str) -> list[object]:
+        try:
+            return self._resource_search_items(client, query)
+        except Exception as exc:
+            self._add_collection_issue(
+                region=search_region,
+                resource_type="resource_search",
+                compartment_id=self.settings.tenancy_ocid or "*",
+                exc=exc,
+            )
+            return []
+
+    def _add_resource_search_items(
+        self,
+        items: list[object],
+        search_region: str,
+        compartment_ids: set[str],
+        regions: set[str],
+    ) -> None:
+        for item in items:
+            compartment_id = getattr(item, "compartment_id", None)
+            if compartment_id:
+                compartment_ids.add(str(compartment_id))
+            regions.add(self._region_from_resource_identifier(getattr(item, "identifier", None)) or search_region)
 
     def _subscribed_region_ids(self) -> list[str]:
         if self._region_subscription_cache is not None:
