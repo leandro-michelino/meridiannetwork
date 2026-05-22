@@ -419,7 +419,7 @@ def test_inventory_uses_resource_search_scope_for_default_regions_and_compartmen
         "query vcn resources",
         "query vcn resources",
     ]
-    assert factory.vcn_regions == [
+    assert sorted(factory.vcn_regions) == [
         "af-johannesburg-1",
         "af-johannesburg-1",
         "af-johannesburg-1",
@@ -427,13 +427,13 @@ def test_inventory_uses_resource_search_scope_for_default_regions_and_compartmen
         "me-abudhabi-1",
         "me-abudhabi-1",
     ]
-    assert factory.vcn_compartment_ids == [
-        "tenancy-1",
+    assert sorted(factory.vcn_compartment_ids) == [
+        "dr-compartment",
         "dr-compartment",
         "search-compartment",
-        "tenancy-1",
-        "dr-compartment",
         "search-compartment",
+        "tenancy-1",
+        "tenancy-1",
     ]
 
 

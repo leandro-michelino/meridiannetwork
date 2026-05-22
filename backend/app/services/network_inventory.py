@@ -24,6 +24,7 @@ from app.oci_clients import OciClientFactory, OciClientError
 VCN_RESOURCE_SEARCH_QUERY = "query vcn resources"
 SUBNET_RESOURCE_SEARCH_QUERY = "query subnet resources"
 RESOURCE_SEARCH_MAX_WORKERS = 8
+OCI_LIST_MAX_WORKERS = 16
 
 
 def split_csv(value: str | None) -> list[str]:
@@ -83,33 +84,30 @@ class NetworkInventoryService:
         cached = self._cached_inventory("vcns", selected_regions, selected_compartments)
         if cached is not None:
             return cached
-        results: list[VcnSummary] = []
 
-        for region in selected_regions:
-            client = self._virtual_network_client(region)
-            if client is None:
-                continue
-            for compartment_id in selected_compartments:
-                vcns = self._safe_list_all(
+        def collect(region: str, client: object, compartment_id: str) -> list[VcnSummary]:
+            vcns = self._safe_list_all(
+                region=region,
+                resource_type="vcn",
+                issue_compartment_id=compartment_id,
+                list_func=client.list_vcns,
+                compartment_id=compartment_id,
+            )
+            return [
+                VcnSummary(
+                    id=item.id,
+                    name=item.display_name,
+                    cidr_blocks=list(getattr(item, "cidr_blocks", None) or [item.cidr_block]),
                     region=region,
-                    resource_type="vcn",
-                    issue_compartment_id=compartment_id,
-                    list_func=client.list_vcns,
-                    compartment_id=compartment_id,
+                    compartment_id=item.compartment_id,
+                    lifecycle_state=item.lifecycle_state,
+                    dns_label=item.dns_label,
+                    time_created=_timestamp(item.time_created),
                 )
-                for item in vcns:
-                    results.append(
-                        VcnSummary(
-                            id=item.id,
-                            name=item.display_name,
-                            cidr_blocks=list(getattr(item, "cidr_blocks", None) or [item.cidr_block]),
-                            region=region,
-                            compartment_id=item.compartment_id,
-                            lifecycle_state=item.lifecycle_state,
-                            dns_label=item.dns_label,
-                            time_created=_timestamp(item.time_created),
-                        )
-                    )
+                for item in vcns
+            ]
+
+        results = self._run_compartment_tasks(selected_regions, selected_compartments, collect)
         return self._store_inventory("vcns", selected_regions, selected_compartments, results)
 
     def list_subnets(
@@ -126,41 +124,39 @@ class NetworkInventoryService:
         cached = self._cached_inventory("subnets", selected_regions, selected_compartments, vcn_id)
         if cached is not None:
             return cached
-        results: list[SubnetSummary] = []
 
-        for region in selected_regions:
-            client = self._virtual_network_client(region)
-            if client is None:
-                continue
-            for compartment_id in selected_compartments:
-                kwargs: dict[str, str] = {"compartment_id": compartment_id}
-                if vcn_id:
-                    kwargs["vcn_id"] = vcn_id
-                subnets = self._safe_list_all(
+
+        def collect(region: str, client: object, compartment_id: str) -> list[SubnetSummary]:
+            kwargs: dict[str, str] = {"compartment_id": compartment_id}
+            if vcn_id:
+                kwargs["vcn_id"] = vcn_id
+            subnets = self._safe_list_all(
+                region=region,
+                resource_type="subnet",
+                issue_compartment_id=compartment_id,
+                list_func=client.list_subnets,
+                **kwargs,
+            )
+            return [
+                SubnetSummary(
+                    id=item.id,
+                    name=item.display_name,
+                    cidr_block=item.cidr_block,
                     region=region,
-                    resource_type="subnet",
-                    issue_compartment_id=compartment_id,
-                    list_func=client.list_subnets,
-                    **kwargs,
+                    compartment_id=item.compartment_id,
+                    vcn_id=item.vcn_id,
+                    lifecycle_state=item.lifecycle_state,
+                    availability_domain=item.availability_domain,
+                    dns_label=item.dns_label,
+                    prohibit_public_ip_on_vnic=item.prohibit_public_ip_on_vnic,
+                    route_table_id=getattr(item, "route_table_id", None),
+                    security_list_ids=list(getattr(item, "security_list_ids", None) or []),
+                    time_created=_timestamp(item.time_created),
                 )
-                for item in subnets:
-                    results.append(
-                        SubnetSummary(
-                            id=item.id,
-                            name=item.display_name,
-                            cidr_block=item.cidr_block,
-                            region=region,
-                            compartment_id=item.compartment_id,
-                            vcn_id=item.vcn_id,
-                            lifecycle_state=item.lifecycle_state,
-                            availability_domain=item.availability_domain,
-                            dns_label=item.dns_label,
-                            prohibit_public_ip_on_vnic=item.prohibit_public_ip_on_vnic,
-                            route_table_id=getattr(item, "route_table_id", None),
-                            security_list_ids=list(getattr(item, "security_list_ids", None) or []),
-                            time_created=_timestamp(item.time_created),
-                        )
-                    )
+                for item in subnets
+            ]
+
+        results = self._run_compartment_tasks(selected_regions, selected_compartments, collect)
         return self._store_inventory("subnets", selected_regions, selected_compartments, results, vcn_id)
 
     def get_topology(
@@ -335,22 +331,21 @@ class NetworkInventoryService:
         cached = self._cached_inventory("gateways", selected_regions, selected_compartments, vcn_id)
         if cached is not None:
             return cached
-        results: list[GatewaySummary] = []
 
-        for region in selected_regions:
-            client = self._virtual_network_client(region)
-            if client is None:
-                continue
-            for compartment_id in selected_compartments:
-                kwargs: dict[str, str] = {"compartment_id": compartment_id}
-                if vcn_id:
-                    kwargs["vcn_id"] = vcn_id
+        def collect(region: str, client: object, compartment_id: str) -> list[GatewaySummary]:
+            kwargs: dict[str, str] = {"compartment_id": compartment_id}
+            if vcn_id:
+                kwargs["vcn_id"] = vcn_id
 
-                results.extend(self._internet_gateways(client, region, **kwargs))
-                results.extend(self._nat_gateways(client, region, **kwargs))
-                results.extend(self._service_gateways(client, region, **kwargs))
-                if not vcn_id:
-                    results.extend(self._drgs(client, region, compartment_id))
+            results: list[GatewaySummary] = []
+            results.extend(self._internet_gateways(client, region, **kwargs))
+            results.extend(self._nat_gateways(client, region, **kwargs))
+            results.extend(self._service_gateways(client, region, **kwargs))
+            if not vcn_id:
+                results.extend(self._drgs(client, region, compartment_id))
+            return results
+
+        results = self._run_compartment_tasks(selected_regions, selected_compartments, collect)
         return self._store_inventory("gateways", selected_regions, selected_compartments, results, vcn_id)
 
     def list_route_tables(
@@ -367,44 +362,41 @@ class NetworkInventoryService:
         cached = self._cached_inventory("route_tables", selected_regions, selected_compartments, vcn_id)
         if cached is not None:
             return cached
-        results: list[RouteTableSummary] = []
 
-        for region in selected_regions:
-            client = self._virtual_network_client(region)
-            if client is None:
-                continue
-            for compartment_id in selected_compartments:
-                kwargs: dict[str, str] = {"compartment_id": compartment_id}
-                if vcn_id:
-                    kwargs["vcn_id"] = vcn_id
-                route_tables = self._safe_list_all(
+        def collect(region: str, client: object, compartment_id: str) -> list[RouteTableSummary]:
+            kwargs: dict[str, str] = {"compartment_id": compartment_id}
+            if vcn_id:
+                kwargs["vcn_id"] = vcn_id
+            route_tables = self._safe_list_all(
+                region=region,
+                resource_type="route_table",
+                issue_compartment_id=compartment_id,
+                list_func=client.list_route_tables,
+                **kwargs,
+            )
+            return [
+                RouteTableSummary(
+                    id=item.id,
+                    name=item.display_name,
                     region=region,
-                    resource_type="route_table",
-                    issue_compartment_id=compartment_id,
-                    list_func=client.list_route_tables,
-                    **kwargs,
-                )
-                for item in route_tables:
-                    results.append(
-                        RouteTableSummary(
-                            id=item.id,
-                            name=item.display_name,
-                            region=region,
-                            compartment_id=item.compartment_id,
-                            vcn_id=item.vcn_id,
-                            lifecycle_state=item.lifecycle_state,
-                            route_rules=[
-                                RouteRuleSummary(
-                                    destination=rule.destination,
-                                    destination_type=rule.destination_type,
-                                    network_entity_id=rule.network_entity_id,
-                                    description=getattr(rule, "description", None),
-                                )
-                                for rule in item.route_rules
-                            ],
-                            time_created=_timestamp(item.time_created),
+                    compartment_id=item.compartment_id,
+                    vcn_id=item.vcn_id,
+                    lifecycle_state=item.lifecycle_state,
+                    route_rules=[
+                        RouteRuleSummary(
+                            destination=rule.destination,
+                            destination_type=rule.destination_type,
+                            network_entity_id=rule.network_entity_id,
+                            description=getattr(rule, "description", None),
                         )
-                    )
+                        for rule in item.route_rules
+                    ],
+                    time_created=_timestamp(item.time_created),
+                )
+                for item in route_tables
+            ]
+
+        results = self._run_compartment_tasks(selected_regions, selected_compartments, collect)
         return self._store_inventory("route_tables", selected_regions, selected_compartments, results, vcn_id)
 
     def list_security_lists(
@@ -421,39 +413,35 @@ class NetworkInventoryService:
         cached = self._cached_inventory("security_lists", selected_regions, selected_compartments, vcn_id)
         if cached is not None:
             return cached
-        results: list[SecurityListSummary] = []
 
-        for region in selected_regions:
-            client = self._virtual_network_client(region)
-            if client is None:
-                continue
-            for compartment_id in selected_compartments:
-                kwargs: dict[str, str] = {"compartment_id": compartment_id}
-                if vcn_id:
-                    kwargs["vcn_id"] = vcn_id
-                security_lists = self._safe_list_all(
+
+        def collect(region: str, client: object, compartment_id: str) -> list[SecurityListSummary]:
+            kwargs: dict[str, str] = {"compartment_id": compartment_id}
+            if vcn_id:
+                kwargs["vcn_id"] = vcn_id
+            security_lists = self._safe_list_all(
+                region=region,
+                resource_type="security_list",
+                issue_compartment_id=compartment_id,
+                list_func=client.list_security_lists,
+                **kwargs,
+            )
+            return [
+                SecurityListSummary(
+                    id=item.id,
+                    name=item.display_name,
                     region=region,
-                    resource_type="security_list",
-                    issue_compartment_id=compartment_id,
-                    list_func=client.list_security_lists,
-                    **kwargs,
+                    compartment_id=item.compartment_id,
+                    vcn_id=item.vcn_id,
+                    lifecycle_state=item.lifecycle_state,
+                    ingress_rules=[self._security_rule("ingress", rule) for rule in item.ingress_security_rules],
+                    egress_rules=[self._security_rule("egress", rule) for rule in item.egress_security_rules],
+                    time_created=_timestamp(item.time_created),
                 )
-                for item in security_lists:
-                    results.append(
-                        SecurityListSummary(
-                            id=item.id,
-                            name=item.display_name,
-                            region=region,
-                            compartment_id=item.compartment_id,
-                            vcn_id=item.vcn_id,
-                            lifecycle_state=item.lifecycle_state,
-                            ingress_rules=[
-                                self._security_rule("ingress", rule) for rule in item.ingress_security_rules
-                            ],
-                            egress_rules=[self._security_rule("egress", rule) for rule in item.egress_security_rules],
-                            time_created=_timestamp(item.time_created),
-                        )
-                    )
+                for item in security_lists
+            ]
+
+        results = self._run_compartment_tasks(selected_regions, selected_compartments, collect)
         return self._store_inventory("security_lists", selected_regions, selected_compartments, results, vcn_id)
 
     def list_network_security_groups(
@@ -470,52 +458,51 @@ class NetworkInventoryService:
         cached = self._cached_inventory("network_security_groups", selected_regions, selected_compartments, vcn_id)
         if cached is not None:
             return cached
-        results: list[NetworkSecurityGroupSummary] = []
 
-        for region in selected_regions:
-            client = self._virtual_network_client(region)
-            if client is None:
-                continue
-            for compartment_id in selected_compartments:
-                kwargs: dict[str, str] = {"compartment_id": compartment_id}
-                if vcn_id:
-                    kwargs["vcn_id"] = vcn_id
-                network_security_groups = self._safe_list_all(
+        def collect(region: str, client: object, compartment_id: str) -> list[NetworkSecurityGroupSummary]:
+            kwargs: dict[str, str] = {"compartment_id": compartment_id}
+            if vcn_id:
+                kwargs["vcn_id"] = vcn_id
+            network_security_groups = self._safe_list_all(
+                region=region,
+                resource_type="network_security_group",
+                issue_compartment_id=compartment_id,
+                list_func=client.list_network_security_groups,
+                **kwargs,
+            )
+            results: list[NetworkSecurityGroupSummary] = []
+            for item in network_security_groups:
+                security_rules = self._safe_list_all(
+                    client.list_network_security_group_security_rules,
+                    item.id,
                     region=region,
-                    resource_type="network_security_group",
-                    issue_compartment_id=compartment_id,
-                    list_func=client.list_network_security_groups,
-                    **kwargs,
+                    resource_type="network_security_group_rule",
+                    issue_compartment_id=item.compartment_id,
                 )
-                for item in network_security_groups:
-                    security_rules = self._safe_list_all(
-                        client.list_network_security_group_security_rules,
-                        item.id,
+                results.append(
+                    NetworkSecurityGroupSummary(
+                        id=item.id,
+                        name=item.display_name,
                         region=region,
-                        resource_type="network_security_group_rule",
-                        issue_compartment_id=item.compartment_id,
+                        compartment_id=item.compartment_id,
+                        vcn_id=item.vcn_id,
+                        lifecycle_state=item.lifecycle_state,
+                        ingress_rules=[
+                            self._security_rule(str(rule.direction).lower(), rule)
+                            for rule in security_rules
+                            if str(rule.direction).upper() == "INGRESS"
+                        ],
+                        egress_rules=[
+                            self._security_rule(str(rule.direction).lower(), rule)
+                            for rule in security_rules
+                            if str(rule.direction).upper() == "EGRESS"
+                        ],
+                        time_created=_timestamp(item.time_created),
                     )
-                    results.append(
-                        NetworkSecurityGroupSummary(
-                            id=item.id,
-                            name=item.display_name,
-                            region=region,
-                            compartment_id=item.compartment_id,
-                            vcn_id=item.vcn_id,
-                            lifecycle_state=item.lifecycle_state,
-                            ingress_rules=[
-                                self._security_rule(str(rule.direction).lower(), rule)
-                                for rule in security_rules
-                                if str(rule.direction).upper() == "INGRESS"
-                            ],
-                            egress_rules=[
-                                self._security_rule(str(rule.direction).lower(), rule)
-                                for rule in security_rules
-                                if str(rule.direction).upper() == "EGRESS"
-                            ],
-                            time_created=_timestamp(item.time_created),
-                        )
-                    )
+                )
+            return results
+
+        results = self._run_compartment_tasks(selected_regions, selected_compartments, collect)
         return self._store_inventory(
             "network_security_groups",
             selected_regions,
@@ -877,6 +864,30 @@ class NetworkInventoryService:
     ) -> list[Any]:
         key = (resource_type, tuple(regions), tuple(compartment_ids), vcn_id or "")
         self._inventory_cache[key] = list(results)
+        return results
+
+    def _run_compartment_tasks(
+        self,
+        regions: list[str],
+        compartment_ids: list[str],
+        collect: Any,
+    ) -> list[Any]:
+        task_count = len(regions) * len(compartment_ids)
+        if task_count <= 0:
+            return []
+
+        results: list[Any] = []
+        max_workers = min(OCI_LIST_MAX_WORKERS, task_count)
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = []
+            for region in regions:
+                client = self._virtual_network_client(region)
+                if client is None:
+                    continue
+                for compartment_id in compartment_ids:
+                    futures.append(executor.submit(collect, region, client, compartment_id))
+            for future in as_completed(futures):
+                results.extend(future.result())
         return results
 
     def _virtual_network_client(self, region: str) -> object | None:
