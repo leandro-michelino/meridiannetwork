@@ -46,6 +46,24 @@
           owner: nginx
           group: nginx
 
+    - name: Read existing Meridian tenancy OCID when present
+      ansible.builtin.command:
+        cmd: "awk '/^MERIDIAN_TENANCY_OCID=/{sub(/^MERIDIAN_TENANCY_OCID=/, \"\"); print}' {{ meridian_app_root }}/config/meridian.env"
+      register: meridian_existing_tenancy_ocid
+      changed_when: false
+      failed_when: false
+      no_log: true
+
+    - name: Resolve Meridian tenancy OCID for environment file
+      ansible.builtin.set_fact:
+        meridian_effective_tenancy_ocid: >-
+          {{
+            meridian_tenancy_ocid
+            if (meridian_tenancy_ocid | default('') | length > 0)
+            else (meridian_existing_tenancy_ocid.stdout | default(''))
+          }}
+      no_log: true
+
     - name: Write Meridian environment file
       ansible.builtin.template:
         src: ../templates/meridian.env.j2
@@ -62,14 +80,49 @@
         group: nginx
         mode: "0644"
 
-    - name: Copy Meridian backend source
-      ansible.builtin.copy:
-        src: ../../backend/
+    - name: Create local backend source archive
+      ansible.builtin.command:
+        cmd: >-
+          tar
+          --exclude=__pycache__
+          --exclude=.pytest_cache
+          --exclude=.ruff_cache
+          -czf /tmp/meridian-backend.tar.gz
+          -C backend .
+      args:
+        chdir: "{{ playbook_dir }}/../.."
+      delegate_to: localhost
+      become: false
+      changed_when: true
+
+    - name: Reset backend source directory
+      ansible.builtin.file:
+        path: "{{ meridian_backend_root }}"
+        state: absent
+
+    - name: Recreate backend source directory
+      ansible.builtin.file:
+        path: "{{ meridian_backend_root }}"
+        state: directory
+        owner: "{{ meridian_runtime_user }}"
+        group: "{{ meridian_runtime_user }}"
+        mode: "0755"
+
+    - name: Unpack Meridian backend source
+      ansible.builtin.unarchive:
+        src: /tmp/meridian-backend.tar.gz
         dest: "{{ meridian_backend_root }}/"
         owner: "{{ meridian_runtime_user }}"
         group: "{{ meridian_runtime_user }}"
-        mode: preserve
       notify: Restart Meridian API
+
+    - name: Remove local backend source archive
+      ansible.builtin.file:
+        path: /tmp/meridian-backend.tar.gz
+        state: absent
+      delegate_to: localhost
+      become: false
+      changed_when: false
 
     - name: Create backend virtual environment
       ansible.builtin.command:
@@ -137,6 +190,41 @@
         state: started
         enabled: true
         daemon_reload: true
+
+    - name: Flush service handlers before smoke checks
+      ansible.builtin.meta: flush_handlers
+
+    - name: Smoke check Meridian API health
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ meridian_app_port }}/healthz"
+        return_content: true
+        status_code: 200
+      register: meridian_health_check
+      retries: 10
+      delay: 2
+      until: meridian_health_check.status == 200
+
+    - name: Smoke check Meridian API readiness
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ meridian_app_port }}/readyz"
+        return_content: true
+        status_code: 200
+      register: meridian_ready_check
+
+    - name: Smoke check Meridian preflight endpoint
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:{{ meridian_app_port }}/api/preflight"
+        return_content: true
+        status_code: 200
+      register: meridian_preflight_check
+
+    - name: Smoke check dashboard contains region and topology fixes
+      ansible.builtin.shell:
+        cmd: >-
+          grep -q availableRegions {{ meridian_web_root }}/index.html
+          && grep -q effectiveSelectedRegionIds {{ meridian_web_root }}/index.html
+          && grep -q preferredTopologyVcnId {{ meridian_web_root }}/index.html
+      changed_when: false
 
   handlers:
     - name: Reload systemd

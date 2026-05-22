@@ -3,7 +3,7 @@ ANSIBLE_DIR := ansible
 INVENTORY := $(ANSIBLE_DIR)/inventory/oci.ini
 PYTHON ?= python3
 
-.PHONY: help tf-init tf-fmt tf-validate tf-plan tf-apply tf-destroy inventory ansible-requirements ping deploy backend-install backend-test backend-run
+.PHONY: help tf-init tf-fmt tf-validate tf-plan tf-apply tf-destroy inventory ansible-requirements ping deploy backend-install backend-test dashboard-e2e backend-run
 
 help:
 	@echo "Meridian OCI Network Monitor"
@@ -21,6 +21,7 @@ help:
 	@echo "Backend:"
 	@echo "  make backend-install  Install backend dev dependencies"
 	@echo "  make backend-test     Run backend tests"
+	@echo "  make dashboard-e2e    Run dashboard browser E2E tests"
 	@echo "  make backend-run      Run backend locally"
 
 tf-init:
@@ -59,7 +60,10 @@ backend-install:
 	$(PYTHON) -m pip install -r backend/requirements-dev.txt
 
 backend-test:
-	PYTHONPATH=backend pytest backend/tests
+	PYTHONPATH=backend $(PYTHON) -m pytest backend/tests
+
+dashboard-e2e:
+	PYTHONPATH=backend $(PYTHON) -m pytest tests/e2e
 
 backend-run:
 	uvicorn app.main:app --app-dir backend --reload --host 127.0.0.1 --port 8080

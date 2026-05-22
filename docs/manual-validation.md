@@ -30,6 +30,15 @@ ruff check backend
 python -m compileall -q backend/app
 ```
 
+## Dashboard Browser E2E
+
+```bash
+PYTHONPATH=backend pytest tests/e2e
+```
+
+The E2E tests require Playwright and a local Chrome/Chromium browser. Set `MERIDIAN_E2E_BROWSER` when Chrome is not in
+one of the default macOS locations.
+
 Optional local API smoke test:
 
 ```bash
