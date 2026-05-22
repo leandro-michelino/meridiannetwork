@@ -628,6 +628,17 @@ body {
   background: var(--mn-surface);
 }
 
+.coverage-panel > summary.card-header {
+  padding: 7px 11px;
+  background: var(--mn-surface-soft);
+  border-bottom: 1px solid var(--mn-border-soft);
+}
+
+.coverage-panel.expander[open] > summary.card-header,
+.coverage-panel > summary.card-header {
+  margin-bottom: 0;
+}
+
 .coverage-filters {
   display: flex;
   flex-wrap: wrap;
@@ -1840,6 +1851,7 @@ let currentDashboardData = null;
 let selectedRegionIds = readRegionFilter();
 let collectionPollTimer = 0;
 let coverageFilter = 'all';
+let coveragePanelOpen = true;
 
 function byId(id) {
   return document.getElementById(id);
@@ -2376,11 +2388,11 @@ function renderCoveragePanel(completeness) {
   const visibleRows = coverageFilteredRows(rows, coverageFilter);
   panel.hidden = false;
   panel.innerHTML = `
-    <div class="coverage-panel">
-      <div class="cs-header">
-        <span>Coverage</span>
-        <span class="cs-header-right">${escapeHtml(coverageSummary(completeness))}</span>
-      </div>
+    <details class="coverage-panel expander" data-coverage-expander ${coveragePanelOpen ? 'open' : ''}>
+      <summary class="card-header">
+        <div class="card-title">Coverage</div>
+        <span class="badge neutral">${escapeHtml(coverageSummary(completeness))}</span>
+      </summary>
       <div class="cs-summary">
         ${collectionStat('Subscribed', String(completeness.total_subscribed_regions || 0))}
         ${collectionStat('Requested', String(completeness.total_requested_regions || 0))}
@@ -2400,8 +2412,14 @@ function renderCoveragePanel(completeness) {
         ${visibleRows.length ? visibleRows.slice(0, 18).map(renderCoverageRow).join('') : '<div class="empty">No regions match this coverage filter.</div>'}
         ${visibleRows.length > 18 ? `<div class="empty">${escapeHtml(String(visibleRows.length - 18))} additional regions hidden by the compact coverage view.</div>` : ''}
       </div>
-    </div>
+    </details>
   `;
+  const details = panel.querySelector('[data-coverage-expander]');
+  if (details) {
+    details.addEventListener('toggle', () => {
+      coveragePanelOpen = details.open;
+    });
+  }
 }
 
 function coverageFilters(completeness) {
