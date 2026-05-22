@@ -3976,9 +3976,12 @@ function topologyLayout(nodes) {
   const positions = {};
   Object.entries(groups).forEach(([key, group]) => {
     const band = columns[key] || columns.center;
+    const denseColumn = group.length > 8;
+    const y1 = denseColumn ? 2 : band.y1;
+    const y2 = denseColumn ? 98 : band.y2;
     group.forEach((node, index) => {
       const ratio = group.length === 1 ? 0.5 : index / (group.length - 1);
-      positions[node.id] = { x: band.x, y: band.y1 + (band.y2 - band.y1) * ratio };
+      positions[node.id] = { x: band.x, y: y1 + (y2 - y1) * ratio };
     });
   });
   return positions;
