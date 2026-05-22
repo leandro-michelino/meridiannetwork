@@ -1,3 +1,4 @@
+from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.dependencies import get_security_actions_service, get_security_posture_service

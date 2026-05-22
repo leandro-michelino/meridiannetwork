@@ -1,3 +1,4 @@
+from __future__ import annotations
 from fastapi import APIRouter, Depends
 
 from app.dependencies import get_preflight_service

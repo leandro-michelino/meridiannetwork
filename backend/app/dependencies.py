@@ -1,3 +1,4 @@
+from __future__ import annotations
 from fastapi import Depends
 
 from app.config import Settings, get_settings

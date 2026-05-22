@@ -1,3 +1,4 @@
+from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.dependencies import get_compartment_service, get_region_service
