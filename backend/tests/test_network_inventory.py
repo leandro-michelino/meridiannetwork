@@ -462,6 +462,17 @@ def test_dashboard_async_starts_collection_without_live_oci():
     assert body["collection"]["requested_regions"] == ["eu-frankfurt-1"]
 
 
+def test_dashboard_async_defaults_to_active_regions_without_live_oci():
+    client = TestClient(create_app())
+
+    response = client.get("/api/dashboard?async_collect=true")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["collection"]["status"] in {"collecting", "ready"}
+    assert body["collection"]["requested_regions"] == ["eu-frankfurt-1"]
+
+
 def test_dashboard_async_refresh_can_clear_cache_without_live_oci():
     network_router._dashboard_jobs.clear()
     network_router._dashboard_snapshots.clear()

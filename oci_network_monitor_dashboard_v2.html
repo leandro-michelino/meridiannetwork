@@ -1899,21 +1899,25 @@ async function postJson(path, payload) {
 }
 
 async function loadApiData(options = {}) {
-  const dashboardPath = dashboardApiPath(options);
+  const [
+    identityContext,
+    availableRegions,
+    activeRegions,
+    securityActionHistory,
+  ] = await Promise.all([
+    getJson(API_PATHS.identityContext),
+    getJson(API_PATHS.availableRegions),
+    getJson(API_PATHS.activeRegions),
+    getJson(API_PATHS.securityActions),
+  ]);
+  const dashboardOptions = { ...options };
+  if (!Array.isArray(dashboardOptions.regionsOverride) && selectedRegionIds === null) {
+    const defaultRegions = defaultApiRegionIds(availableRegions, activeRegions);
+    if (defaultRegions.length) dashboardOptions.regionsOverride = defaultRegions;
+  }
+  const dashboardPath = dashboardApiPath(dashboardOptions);
   if (!dashboardPath) {
-    const [
-      identityContext,
-      availableRegions,
-      activeRegions,
-      compartments,
-      securityActionHistory,
-    ] = await Promise.all([
-      getJson(API_PATHS.identityContext),
-      getJson(API_PATHS.availableRegions),
-      getJson(API_PATHS.activeRegions),
-      getJson(API_PATHS.compartments),
-      getJson(API_PATHS.securityActions),
-    ]);
+    const compartments = await getJson(API_PATHS.compartments);
     return {
       identityContext,
       availableRegions,
@@ -1921,21 +1925,11 @@ async function loadApiData(options = {}) {
       securityActionHistory,
     };
   }
-  const [
-    identityContext,
-    availableRegions,
-    dashboard,
-    securityActionHistory,
-  ] = await Promise.all([
-    getJson(API_PATHS.identityContext),
-    getJson(API_PATHS.availableRegions),
-    getJson(dashboardPath),
-    getJson(API_PATHS.securityActions),
-  ]);
+  const dashboard = await getJson(dashboardPath);
   return {
     identityContext,
     availableRegions,
-    activeRegions: dashboard.activeRegions || [],
+    activeRegions: dashboard.activeRegions || activeRegions || [],
     compartments: dashboard.compartments || [],
     vcns: dashboard.vcns || [],
     subnets: dashboard.subnets || [],
@@ -1949,6 +1943,20 @@ async function loadApiData(options = {}) {
     collection: dashboard.collection || { requested_regions: [], issues: [] },
     securityActionHistory,
   };
+}
+
+function defaultApiRegionIds(availableRegions = [], activeRegions = []) {
+  const activeIds = (activeRegions || [])
+    .filter((region) => region?.id && region.is_active !== false)
+    .map((region) => region.id);
+  if (activeIds.length) return [...new Set(activeIds)];
+
+  const availableActiveIds = (availableRegions || [])
+    .filter((region) => region?.id && region.is_active !== false)
+    .map((region) => region.id);
+  if (availableActiveIds.length) return [...new Set(availableActiveIds)];
+
+  return [...new Set((availableRegions || []).map((region) => region?.id).filter(Boolean))];
 }
 
 function dashboardApiPath({

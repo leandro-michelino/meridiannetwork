@@ -217,9 +217,12 @@ def dashboard_snapshot(
     try:
         selected_regions = split_csv(regions)
         selected_compartments = split_csv(compartment_ids)
-        if async_collect and selected_regions:
+        if async_collect:
+            async_regions = selected_regions or [region.id for region in region_service.list_active()]
+            if not async_regions:
+                async_regions = network_inventory.selected_region_ids(selected_regions)
             return _async_dashboard_snapshot(
-                selected_regions=selected_regions,
+                selected_regions=async_regions,
                 selected_compartments=selected_compartments,
                 vcn_id=vcn_id,
                 network_inventory=network_inventory,
