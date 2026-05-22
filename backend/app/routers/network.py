@@ -218,11 +218,8 @@ def dashboard_snapshot(
         selected_regions = split_csv(regions)
         selected_compartments = split_csv(compartment_ids)
         if async_collect:
-            async_regions = selected_regions or [region.id for region in region_service.list_active()]
-            if not async_regions:
-                async_regions = network_inventory.selected_region_ids(selected_regions)
             return _async_dashboard_snapshot(
-                selected_regions=async_regions,
+                selected_regions=_dashboard_async_regions(selected_regions, network_inventory, region_service),
                 selected_compartments=selected_compartments,
                 vcn_id=vcn_id,
                 network_inventory=network_inventory,
@@ -244,6 +241,56 @@ def dashboard_snapshot(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail={"code": "OCI_CLIENT_ERROR", "message": str(exc)},
         ) from exc
+
+
+@router.get("/dashboard/completeness")
+def dashboard_completeness(
+    regions: str | None = Query(default=None, description="Comma-separated OCI region names."),
+    compartment_ids: str | None = Query(default=None, description="Comma-separated compartment OCIDs."),
+    vcn_id: str | None = Query(default=None, description="Optional VCN OCID filter."),
+    async_collect: bool = Query(default=True, description="Use async cached collection state."),
+    network_inventory: NetworkInventoryService = Depends(get_network_inventory_service),
+    region_service: RegionService = Depends(get_region_service),
+    compartment_service: CompartmentService = Depends(get_compartment_service),
+) -> dict[str, object]:
+    try:
+        selected_regions = split_csv(regions)
+        selected_compartments = split_csv(compartment_ids)
+        if async_collect:
+            response = _async_dashboard_snapshot(
+                selected_regions=_dashboard_async_regions(selected_regions, network_inventory, region_service),
+                selected_compartments=selected_compartments,
+                vcn_id=vcn_id,
+                network_inventory=network_inventory,
+                region_service=region_service,
+                compartment_service=compartment_service,
+            )
+        else:
+            response = _build_dashboard_snapshot(
+                selected_regions=selected_regions,
+                selected_compartments=selected_compartments,
+                vcn_id=vcn_id,
+                network_inventory=network_inventory,
+                region_service=region_service,
+                compartment_service=compartment_service,
+            )
+        return dict(response.get("completeness", {}))
+    except OciClientError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={"code": "OCI_CLIENT_ERROR", "message": str(exc)},
+        ) from exc
+
+
+def _dashboard_async_regions(
+    selected_regions: list[str],
+    network_inventory: NetworkInventoryService,
+    region_service: RegionService,
+) -> list[str]:
+    async_regions = selected_regions or [region.id for region in region_service.list_active()]
+    if not async_regions:
+        async_regions = network_inventory.selected_region_ids(selected_regions)
+    return async_regions
 
 
 def _async_dashboard_snapshot(
@@ -450,6 +497,7 @@ def _build_dashboard_snapshot(
         "pending_regions": [],
         "regions": region_rows,
     }
+    response["completeness"] = _dashboard_completeness(response, region_service.list_available())
     return jsonable_encoder(response)
 
 
@@ -497,6 +545,7 @@ def _aggregate_dashboard_snapshots(
         "issues": issues,
         "regions": region_states,
     }
+    response["completeness"] = _dashboard_completeness(response, active_regions)
     return response
 
 
@@ -600,6 +649,156 @@ def _region_collection_state(region: str, snapshot: dict[str, object]) -> dict[s
         "duration_seconds": snapshot.get("duration_seconds"),
         "error": region_issues[0].get("message") if status == "failed" and region_issues else None,
     }
+
+
+def _dashboard_completeness(
+    response: dict[str, object],
+    subscribed_regions: list[object],
+) -> dict[str, object]:
+    collection = response.get("collection", {})
+    collection_dict = collection if isinstance(collection, dict) else {}
+    requested_regions = [str(region) for region in list(collection_dict.get("requested_regions", []))]
+    pending_regions = {str(region) for region in list(collection_dict.get("pending_regions", []))}
+    completed_regions = {str(region) for region in list(collection_dict.get("completed_regions", []))}
+    subscribed_ids = [_region_value(region, "id") for region in subscribed_regions]
+    subscribed_ids = [region for region in subscribed_ids if region]
+    region_ids = list(
+        dict.fromkeys(
+            [
+                *subscribed_ids,
+                *requested_regions,
+                *_response_region_ids(response),
+                *[_region_value(region, "id") for region in list(collection_dict.get("regions", []))],
+            ]
+        )
+    )
+    collection_rows = {
+        _region_value(row, "id"): row
+        for row in list(collection_dict.get("regions", []))
+        if _region_value(row, "id")
+    }
+    issues_by_region: dict[str, list[dict[str, object]]] = {}
+    for issue in list(collection_dict.get("issues", [])):
+        if isinstance(issue, dict):
+            issues_by_region.setdefault(str(issue.get("region") or "*"), []).append(issue)
+    for row in collection_rows.values():
+        if isinstance(row, dict):
+            region = str(row.get("id") or "")
+            for issue in list(row.get("issues", [])):
+                if isinstance(issue, dict):
+                    issues_by_region.setdefault(region, []).append(issue)
+
+    rows: list[dict[str, object]] = []
+    for region in sorted(region_ids, key=lambda value: (value not in subscribed_ids, value)):
+        row = collection_rows.get(region, {})
+        resource_counts = _resource_counts_for_region(response, region, row)
+        warning_count = len(issues_by_region.get(region, []))
+        has_resources = any(value > 0 for value in resource_counts.values())
+        requested = region in requested_regions
+        status_value = _region_value(row, "status") or (
+            "pending" if region in pending_regions else "ready" if region in completed_regions else "not_requested"
+        )
+        rows.append(
+            {
+                "id": region,
+                "subscribed": region in subscribed_ids,
+                "requested": requested,
+                "completed": region in completed_regions,
+                "pending": region in pending_regions or status_value == "collecting",
+                "failed": status_value == "failed",
+                "status": status_value,
+                "has_vcns": resource_counts["vcns"] > 0,
+                "has_subnets": resource_counts["subnets"] > 0,
+                "zero_resources": requested and not has_resources and status_value not in {"collecting", "failed"},
+                "resource_counts": resource_counts,
+                "warning_count": warning_count,
+                "warning_types": sorted(
+                    {
+                        str(issue.get("resource_type") or "*")
+                        for issue in issues_by_region.get(region, [])
+                        if isinstance(issue, dict)
+                    }
+                ),
+                "last_updated": _region_value(row, "last_updated"),
+                "duration_seconds": _region_value(row, "duration_seconds"),
+            }
+        )
+
+    failed_regions = [row["id"] for row in rows if row["failed"]]
+    warning_regions = [row["id"] for row in rows if int(row["warning_count"] or 0) > 0]
+    zero_resource_regions = [row["id"] for row in rows if row["zero_resources"]]
+    regions_with_vcns = [row["id"] for row in rows if row["has_vcns"]]
+    regions_with_subnets = [row["id"] for row in rows if row["has_subnets"]]
+    return {
+        "status": collection_dict.get("status", "unknown"),
+        "subscribed_regions": subscribed_ids,
+        "requested_regions": requested_regions,
+        "completed_regions": list(completed_regions),
+        "pending_regions": list(pending_regions),
+        "failed_regions": failed_regions,
+        "warning_regions": warning_regions,
+        "zero_resource_regions": zero_resource_regions,
+        "regions_with_vcns": regions_with_vcns,
+        "regions_with_subnets": regions_with_subnets,
+        "total_regions": len(rows),
+        "total_subscribed_regions": len(subscribed_ids),
+        "total_requested_regions": len(requested_regions),
+        "total_completed_regions": len(completed_regions),
+        "total_pending_regions": len(pending_regions),
+        "total_failed_regions": len(failed_regions),
+        "total_warning_regions": len(warning_regions),
+        "total_zero_resource_regions": len(zero_resource_regions),
+        "total_regions_with_vcns": len(regions_with_vcns),
+        "total_regions_with_subnets": len(regions_with_subnets),
+        "rows": rows,
+    }
+
+
+def _region_value(region: object, field: str) -> str:
+    if isinstance(region, dict):
+        value = region.get(field)
+    else:
+        value = getattr(region, field, None)
+    return str(value) if value is not None else ""
+
+
+def _response_region_ids(response: dict[str, object]) -> list[str]:
+    region_ids: list[str] = []
+    for field in (
+        "vcns",
+        "subnets",
+        "gateways",
+        "routeTables",
+        "securityLists",
+        "networkSecurityGroups",
+    ):
+        for item in list(response.get(field, [])):
+            region = _region_value(item, "region")
+            if region:
+                region_ids.append(region)
+    return region_ids
+
+
+def _resource_counts_for_region(
+    response: dict[str, object],
+    region: str,
+    collection_row: object,
+) -> dict[str, int]:
+    row_counts = collection_row.get("resource_counts", {}) if isinstance(collection_row, dict) else {}
+    return {
+        "vcns": int(row_counts.get("vcns") or _count_response_items(response, "vcns", region)),
+        "subnets": int(row_counts.get("subnets") or _count_response_items(response, "subnets", region)),
+        "gateways": int(row_counts.get("gateways") or _count_response_items(response, "gateways", region)),
+        "routeTables": int(row_counts.get("routeTables") or _count_response_items(response, "routeTables", region)),
+        "securityLists": int(row_counts.get("securityLists") or _count_response_items(response, "securityLists", region)),
+        "networkSecurityGroups": int(
+            row_counts.get("networkSecurityGroups") or _count_response_items(response, "networkSecurityGroups", region)
+        ),
+    }
+
+
+def _count_response_items(response: dict[str, object], field: str, region: str) -> int:
+    return sum(1 for item in list(response.get(field, [])) if _region_value(item, "region") == region)
 
 
 def _aggregate_route_issues(

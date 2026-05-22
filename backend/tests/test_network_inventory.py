@@ -449,6 +449,9 @@ def test_dashboard_returns_empty_snapshot_without_live_oci():
     assert body["subnets"] == []
     assert body["topology"] == {"nodes": [], "edges": []}
     assert body["collection"]["status"] == "ready"
+    assert body["completeness"]["total_requested_regions"] == 1
+    row = next(item for item in body["completeness"]["rows"] if item["id"] == "eu-frankfurt-1")
+    assert row["zero_resources"] is True
 
 
 def test_dashboard_async_starts_collection_without_live_oci():
@@ -460,6 +463,7 @@ def test_dashboard_async_starts_collection_without_live_oci():
     body = response.json()
     assert body["collection"]["status"] in {"collecting", "ready"}
     assert body["collection"]["requested_regions"] == ["eu-frankfurt-1"]
+    assert body["completeness"]["total_requested_regions"] == 1
 
 
 def test_dashboard_async_defaults_to_active_regions_without_live_oci():
@@ -471,6 +475,18 @@ def test_dashboard_async_defaults_to_active_regions_without_live_oci():
     body = response.json()
     assert body["collection"]["status"] in {"collecting", "ready"}
     assert body["collection"]["requested_regions"] == ["eu-frankfurt-1"]
+
+
+def test_dashboard_completeness_endpoint_without_live_oci():
+    client = TestClient(create_app())
+
+    response = client.get("/api/dashboard/completeness?regions=eu-frankfurt-1")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["requested_regions"] == ["eu-frankfurt-1"]
+    assert body["total_requested_regions"] == 1
+    assert body["rows"][0]["id"] == "eu-frankfurt-1"
 
 
 def test_dashboard_async_refresh_can_clear_cache_without_live_oci():

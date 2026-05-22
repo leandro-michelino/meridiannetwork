@@ -211,6 +211,10 @@ def test_regions_menu_controls_api_and_demo_scope(page) -> None:
     expect(page.locator("#collectionStatusPanel .cs-progress")).to_be_visible()
     expect(page.locator("#collectionStatusPanel")).to_contain_text("Full scan")
     expect(page.locator('#collectionStatusPanel button[data-refresh-region]').first).to_be_visible()
+    expect(page.locator("#coveragePanel")).to_be_visible()
+    expect(page.locator("#coveragePanel")).to_contain_text("Coverage")
+    expect(page.locator('#coveragePanel button[data-coverage-filter="missing_vcns"]')).to_be_visible()
+    expect(page.locator("#coveragePanel .coverage-row").first).to_contain_text("VCN")
     expect(page.locator('#collectionStatusPanel button[data-refresh-selected]')).to_be_enabled(timeout=10_000)
 
     page.click('#collectionStatusPanel button[data-refresh-selected]')

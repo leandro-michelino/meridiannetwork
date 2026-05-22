@@ -619,6 +619,81 @@ body {
   white-space: nowrap;
 }
 
+.coverage-panel {
+  margin-top: 10px;
+  border: 1px solid var(--mn-border-soft);
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 12px;
+  background: var(--mn-surface);
+}
+
+.coverage-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 9px 11px;
+  border-bottom: 1px solid var(--mn-border-soft);
+}
+
+.coverage-filter.active {
+  border-color: #e1a58f;
+  background: #fff2ed;
+  color: var(--mn-orange);
+}
+
+.coverage-rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.coverage-row {
+  display: grid;
+  grid-template-columns: minmax(130px, 1fr) auto minmax(240px, 2fr) minmax(120px, auto);
+  align-items: center;
+  gap: 8px;
+  padding: 8px 11px;
+  border-top: 1px solid var(--mn-border-soft);
+}
+
+.coverage-region {
+  min-width: 0;
+  font-weight: 750;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.coverage-counts,
+.coverage-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.coverage-chip {
+  border: 1px solid var(--mn-border-soft);
+  border-radius: 4px;
+  color: var(--mn-muted);
+  font-size: 10px;
+  font-weight: 750;
+  line-height: 1;
+  padding: 3px 5px;
+  white-space: nowrap;
+}
+
+.coverage-chip.warn {
+  border-color: #ffe0b2;
+  background: #fffaf2;
+  color: #7c4a03;
+}
+
+.coverage-chip.err {
+  border-color: #ffc9c9;
+  background: #fff5f5;
+  color: #7d1a1a;
+}
+
 .grid-2 {
   display: grid;
   grid-template-columns: minmax(360px, 1.1fr) minmax(360px, 0.9fr);
@@ -1318,6 +1393,10 @@ tr:last-child td { border-bottom: 0; }
     justify-self: start;
   }
 
+  .coverage-row {
+    grid-template-columns: 1fr;
+  }
+
   .button {
     justify-content: center;
   }
@@ -1409,6 +1488,7 @@ tr:last-child td { border-bottom: 0; }
       </div>
       <div class="inventory-notice" id="inventoryNotice" hidden></div>
       <div id="collectionStatusPanel" hidden></div>
+      <div id="coveragePanel" hidden></div>
     </section>
 
     <section class="grid-2">
@@ -1621,6 +1701,7 @@ const API_PATHS = {
   securityPosture: '/api/security/posture',
   securityActions: '/api/security/finding-actions',
   identityContext: '/api/identity/context',
+  dashboardCompleteness: '/api/dashboard/completeness',
 };
 
 const DEMO_DATA = {
@@ -1758,6 +1839,7 @@ let currentDefaultRegionIds = [];
 let currentDashboardData = null;
 let selectedRegionIds = readRegionFilter();
 let collectionPollTimer = 0;
+let coverageFilter = 'all';
 
 function byId(id) {
   return document.getElementById(id);
@@ -1973,6 +2055,7 @@ async function loadApiData(options = {}) {
     topology: dashboard.topology || {},
     securityPosture: dashboard.securityPosture || {},
     collection: dashboard.collection || { requested_regions: [], issues: [] },
+    completeness: dashboard.completeness || null,
     securityActionHistory,
   };
 }
@@ -2032,6 +2115,7 @@ function emptyDashboardData(activeRegions, compartments) {
     topology: { nodes: [], edges: [] },
     securityPosture: { status: 'ok', risk_score: 0, total_findings: 0, findings: [] },
     collection: { status: 'idle', requested_regions: [], issues: [] },
+    completeness: null,
   };
 }
 
@@ -2101,6 +2185,7 @@ function renderDashboard(data, mode) {
   data.networkSecurityGroups = data.networkSecurityGroups || [];
   data.securityPosture = data.securityPosture || { status: 'ok', risk_score: 0, total_findings: 0, findings: [] };
   data.collection = data.collection || { requested_regions: [], issues: [] };
+  data.completeness = data.completeness || buildCompletenessFromDashboard(data);
   data.securityActionHistory = mode === 'api'
     ? data.securityActionHistory || { total_actions: 0, actions: [] }
     : { total_actions: securityActionHistory.length, actions: securityActionHistory };
@@ -2157,6 +2242,7 @@ function renderDashboard(data, mode) {
   renderNetworkSecurityGroups(viewData.networkSecurityGroups, compartmentMap);
   renderFindings(viewData.securityPosture.findings || []);
   renderInventoryNotice(data.collection);
+  renderCoveragePanel(data.completeness);
   scheduleCollectionPoll(data.collection);
   renderSecurityActionHistory(securityActionHistory);
   renderNetworkTable(viewData.vcns, viewData.subnets, compartmentMap);
@@ -2275,6 +2361,164 @@ function renderInventoryNotice(collection) {
   notice.hidden = true;
   notice.textContent = '';
   renderCollectionStatusPanel(collection);
+}
+
+function renderCoveragePanel(completeness) {
+  const panel = byId('coveragePanel');
+  const rows = completeness?.rows || [];
+  if (!rows.length) {
+    panel.hidden = true;
+    panel.innerHTML = '';
+    return;
+  }
+  const filters = coverageFilters(completeness);
+  if (!filters.some((filter) => filter.id === coverageFilter)) coverageFilter = 'all';
+  const visibleRows = coverageFilteredRows(rows, coverageFilter);
+  panel.hidden = false;
+  panel.innerHTML = `
+    <div class="coverage-panel">
+      <div class="cs-header">
+        <span>Coverage</span>
+        <span class="cs-header-right">${escapeHtml(coverageSummary(completeness))}</span>
+      </div>
+      <div class="cs-summary">
+        ${collectionStat('Subscribed', String(completeness.total_subscribed_regions || 0))}
+        ${collectionStat('Requested', String(completeness.total_requested_regions || 0))}
+        ${collectionStat('With VCNs', String(completeness.total_regions_with_vcns || 0))}
+        ${collectionStat('With subnets', String(completeness.total_regions_with_subnets || 0))}
+        ${collectionStat('Warnings', String(completeness.total_warning_regions || 0))}
+        ${collectionStat('Zero resources', String(completeness.total_zero_resource_regions || 0))}
+      </div>
+      <div class="coverage-filters">
+        ${filters.map((filter) => `
+          <button class="button coverage-filter ${filter.id === coverageFilter ? 'active' : ''}" type="button" data-coverage-filter="${escapeHtml(filter.id)}">
+            ${escapeHtml(filter.label)}
+          </button>
+        `).join('')}
+      </div>
+      <div class="coverage-rows">
+        ${visibleRows.length ? visibleRows.slice(0, 18).map(renderCoverageRow).join('') : '<div class="empty">No regions match this coverage filter.</div>'}
+        ${visibleRows.length > 18 ? `<div class="empty">${escapeHtml(String(visibleRows.length - 18))} additional regions hidden by the compact coverage view.</div>` : ''}
+      </div>
+    </div>
+  `;
+}
+
+function coverageFilters(completeness) {
+  return [
+    ['all', `All ${completeness.rows?.length || 0}`],
+    ['failed', `Failed ${completeness.total_failed_regions || 0}`],
+    ['warnings', `Warnings ${completeness.total_warning_regions || 0}`],
+    ['zero', `Zero resources ${completeness.total_zero_resource_regions || 0}`],
+    ['missing_vcns', 'Missing VCNs'],
+    ['missing_subnets', 'Missing subnets'],
+  ].map(([id, label]) => ({ id, label }));
+}
+
+function coverageFilteredRows(rows, filter) {
+  const predicates = {
+    failed: (row) => row.failed,
+    warnings: (row) => Number(row.warning_count || 0) > 0,
+    zero: (row) => row.zero_resources,
+    missing_vcns: (row) => row.requested && row.completed && !row.has_vcns,
+    missing_subnets: (row) => row.requested && row.completed && !row.has_subnets,
+  };
+  const predicate = predicates[filter];
+  return (predicate ? rows.filter(predicate) : rows)
+    .slice()
+    .sort((left, right) => coverageRowRank(left) - coverageRowRank(right) || left.id.localeCompare(right.id));
+}
+
+function coverageRowRank(row) {
+  if (row.failed) return 0;
+  if (row.pending) return 1;
+  if (Number(row.warning_count || 0) > 0) return 2;
+  if (row.zero_resources) return 3;
+  return 4;
+}
+
+function renderCoverageRow(row) {
+  const counts = row.resource_counts || {};
+  return `
+    <div class="coverage-row">
+      <div class="coverage-region" title="${escapeHtml(row.id)}">${escapeHtml(row.id)}</div>
+      <span class="${badgeClass(coverageBadgeStatus(row))}">${escapeHtml(coverageStatusLabel(row))}</span>
+      <div class="coverage-counts">
+        <span class="coverage-chip">${escapeHtml(counts.vcns || 0)} VCN</span>
+        <span class="coverage-chip">${escapeHtml(counts.subnets || 0)} subnet</span>
+        <span class="coverage-chip">${escapeHtml(counts.gateways || 0)} gateway</span>
+        <span class="coverage-chip">${escapeHtml(counts.routeTables || 0)} route</span>
+      </div>
+      <div class="coverage-flags">
+        ${row.subscribed ? '<span class="coverage-chip">subscribed</span>' : '<span class="coverage-chip warn">not subscribed</span>'}
+        ${row.warning_count ? `<span class="coverage-chip warn">${escapeHtml(row.warning_count)} warning</span>` : ''}
+        ${row.zero_resources ? '<span class="coverage-chip warn">zero resources</span>' : ''}
+        ${row.failed ? '<span class="coverage-chip err">failed</span>' : ''}
+      </div>
+    </div>
+  `;
+}
+
+function coverageBadgeStatus(row) {
+  if (row.failed) return 'fail';
+  if (row.pending) return 'neutral';
+  if (Number(row.warning_count || 0) > 0 || row.zero_resources) return 'warn';
+  if (row.completed) return 'ready';
+  return 'neutral';
+}
+
+function coverageStatusLabel(row) {
+  if (row.failed) return 'Failed';
+  if (row.pending) return 'Pending';
+  if (row.zero_resources) return 'Zero resources';
+  if (Number(row.warning_count || 0) > 0) return 'Warnings';
+  if (row.completed) return 'Covered';
+  return row.requested ? 'Requested' : 'Not requested';
+}
+
+function coverageSummary(completeness) {
+  const requested = completeness.total_requested_regions || 0;
+  const completed = completeness.total_completed_regions || 0;
+  const pending = completeness.total_pending_regions || 0;
+  const failed = completeness.total_failed_regions || 0;
+  return `${completed}/${requested} complete / ${pending} pending / ${failed} failed`;
+}
+
+function buildCompletenessFromDashboard(data) {
+  const collection = data.collection || {};
+  const rows = (collection.regions || []).map((region) => {
+    const counts = region.resource_counts || {};
+    return {
+      id: region.id,
+      subscribed: true,
+      requested: true,
+      completed: region.status !== 'collecting',
+      pending: region.status === 'collecting',
+      failed: region.status === 'failed',
+      status: region.status,
+      has_vcns: Number(counts.vcns || 0) > 0,
+      has_subnets: Number(counts.subnets || 0) > 0,
+      zero_resources: region.status === 'no_resources',
+      resource_counts: counts,
+      warning_count: (region.issues || []).length,
+      warning_types: [...new Set((region.issues || []).map((issue) => issue.resource_type || '*'))],
+      last_updated: region.last_updated,
+      duration_seconds: region.duration_seconds,
+    };
+  });
+  return {
+    status: collection.status || 'unknown',
+    rows,
+    total_subscribed_regions: rows.length,
+    total_requested_regions: collection.requested_regions?.length || rows.length,
+    total_completed_regions: collection.completed_regions?.length || rows.filter((row) => row.completed).length,
+    total_pending_regions: collection.pending_regions?.length || rows.filter((row) => row.pending).length,
+    total_failed_regions: rows.filter((row) => row.failed).length,
+    total_warning_regions: rows.filter((row) => row.warning_count > 0).length,
+    total_zero_resource_regions: rows.filter((row) => row.zero_resources).length,
+    total_regions_with_vcns: rows.filter((row) => row.has_vcns).length,
+    total_regions_with_subnets: rows.filter((row) => row.has_subnets).length,
+  };
 }
 
 function renderCollectionStatusPanel(collection) {
@@ -4683,6 +4927,12 @@ byId('collectionStatusPanel').addEventListener('click', (event) => {
       manualRefresh: true,
     });
   }
+});
+byId('coveragePanel').addEventListener('click', (event) => {
+  const button = event.target.closest('button[data-coverage-filter]');
+  if (!button) return;
+  coverageFilter = button.getAttribute('data-coverage-filter') || 'all';
+  renderCoveragePanel(currentDashboardData?.completeness || buildCompletenessFromDashboard(currentDashboardData || DEMO_DATA));
 });
 
 function exportQueryParams() {
