@@ -388,10 +388,40 @@ body {
 
 .cs-summary {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 1px;
   background: var(--mn-border-soft);
   border-bottom: 1px solid var(--mn-border-soft);
+}
+
+.cs-progress {
+  padding: 9px 11px;
+  border-bottom: 1px solid var(--mn-border-soft);
+  background: #fff;
+}
+
+.cs-progress-bar {
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--mn-border-soft);
+}
+
+.cs-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--mn-orange), var(--mn-blue));
+}
+
+.cs-progress-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-top: 6px;
+  color: var(--mn-muted);
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .cs-stat {
@@ -1677,6 +1707,8 @@ const DEMO_DATA = {
 };
 
 const AUTO_REFRESH_MS = 120000;
+const TOPOLOGY_CLUSTER_VCN_THRESHOLD = 80;
+const TOPOLOGY_CLUSTER_REGION_THRESHOLD = 8;
 const TOPOLOGY_POSITION_KEY = 'meridianTopologyNodePositions';
 const TOPOLOGY_ZOOM_KEY = 'meridianTopologyZoom';
 const TOPOLOGY_MODE_KEY = 'meridianTopologyMode';
@@ -2014,8 +2046,9 @@ function setManualRefreshControlsDisabled(disabled = false) {
   if (refreshButton) refreshButton.disabled = busy;
   const panel = byId('collectionStatusPanel');
   if (panel) {
-    panel.querySelectorAll('button[data-refresh-region], button[data-refresh-selected], button[data-clear-cache]').forEach((button) => {
-      button.disabled = busy || useDemoData;
+    panel.querySelectorAll('button[data-refresh-region], button[data-refresh-selected], button[data-clear-cache], button[data-retry-failed]').forEach((button) => {
+      const failedCount = (currentDashboardData?.collection?.regions || []).filter((region) => region.status === 'failed').length;
+      button.disabled = busy || useDemoData || (button.hasAttribute('data-retry-failed') && failedCount === 0);
     });
   }
 }
@@ -2260,6 +2293,7 @@ function renderCollectionStatusPanel(collection) {
   const failedCount = regions.filter((r) => r.status === 'failed').length;
   const warnCount = regions.filter((r) => r.status === 'ready_with_warnings').length;
   const controlsDisabled = refreshInFlight || useDemoData || status === 'collecting' || collectingCount > 0;
+  const progress = collectionProgress(collection, regions);
   const headerStatus = collectingCount
     ? `${collectingCount} collecting…`
     : failedCount
@@ -2276,14 +2310,28 @@ function renderCollectionStatusPanel(collection) {
         <div class="cs-header-actions">
           <span class="cs-header-right">${escapeHtml(headerStatus)}</span>
           <button class="button cs-action-button" type="button" data-refresh-selected ${controlsDisabled ? 'disabled' : ''}>Refresh selected</button>
+          <button class="button cs-action-button" type="button" data-retry-failed ${controlsDisabled || !failedCount ? 'disabled' : ''}>Retry failed</button>
           <button class="button cs-action-button" type="button" data-clear-cache ${controlsDisabled ? 'disabled' : ''}>Clear cache</button>
         </div>
       </div>
       <div class="cs-summary">
         ${collectionStat('Status', collectionStatusLabel(status || headerStatus))}
-        ${collectionStat('Regions', collectionRegionSummary(collection, regions))}
+        ${collectionStat('Progress', collectionRegionSummary(collection, regions))}
+        ${collectionStat('Failed', String(failedCount))}
         ${collectionStat('Resources', String(collectionTotalResources(regions)))}
-        ${collectionStat('Last successful', collectionLastSuccess(regions))}
+        ${collectionStat('Last success', collectionLastSuccess(regions))}
+        ${collectionStat('Full scan', collectionFullScanLabel(progress, regions))}
+      </div>
+      <div class="cs-progress">
+        <div class="cs-progress-bar" title="${escapeHtml(`${progress.percent}% finished`)}">
+          <span class="cs-progress-fill" style="width:${escapeHtml(progress.percent)}%"></span>
+        </div>
+        <div class="cs-progress-meta">
+          <span>${escapeHtml(`${progress.finished}/${progress.requested} finished`)}</span>
+          <span>${escapeHtml(`${progress.pending} pending`)}</span>
+          <span>${escapeHtml(`${progress.failed} failed`)}</span>
+          <span>${escapeHtml(collectionCompletenessLabel(progress))}</span>
+        </div>
       </div>
       <div class="cs-rows">
         ${regions.map((r) => renderRegionStatusRow(r, controlsDisabled)).join('')}
@@ -2329,7 +2377,7 @@ function renderRegionStatusRow(r, controlsDisabled = false) {
 
   const counts = r.resource_counts || {};
   const countsGrid = renderCollectionCounts(counts);
-  const refreshLabel = status === 'collecting' || r.refreshing ? 'Refreshing' : 'Refresh';
+  const refreshLabel = status === 'collecting' || r.refreshing ? 'Refreshing' : status === 'failed' ? 'Retry' : 'Refresh';
   const regionId = r.id || '';
   const refreshDisabled = controlsDisabled || !regionId;
 
@@ -2371,11 +2419,34 @@ function collectionStatusLabel(status) {
 }
 
 function collectionRegionSummary(collection, regions) {
-  const completed = collection?.completed_regions?.length || regions.filter((r) => r.status !== 'collecting').length;
+  const progress = collectionProgress(collection, regions);
+  if (progress.pending) return `${progress.finished}/${progress.requested} finished · ${progress.pending} pending`;
+  if (progress.failed) return `${progress.finished}/${progress.requested} finished · ${progress.failed} failed`;
+  return `${progress.finished}/${progress.requested} finished`;
+}
+
+function collectionProgress(collection, regions) {
+  const requested = collection?.requested_regions?.length || regions.length || 0;
   const pending = collection?.pending_regions?.length || regions.filter((r) => r.status === 'collecting').length;
-  const requested = collection?.requested_regions?.length || regions.length;
-  if (pending) return `${completed}/${requested} complete · ${pending} pending`;
-  return `${completed}/${requested} complete`;
+  const failed = regions.filter((r) => r.status === 'failed').length;
+  const successful = regions.filter((r) => ['ready', 'ready_with_warnings', 'no_resources'].includes(r.status)).length;
+  const finished = Math.max(0, requested - pending);
+  const percent = requested ? Math.round((finished / requested) * 100) : 0;
+  return { requested, pending, failed, successful, finished, percent };
+}
+
+function collectionCompletenessLabel(progress) {
+  if (!progress.requested) return 'No regions requested';
+  if (progress.pending) return 'Partial data while collection runs';
+  if (progress.failed) return 'Partial data with failed regions';
+  if (progress.successful >= progress.requested) return 'Full scan complete';
+  return 'Partial data';
+}
+
+function collectionFullScanLabel(progress, regions) {
+  if (!progress.requested) return 'No scan';
+  if (progress.successful < progress.requested || progress.failed || progress.pending) return 'No complete scan yet';
+  return collectionLastSuccess(regions);
 }
 
 function collectionTotalResources(regions) {
@@ -2645,11 +2716,18 @@ function regionGeo(region) {
 function renderTopology(data) {
   renderTopologyControls(data);
   const topologyData = topologyScopedData(data);
+  const useClusterShell = topologyShouldUseClusterShell(topologyData);
   const rawTopology = topologyMode === 'overview'
-    ? buildTopologyOverview(topologyData)
+    ? useClusterShell
+      ? buildTopologyClusterShell(topologyData, { includeVcns: Boolean(topologyRegionScope) })
+      : buildTopologyOverview(topologyData)
     : topologyMode === 'vcn'
-      ? buildInventoryTopology(topologyData)
-      : buildClusteredTopology(topologyData);
+      ? useClusterShell && !topologyVcnScope
+        ? buildTopologyClusterShell(topologyData, { includeVcns: Boolean(topologyRegionScope) })
+        : buildInventoryTopology(topologyData)
+      : useClusterShell && !topologyVcnScope
+        ? buildTopologyClusterShell(topologyData, { includeVcns: Boolean(topologyRegionScope) })
+        : buildClusteredTopology(topologyData);
   const layeredTopology = topologyMode === 'overview' ? rawTopology : filterTopologyLayers(rawTopology);
   const topology = filterTopologyGraph(layeredTopology);
   const nodes = topology.nodes || [];
@@ -2678,7 +2756,12 @@ function renderTopology(data) {
   if (hintEl) {
     const onlyVcns = nodes.every((n) => n.resource_type === 'vcn');
     const hasEnabledLayers = Object.values(topologyLayers).some(Boolean);
-    if (topologyMode === 'vcn' && onlyVcns && hasEnabledLayers) {
+    if (useClusterShell && !topologyVcnScope) {
+      hintEl.textContent = topologyRegionScope
+        ? 'Selected region expanded to VCN summaries. Choose a VCN to render its subnets, gateways, routes, and security resources.'
+        : 'Large inventory is clustered by region and compartment. Select a region or VCN to expand details on demand.';
+      hintEl.hidden = false;
+    } else if (topologyMode === 'vcn' && onlyVcns && hasEnabledLayers) {
       if (topologyVcnScope) {
         const vcnName = nodes[0]?.name || topologyVcnScope;
         hintEl.textContent = `No resources found for "${vcnName}" in the enabled layers. The VCN may have no gateways, subnets, or routing resources in the selected scope.`;
@@ -2855,6 +2938,13 @@ function topologyAvailableLifecycleStates(data) {
   ].filter(Boolean))].sort();
 }
 
+function topologyShouldUseClusterShell(data) {
+  if (topologySearchQuery.trim()) return false;
+  if (topologyVcnScope) return false;
+  return data.vcns.length > TOPOLOGY_CLUSTER_VCN_THRESHOLD
+    || topologyAvailableRegions(data).length > TOPOLOGY_CLUSTER_REGION_THRESHOLD;
+}
+
 function topologyScopedData(data) {
   let scoped = data;
   if (topologyRegionScope) {
@@ -2919,10 +3009,10 @@ function filterTopologyGraph(topology) {
     nodes = nodes.filter((node) => node.resource_type === 'region' || node.compartment_id === topologyCompartmentScope);
   }
   if (topologyResourceScope) {
-    nodes = nodes.filter((node) => node.resource_type === 'region' || node.resource_type === topologyResourceScope);
+    nodes = nodes.filter((node) => ['region', 'compartment'].includes(node.resource_type) || node.resource_type === topologyResourceScope);
   }
   if (topologyLifecycleScope) {
-    nodes = nodes.filter((node) => node.resource_type === 'region' || node.lifecycle_state === topologyLifecycleScope);
+    nodes = nodes.filter((node) => ['region', 'compartment'].includes(node.resource_type) || node.lifecycle_state === topologyLifecycleScope);
   }
   const query = topologySearchQuery.trim().toLowerCase();
   if (query) {
@@ -2976,7 +3066,7 @@ function topologyNodeSearchText(node) {
 }
 
 function topologyLayerEnabled(resourceType) {
-  if (resourceType === 'region' || resourceType === 'vcn') return true;
+  if (resourceType === 'region' || resourceType === 'compartment' || resourceType === 'vcn') return true;
   if (resourceType === 'subnet') return Boolean(topologyLayers.subnets);
   if (resourceType === 'route_table') return Boolean(topologyLayers.routes);
   if (resourceType === 'security_list' || resourceType === 'network_security_group') return Boolean(topologyLayers.security);
@@ -2989,6 +3079,7 @@ function topologyLayerEnabled(resourceType) {
 function topologyResourceLabel(type) {
   return {
     region: 'Region',
+    compartment: 'Compartment',
     vcn: 'VCN',
     subnet: 'Subnet',
     route_table: 'Route table',
@@ -3003,8 +3094,9 @@ function topologyResourceLabel(type) {
 
 function topologyNodeClass(node) {
   return [
-    topologyMode === 'full' && node.resource_type === 'vcn' ? 'expandable' : '',
-    topologyMode === 'full' && node.id === topologyVcnScope ? 'expanded' : '',
+    ['region', 'vcn'].includes(node.resource_type) ? 'expandable' : '',
+    node.resource_type === 'region' && node.region === topologyRegionScope ? 'expanded' : '',
+    node.resource_type === 'vcn' && node.id === topologyVcnScope ? 'expanded' : '',
   ].filter(Boolean).join(' ');
 }
 
@@ -3182,6 +3274,115 @@ function topologyTouchCenter() {
     x: (points[0].x + points[1].x) / 2,
     y: (points[0].y + points[1].y) / 2,
   };
+}
+
+function buildTopologyClusterShell(data, { includeVcns = false } = {}) {
+  const nodes = [];
+  const edges = [];
+  const edgeKeys = new Set();
+  const addEdge = (sourceId, targetId, relationship, metadata = {}) => {
+    if (!sourceId || !targetId) return;
+    const key = `${sourceId}|${targetId}|${relationship}`;
+    if (edgeKeys.has(key)) return;
+    edgeKeys.add(key);
+    edges.push({ id: key, source_id: sourceId, target_id: targetId, relationship, metadata });
+  };
+  const compartmentNames = data.compartments.reduce((acc, compartment) => {
+    acc[compartment.id] = compartment.name || compartment.id;
+    return acc;
+  }, {});
+  const childCounts = topologyChildCounts(data);
+  const regions = topologyAvailableRegions(data);
+
+  regions.forEach((region) => {
+    const regionData = filterTopologyData(data, (item) => item.region === region);
+    nodes.push({
+      id: `region:${region}`,
+      name: region,
+      resource_type: 'region',
+      region,
+      metadata: {
+        summary: [
+          `${regionData.vcns.length} VCN`,
+          `${regionData.subnets.length} subnets`,
+          `${regionData.gateways.length} gateways`,
+        ].join(' / '),
+      },
+    });
+  });
+
+  const clusterMap = new Map();
+  data.vcns.forEach((vcn) => {
+    const clusterId = `compartment:${vcn.region}:${vcn.compartment_id || 'unknown'}`;
+    const cluster = clusterMap.get(clusterId) || {
+      id: clusterId,
+      region: vcn.region,
+      compartment_id: vcn.compartment_id || '',
+      vcnCount: 0,
+      subnetCount: 0,
+      gatewayCount: 0,
+      routeCount: 0,
+      securityCount: 0,
+    };
+    const counts = childCounts[vcn.id] || {};
+    cluster.vcnCount += 1;
+    cluster.subnetCount += counts.subnets || 0;
+    cluster.gatewayCount += counts.gateways || 0;
+    cluster.routeCount += counts.routes || 0;
+    cluster.securityCount += counts.security || 0;
+    clusterMap.set(clusterId, cluster);
+  });
+
+  [...clusterMap.values()]
+    .sort((left, right) => `${left.region}/${left.compartment_id}`.localeCompare(`${right.region}/${right.compartment_id}`))
+    .forEach((cluster) => {
+      nodes.push({
+        id: cluster.id,
+        name: compartmentNames[cluster.compartment_id] || cluster.compartment_id || 'unknown compartment',
+        resource_type: 'compartment',
+        region: cluster.region,
+        compartment_id: cluster.compartment_id,
+        metadata: {
+          summary: [
+            `${cluster.vcnCount} VCN`,
+            `${cluster.subnetCount} subnets`,
+            `${cluster.gatewayCount} gateways`,
+            `${cluster.routeCount} routes`,
+            `${cluster.securityCount} security`,
+          ].join(' / '),
+        },
+      });
+      addEdge(`region:${cluster.region}`, cluster.id, 'contains_compartment');
+    });
+
+  if (includeVcns) {
+    data.vcns.forEach((item) => {
+      const counts = childCounts[item.id] || {};
+      const clusterId = `compartment:${item.region}:${item.compartment_id || 'unknown'}`;
+      nodes.push({
+        id: item.id,
+        name: item.name,
+        resource_type: 'vcn',
+        region: item.region,
+        compartment_id: item.compartment_id,
+        lifecycle_state: item.lifecycle_state,
+        console_url: ociConsoleUrl('vcn', item),
+        metadata: {
+          cidr_blocks: item.cidr_blocks?.join(', ') || '',
+          summary: [
+            `${counts.subnets || 0} subnets`,
+            `${counts.gateways || 0} gateways`,
+            `${counts.routes || 0} routes`,
+            `${counts.security || 0} security`,
+          ].join(' / '),
+        },
+      });
+      addEdge(clusterId, item.id, 'contains_vcn');
+    });
+  }
+
+  const nodeIds = new Set(nodes.map((node) => node.id));
+  return { nodes, edges: edges.filter((edge) => nodeIds.has(edge.source_id) && nodeIds.has(edge.target_id)) };
 }
 
 function buildInventoryTopology(data) {
@@ -3458,6 +3659,12 @@ function topologyLayout(nodes) {
       y2: 84,
       types: new Set(['region']),
     },
+    compartment: {
+      x: 38,
+      y1: 20,
+      y2: 82,
+      types: new Set(['compartment']),
+    },
     left: {
       x: 18,
       y1: 20,
@@ -3465,7 +3672,7 @@ function topologyLayout(nodes) {
       types: new Set(['subnet', 'security_list', 'network_security_group']),
     },
     center: {
-      x: 42,
+      x: 54,
       y1: 26,
       y2: 78,
       types: new Set(['vcn']),
@@ -3502,6 +3709,7 @@ function topologyLayout(nodes) {
 
 function topologyColumnKey(resourceType) {
   if (resourceType === 'region') return 'region';
+  if (resourceType === 'compartment') return 'compartment';
   if (['subnet', 'security_list', 'network_security_group'].includes(resourceType)) return 'left';
   if (resourceType === 'route_table') return 'route';
   if (['internet_gateway', 'nat_gateway', 'service_gateway', 'dynamic_routing_gateway'].includes(resourceType)) return 'right';
@@ -3511,6 +3719,7 @@ function topologyColumnKey(resourceType) {
 function topologyIcon(type) {
   return {
     region: 'REG',
+    compartment: 'CMP',
     vcn: 'VCN',
     subnet: 'SUB',
     route_table: 'RT',
@@ -3544,8 +3753,20 @@ function attachTopologyInteractions(container) {
 
 function handleTopologyNodeClick(event) {
   const node = event.currentTarget;
-  if (topologyMode !== 'full' || node.dataset.resourceType !== 'vcn') return;
+  if (node.dataset.resourceType === 'region') {
+    const regionId = node.dataset.nodeId.replace(/^region:/, '');
+    topologyRegionScope = topologyRegionScope === regionId ? '' : regionId;
+    topologyVcnScope = '';
+    topologyConnectedOnly = false;
+    if (currentDashboardData) renderDashboard(currentDashboardData, currentDashboardMode);
+    return;
+  }
+  if (node.dataset.resourceType !== 'vcn') return;
   topologyVcnScope = topologyVcnScope === node.dataset.nodeId ? '' : node.dataset.nodeId;
+  if (topologyVcnScope && topologyMode === 'overview') {
+    topologyMode = 'vcn';
+    saveTopologyMode();
+  }
   topologyConnectedOnly = Boolean(topologyVcnScope) && topologyConnectedOnly;
   if (currentDashboardData) renderDashboard(currentDashboardData, currentDashboardMode);
 }
@@ -3586,7 +3807,7 @@ function startTopologyNodeDrag(event) {
 
 function handleTopologyNodeKeydown(event) {
   const node = event.currentTarget;
-  if ((event.key === 'Enter' || event.key === ' ') && topologyMode === 'full' && node.dataset.resourceType === 'vcn') {
+  if ((event.key === 'Enter' || event.key === ' ') && ['region', 'vcn'].includes(node.dataset.resourceType)) {
     event.preventDefault();
     handleTopologyNodeClick(event);
     return;
@@ -3665,6 +3886,7 @@ function drawTopologyLines() {
 function topologyEdgeColor(relationship) {
   return {
     contains_vcn: '#185fa5',
+    contains_compartment: '#185fa5',
     contains_subnet: '#185fa5',
     regional_gateway: '#2f6b2f',
     has_gateway: '#2f6b2f',
@@ -4441,6 +4663,23 @@ byId('collectionStatusPanel').addEventListener('click', (event) => {
       refresh: true,
       clearCache: true,
       forceSelectedRegions: true,
+      manualRefresh: true,
+    });
+    return;
+  }
+
+  const retryButton = event.target.closest('button[data-retry-failed]');
+  if (retryButton) {
+    event.preventDefault();
+    if (retryButton.disabled) return;
+    const failedRegions = (currentDashboardData?.collection?.regions || [])
+      .filter((region) => region.status === 'failed' && region.id)
+      .map((region) => region.id);
+    if (!failedRegions.length) return;
+    refreshDashboard({
+      showLoading: true,
+      refresh: true,
+      regionsOverride: failedRegions,
       manualRefresh: true,
     });
   }

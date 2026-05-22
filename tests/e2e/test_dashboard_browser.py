@@ -206,7 +206,10 @@ def test_regions_menu_controls_api_and_demo_scope(page) -> None:
     expect(page.locator("#collectionStatusPanel")).to_contain_text("Resources")
     expect(page.locator("#collectionStatusPanel .cs-count-chip").first).to_contain_text("VCN")
     expect(page.locator('#collectionStatusPanel button[data-refresh-selected]')).to_be_visible()
+    expect(page.locator('#collectionStatusPanel button[data-retry-failed]')).to_be_visible()
     expect(page.locator('#collectionStatusPanel button[data-clear-cache]')).to_be_visible()
+    expect(page.locator("#collectionStatusPanel .cs-progress")).to_be_visible()
+    expect(page.locator("#collectionStatusPanel")).to_contain_text("Full scan")
     expect(page.locator('#collectionStatusPanel button[data-refresh-region]').first).to_be_visible()
     expect(page.locator('#collectionStatusPanel button[data-refresh-selected]')).to_be_enabled(timeout=10_000)
 
