@@ -16,9 +16,9 @@ The product vision is captured in [Meridian_OCI_Network_Monitor.md](Meridian_OCI
 - Terraform for OCI VCN, public subnet, internet gateway, route table, security list, and Compute host.
 - Optional OCI dynamic group and IAM policy for instance principal access.
 - FastAPI backend foundation with health, readiness, preflight, regions, and compartments endpoints.
-- API-aware static dashboard prototype with fallback demo data, 5-second live refresh, compartment-aware inventory, draggable topology, subnet access labels, NSG context, resource IDs, expanders, and pinned home-region navigation.
+- Buildable frontend artifact for the API-aware dashboard with fallback demo data, 5-second live refresh, compartment-aware inventory, draggable topology, subnet access labels, NSG context, resource IDs, expanders, and pinned home-region navigation.
 - Dashboard top-bar access validation button for runtime IAM, region, compartment, and network read validation.
-- Ansible bootstrap to configure Oracle Linux with Nginx, Podman-ready packages, firewall rules, the static dashboard, and the backend API service.
+- Ansible bootstrap to configure Oracle Linux with Nginx, Podman-ready packages, firewall rules, cache-safe dashboard publishing, deployment version metadata, and the backend API service.
 - Inventory generation from Terraform outputs.
 - Documentation for architecture, operations, security/IAM, API design, data model, roadmap, release process, and remote audit.
 - Manual local validation commands for Terraform and Ansible.
@@ -30,6 +30,7 @@ The product vision is captured in [Meridian_OCI_Network_Monitor.md](Meridian_OCI
 ├── ansible/                # Host configuration and dashboard publishing
 ├── backend/                # FastAPI backend foundation
 ├── docs/                   # Architecture, operations, security, API, roadmap
+├── frontend/               # Dashboard build scripts and generated dist output
 ├── scripts/                # Local helper scripts
 ├── terraform/              # OCI infrastructure as code
 ├── Makefile                # Common local commands
@@ -41,6 +42,7 @@ The product vision is captured in [Meridian_OCI_Network_Monitor.md](Meridian_OCI
 
 - Terraform 1.6 or newer.
 - Ansible 2.15 or newer.
+- Node.js 20 or newer for the frontend build script.
 - OCI credentials configured through an OCI CLI profile, environment variables, or another supported OCI provider auth mode.
 - An SSH public key available locally, for example `~/.ssh/id_rsa.pub` or `~/.ssh/id_ed25519.pub`.
 - OCI permissions to create networking, compute, and optionally IAM resources.
@@ -74,13 +76,15 @@ Create the OCI baseline:
 make tf-apply
 ```
 
-Configure the host and publish the static dashboard:
+Configure the host and publish the built dashboard artifact:
 
 ```bash
 make deploy
 ```
 
 Open the URL printed by Terraform output `app_url`.
+
+The deployment publishes `/version.json` and the backend exposes `GET /api/version`; both include the Git revision deployed to the VM.
 
 ## Common Commands
 
@@ -92,6 +96,7 @@ make tf-plan
 make tf-apply
 make inventory
 make ping
+make frontend-build
 make deploy
 make tf-destroy
 make backend-install
@@ -202,5 +207,5 @@ Review [docs/security-and-iam.md](docs/security-and-iam.md) before enabling IAM 
 - Move Terraform state to a remote backend.
 - Replace direct public HTTP with HTTPS through an OCI Load Balancer or reverse proxy certificate.
 - Narrow `admin_cidr_blocks` to VPN or office IP ranges.
-- Split application backend/frontend once the FastAPI and React code are added.
+- Continue splitting the dashboard source into frontend modules as it grows.
 - Add monitoring alarms for the Meridian host itself.

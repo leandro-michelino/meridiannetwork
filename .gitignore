@@ -25,3 +25,10 @@ ansible/vault.yml
 __pycache__/
 .pytest_cache/
 .ruff_cache/
+node_modules/
+
+# Frontend build output
+frontend/dist/
+
+# Browser regression artifacts
+tests/e2e/screenshots/

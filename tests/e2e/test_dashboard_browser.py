@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+import json
 import os
 from pathlib import Path
 import socket
@@ -19,7 +20,10 @@ sync_playwright = playwright.sync_playwright
 
 
 ROOT = Path(__file__).resolve().parents[2]
-DASHBOARD_HTML = ROOT / "oci_network_monitor_dashboard_v2.html"
+DASHBOARD_DIST = ROOT / "frontend" / "dist"
+DASHBOARD_HTML = DASHBOARD_DIST / "index.html"
+DASHBOARD_VERSION = DASHBOARD_DIST / "version.json"
+SCREENSHOT_DIR = ROOT / "tests" / "e2e" / "screenshots"
 CHROME_CANDIDATES = (
     os.environ.get("MERIDIAN_E2E_BROWSER"),
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -61,6 +65,15 @@ class DashboardProxy(BaseHTTPRequestHandler):
             body = DASHBOARD_HTML.read_bytes()
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        if self.path == "/version.json":
+            body = DASHBOARD_VERSION.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate")
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
@@ -159,7 +172,12 @@ def dashboard_server(api_base: str) -> str:
 
 
 @pytest.fixture(scope="module")
-def dashboard_url() -> str:
+def built_dashboard() -> None:
+    subprocess.run(["npm", "--prefix", "frontend", "run", "build"], cwd=ROOT, check=True)
+
+
+@pytest.fixture(scope="module")
+def dashboard_url(built_dashboard: None) -> str:
     with uvicorn_server() as api_base, dashboard_server(api_base) as url:
         yield url
 
@@ -195,6 +213,42 @@ def horizontally_clipped_topology_nodes(page) -> list[str]:
             .map((node) => node.dataset.nodeId);
         }"""
     )
+
+
+def visible_topbar_actions(page) -> list[str]:
+    return page.evaluate(
+        """() => [...document.querySelectorAll('.topbar-actions .button')]
+          .filter((button) => {
+            const style = getComputedStyle(button);
+            return style.display !== 'none' && style.visibility !== 'hidden' && button.getClientRects().length > 0;
+          })
+          .map((button) => button.textContent.trim().replace(/\\s+/g, ' '))"""
+    )
+
+
+def test_frontend_build_artifact_exposes_version(page, dashboard_url: str) -> None:
+    assert page.locator('meta[name="meridian-build-revision"]').get_attribute("content")
+    with urllib.request.urlopen(f"{dashboard_url}/version.json", timeout=5) as response:
+        assert response.headers["Cache-Control"].startswith("no-store")
+        version = json.loads(response.read())
+    assert version["artifact"] == "frontend"
+    assert version["revision"]
+    assert version["built_at"]
+    assert isinstance(version["dirty"], bool)
+
+
+def test_topbar_demo_control_visual_states(page, dashboard_url: str) -> None:
+    SCREENSHOT_DIR.mkdir(parents=True, exist_ok=True)
+
+    page.goto(dashboard_url, wait_until="networkidle")
+    expect(page.locator("#demoToggle")).to_be_hidden()
+    assert "Demo data" not in visible_topbar_actions(page)
+    page.locator(".topbar").screenshot(path=SCREENSHOT_DIR / "topbar-live.png")
+
+    page.goto(f"{dashboard_url}/demodata", wait_until="networkidle")
+    expect(page.locator("#demoToggle")).to_be_visible()
+    assert "Use API" in visible_topbar_actions(page)
+    page.locator(".topbar").screenshot(path=SCREENSHOT_DIR / "topbar-demodata.png")
 
 
 def test_regions_menu_controls_api_and_demo_scope(page, dashboard_url: str) -> None:

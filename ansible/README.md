@@ -7,10 +7,11 @@ This directory configures the OCI Compute host created by Terraform.
 - Installs base packages.
 - Creates Meridian runtime directories.
 - Writes a Meridian environment file.
-- Publishes the current static dashboard HTML.
+- Builds and publishes the dashboard artifact from `frontend/dist`.
+- Publishes `version.json` with the deployed Git revision and build timestamp.
 - Copies and installs the Meridian FastAPI backend.
 - Configures a `meridian-api` systemd service.
-- Configures Nginx.
+- Configures Nginx with no-cache headers for the SPA shell and version metadata.
 - Opens SSH, HTTP, and HTTPS in firewalld.
 - Enables Nginx.
 
@@ -38,6 +39,8 @@ make ping
 make deploy
 ```
 
+`make deploy` runs the frontend build through the playbook before copying files to the OCI VM.
+
 ## Manual Validation
 
 ```bash
@@ -64,6 +67,7 @@ Nginx proxies these backend paths to the service:
 - `/api/`
 - `/healthz`
 - `/readyz`
+- `/api/version`
 - `/docs`
 - `/redoc`
 - `/openapi.json`

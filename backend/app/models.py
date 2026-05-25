@@ -17,6 +17,15 @@ class ReadinessResponse(BaseModel):
     auth_mode: str
 
 
+class VersionResponse(BaseModel):
+    service: str
+    version: str
+    environment: str
+    revision: str
+    built_at: str
+    dirty: bool
+
+
 class PreflightCheck(BaseModel):
     name: str
     status: str

@@ -13,7 +13,7 @@ small OCI Compute VM inside the tenant it monitors.
 ```text
 ┌─────────────────────────────────────────────────────────────────────┐
 │  Browser                                                            │
-│  oci_network_monitor_dashboard_v2.html (single-page app, no build)  │
+│  frontend/dist/index.html (built single-page dashboard artifact)     │
 │                                                                     │
 │  • Region selector / async collection poll (3-15 s backoff)        │
 │  • Per-region status panel: Ready / Collecting / Failed             │
@@ -24,7 +24,8 @@ small OCI Compute VM inside the tenant it monitors.
                              ▼
 ┌────────────────────────────────────────────────────────────────────┐
 │  Nginx                                                             │
-│  /            → serve /var/www/meridian/index.html                 │
+│  /            → serve /var/www/meridian/index.html (no-cache)       │
+│  /version.json → deployed frontend Git revision (no-cache)          │
 │  /api/*        → proxy_pass http://127.0.0.1:8080                  │
 │  /healthz      → proxy_pass http://127.0.0.1:8080                  │
 │  /readyz       → proxy_pass http://127.0.0.1:8080                  │
@@ -38,7 +39,7 @@ small OCI Compute VM inside the tenant it monitors.
 │  EnvironmentFile: /opt/meridian/config/meridian.env                │
 │                                                                    │
 │  Routers                                                           │
-│  ├── health    GET /healthz  GET /readyz                           │
+│  ├── health    GET /healthz  GET /readyz  GET /api/version         │
 │  ├── scope     GET /api/regions/available                          │
 │  │             GET /api/regions/active                             │
 │  │             GET /api/compartments                               │
@@ -85,7 +86,7 @@ OCI Tenancy
     │   └── Internet Gateway
     │
     ├── Compute Instance  (Oracle Linux, flex shape)
-    │   ├── Nginx             → serves dashboard + proxies /api
+    │   ├── Nginx             → serves built dashboard + proxies /api
     │   ├── meridian-api      → FastAPI / uvicorn on 127.0.0.1:8080
     │   └── /opt/meridian/
     │       ├── backend/          (copied by Ansible)

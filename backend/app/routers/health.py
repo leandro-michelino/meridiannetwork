@@ -2,7 +2,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends
 
 from app.config import Settings, get_settings
-from app.models import HealthResponse, ReadinessResponse
+from app.models import HealthResponse, ReadinessResponse, VersionResponse
 
 router = APIRouter(tags=["health"])
 
@@ -29,3 +29,14 @@ def readyz(settings: Settings = Depends(get_settings)) -> ReadinessResponse:
         auth_mode=settings.oci_auth,
     )
 
+
+@router.get("/api/version", response_model=VersionResponse)
+def version(settings: Settings = Depends(get_settings)) -> VersionResponse:
+    return VersionResponse(
+        service=settings.app_name,
+        version=settings.app_version,
+        environment=settings.environment,
+        revision=settings.deployment_revision,
+        built_at=settings.deployment_built_at,
+        dirty=settings.deployment_dirty,
+    )

@@ -15,6 +15,9 @@ class Settings(BaseSettings):
 
     app_name: str = "Meridian API"
     app_version: str = "0.1.0"
+    deployment_revision: str = "local"
+    deployment_built_at: str = ""
+    deployment_dirty: bool = False
     environment: str = "dev"
     api_host: str = "127.0.0.1"
     api_port: int = 8080

@@ -29,6 +29,7 @@ Base URL: `http://<host>/`
 | ------ | --------- | ------------------------------------------------------------------- |
 | GET    | `/healthz` | Liveness — returns service name, version, environment, status      |
 | GET    | `/readyz`  | Readiness — indicates whether the API is ready to serve live OCI calls |
+| GET    | `/api/version` | Deployment metadata — returns service version, Git revision, and build timestamp |
 
 `/readyz` returns `status: degraded` when live OCI mode is enabled but `MERIDIAN_TENANCY_OCID` is
 not configured.

@@ -1,9 +1,9 @@
 TF_DIR := terraform
 ANSIBLE_DIR := ansible
 INVENTORY := $(ANSIBLE_DIR)/inventory/oci.ini
-PYTHON ?= python3
+PYTHON ?= $(if $(wildcard .venv/bin/python),.venv/bin/python,python3)
 
-.PHONY: help tf-init tf-fmt tf-validate tf-plan tf-apply tf-destroy inventory ansible-requirements ping deploy backend-install backend-test dashboard-e2e backend-run
+.PHONY: help tf-init tf-fmt tf-validate tf-plan tf-apply tf-destroy inventory ansible-requirements ping frontend-build deploy backend-install backend-test dashboard-e2e backend-run
 
 help:
 	@echo "Meridian OCI Network Monitor"
@@ -16,6 +16,7 @@ help:
 	@echo ""
 	@echo "Ansible:"
 	@echo "  make inventory     Render Ansible inventory from Terraform outputs"
+	@echo "  make frontend-build Build the deployable dashboard artifact"
 	@echo "  make deploy        Configure the OCI host and publish the dashboard"
 	@echo ""
 	@echo "Backend:"
@@ -52,6 +53,9 @@ ansible-requirements:
 
 ping: inventory
 	ansible -i $(INVENTORY) meridian -m ping
+
+frontend-build:
+	npm --prefix frontend run build
 
 deploy: inventory ansible-requirements
 	ansible-playbook -i $(INVENTORY) $(ANSIBLE_DIR)/playbooks/bootstrap.yml
