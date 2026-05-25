@@ -1,5 +1,7 @@
 # Meridian Network
 
+<img src="docs/assets/meridian-readme-hero.svg" alt="Meridian Network OCI observability dashboard preview" width="100%">
+
 Meridian is a self-hosted OCI Network Monitor for consolidated network observability across compartments and regions.
 
 It includes the deployable OCI baseline, backend API, buildable dashboard artifact, and operating documentation needed to run Meridian on an OCI Compute VM.

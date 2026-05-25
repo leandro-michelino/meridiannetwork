@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="420" viewBox="0 0 1200 420" role="img" aria-labelledby="title desc">
+  <title id="title">Meridian Network OCI observability dashboard</title>
+  <desc id="desc">A stylized Meridian Network dashboard showing region coverage, topology, security posture, and deployment traceability on OCI.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f7f9fb"/>
+      <stop offset="0.52" stop-color="#edf5f3"/>
+      <stop offset="1" stop-color="#fff4ed"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#f7fafc"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#0b7f83"/>
+      <stop offset="1" stop-color="#d04423"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#1b2a33" flood-opacity="0.16"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="420" rx="0" fill="url(#bg)"/>
+  <path d="M0 314 C168 286 249 348 410 314 C575 279 682 212 846 246 C1016 281 1085 347 1200 310 L1200 420 L0 420 Z" fill="#e7f0ee"/>
+  <path d="M0 348 C150 330 271 365 418 350 C596 332 720 274 885 300 C1026 322 1099 374 1200 352 L1200 420 L0 420 Z" fill="#f3e7df"/>
+
+  <g transform="translate(72 58)">
+    <rect x="0" y="0" width="1056" height="304" rx="22" fill="url(#panel)" stroke="#d9e2e7" filter="url(#shadow)"/>
+    <rect x="0" y="0" width="1056" height="58" rx="22" fill="#18242b"/>
+    <path d="M0 36 Q0 0 22 0 H1034 Q1056 0 1056 22 V58 H0 Z" fill="#18242b"/>
+
+    <circle cx="34" cy="29" r="7" fill="#d04423"/>
+    <circle cx="58" cy="29" r="7" fill="#f2a93b"/>
+    <circle cx="82" cy="29" r="7" fill="#1aa385"/>
+    <text x="116" y="36" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" fill="#ffffff">Meridian Network</text>
+    <text x="284" y="36" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="12" fill="#a9b9c3">OCI network monitor</text>
+    <rect x="836" y="15" width="184" height="28" rx="14" fill="#23333c" stroke="#3a4c55"/>
+    <circle cx="856" cy="29" r="5" fill="#1aa385"/>
+    <text x="870" y="34" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="12" font-weight="650" fill="#d9f7ef">c2ba213 clean deploy</text>
+
+    <g transform="translate(34 74)">
+      <text x="0" y="35" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="36" font-weight="800" fill="#1b2a33">Tenant-local OCI visibility</text>
+      <text x="0" y="68" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="16" fill="#51616b">Discover regions, map topology, review security, and prove the live revision.</text>
+      <rect x="0" y="98" width="168" height="34" rx="17" fill="#0b7f83"/>
+      <text x="22" y="120" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13" font-weight="700" fill="#ffffff">Selected regions</text>
+      <rect x="184" y="98" width="130" height="34" rx="17" fill="#ffffff" stroke="#cfdbe1"/>
+      <text x="207" y="120" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13" font-weight="700" fill="#31424c">Topology</text>
+      <rect x="330" y="98" width="154" height="34" rx="17" fill="#ffffff" stroke="#cfdbe1"/>
+      <text x="353" y="120" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13" font-weight="700" fill="#31424c">Preflight pass</text>
+
+      <g transform="translate(0 154)">
+        <rect width="156" height="74" rx="14" fill="#ffffff" stroke="#dbe5ea"/>
+        <text x="18" y="29" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="12" font-weight="700" fill="#51616b">Regions ready</text>
+        <text x="18" y="58" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="30" font-weight="800" fill="#0b7f83">04</text>
+        <path d="M93 52 L112 35 L126 43 L143 24" fill="none" stroke="#1aa385" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+      <g transform="translate(174 154)">
+        <rect width="156" height="74" rx="14" fill="#ffffff" stroke="#dbe5ea"/>
+        <text x="18" y="29" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="12" font-weight="700" fill="#51616b">VCNs mapped</text>
+        <text x="18" y="58" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="30" font-weight="800" fill="#d04423">18</text>
+        <circle cx="110" cy="43" r="17" fill="#fff0ea" stroke="#d04423" stroke-width="3"/>
+        <circle cx="132" cy="28" r="11" fill="#ffffff" stroke="#d04423" stroke-width="3"/>
+      </g>
+      <g transform="translate(348 154)">
+        <rect width="156" height="74" rx="14" fill="#ffffff" stroke="#dbe5ea"/>
+        <text x="18" y="29" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="12" font-weight="700" fill="#51616b">Findings triaged</text>
+        <text x="18" y="58" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="30" font-weight="800" fill="#31424c">12</text>
+        <path d="M116 25 L143 52 H89 Z" fill="#fff6df" stroke="#c47a10" stroke-width="3"/>
+        <rect x="114" y="35" width="4" height="10" rx="2" fill="#c47a10"/>
+        <circle cx="116" cy="49" r="2.2" fill="#c47a10"/>
+      </g>
+    </g>
+
+    <g transform="translate(604 88)">
+      <rect x="0" y="0" width="398" height="186" rx="18" fill="#f8fbfc" stroke="#d7e2e8"/>
+      <rect x="22" y="22" width="148" height="142" rx="14" fill="#ffffff" stroke="#dbe5ea"/>
+      <text x="42" y="50" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13" font-weight="800" fill="#1b2a33">Coverage</text>
+      <g font-family="Inter, Segoe UI, Arial, sans-serif" font-size="11" font-weight="700">
+        <rect x="42" y="68" width="92" height="22" rx="11" fill="#e4f6f3"/>
+        <circle cx="56" cy="79" r="4" fill="#1aa385"/>
+        <text x="66" y="83" fill="#0b6c70">me-abudhabi-1</text>
+        <rect x="42" y="98" width="84" height="22" rx="11" fill="#eef3f6"/>
+        <circle cx="56" cy="109" r="4" fill="#73838c"/>
+        <text x="66" y="113" fill="#51616b">eu-frankfurt-1</text>
+        <rect x="42" y="128" width="74" height="22" rx="11" fill="#fff0ea"/>
+        <circle cx="56" cy="139" r="4" fill="#d04423"/>
+        <text x="66" y="143" fill="#9c351d">us-ashburn-1</text>
+      </g>
+
+      <rect x="194" y="22" width="182" height="142" rx="14" fill="#ffffff" stroke="#dbe5ea"/>
+      <text x="214" y="50" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13" font-weight="800" fill="#1b2a33">Topology</text>
+      <g fill="none" stroke="#a9b9c3" stroke-width="2">
+        <path d="M257 84 L309 66"/>
+        <path d="M257 84 L318 116"/>
+        <path d="M309 66 L343 91"/>
+        <path d="M318 116 L343 91"/>
+      </g>
+      <g font-family="Inter, Segoe UI, Arial, sans-serif" font-size="10" font-weight="800" text-anchor="middle">
+        <circle cx="257" cy="84" r="22" fill="#e4f6f3" stroke="#0b7f83" stroke-width="3"/>
+        <text x="257" y="88" fill="#0b6c70">VCN</text>
+        <circle cx="309" cy="66" r="18" fill="#fff0ea" stroke="#d04423" stroke-width="3"/>
+        <text x="309" y="70" fill="#9c351d">IGW</text>
+        <circle cx="318" cy="116" r="18" fill="#eef3f6" stroke="#73838c" stroke-width="3"/>
+        <text x="318" y="120" fill="#51616b">RT</text>
+        <circle cx="343" cy="91" r="16" fill="#fff6df" stroke="#c47a10" stroke-width="3"/>
+        <text x="343" y="95" fill="#8a560c">SL</text>
+      </g>
+    </g>
+
+  </g>
+</svg>
