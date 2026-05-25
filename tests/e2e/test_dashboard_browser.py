@@ -57,7 +57,7 @@ class DashboardProxy(BaseHTTPRequestHandler):
     api_base = ""
 
     def do_GET(self) -> None:
-        if self.path in {"/", "/index.html"}:
+        if self.path in {"/", "/index.html", "/demodata"}:
             body = DASHBOARD_HTML.read_bytes()
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -197,7 +197,7 @@ def horizontally_clipped_topology_nodes(page) -> list[str]:
     )
 
 
-def test_regions_menu_controls_api_and_demo_scope(page) -> None:
+def test_regions_menu_controls_api_and_demo_scope(page, dashboard_url: str) -> None:
     page.evaluate("localStorage.removeItem('meridianRegionFilter')")
     page.reload(wait_until="networkidle")
     expect(page.locator("#dataModeBadge")).to_have_text("api", timeout=10_000)
@@ -242,8 +242,10 @@ def test_regions_menu_controls_api_and_demo_scope(page) -> None:
     assert selected_regions(page) == []
     assert page.locator("#kpiVcnSub").inner_text() == "0/38 selected regions"
     assert "Select at least one subscribed region" in page.locator("#topologyNodes .empty").inner_text()
+    expect(page.locator("#demoToggle")).to_be_hidden()
 
-    page.click("#demoToggle")
+    page.goto(f"{dashboard_url}/demodata", wait_until="networkidle")
+    expect(page.locator("#demoToggle")).to_be_visible()
     expect(page.locator("#dataModeBadge")).to_contain_text("demo", timeout=10_000)
     expect(page.locator("#regionMenuBtn")).to_contain_text("Regions 0/2")
     assert page.locator("#kpiVcns").inner_text() == "0"
@@ -256,9 +258,9 @@ def test_regions_menu_controls_api_and_demo_scope(page) -> None:
     expect(page.locator("#topologyBadge")).to_contain_text("overview / 8 nodes / 6 links")
 
 
-def test_topology_layout_modes_do_not_clip_horizontally(page) -> None:
+def test_topology_layout_modes_do_not_clip_horizontally(page, dashboard_url: str) -> None:
     expect(page.locator("#dataModeBadge")).to_have_text("api", timeout=10_000)
-    page.click("#demoToggle")
+    page.goto(f"{dashboard_url}/demodata", wait_until="networkidle")
     expect(page.locator("#dataModeBadge")).to_contain_text("demo", timeout=10_000)
     page.locator("#topologyPanel").scroll_into_view_if_needed()
 

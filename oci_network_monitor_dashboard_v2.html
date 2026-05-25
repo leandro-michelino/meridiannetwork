@@ -1078,6 +1078,10 @@ th {
 
 tr:last-child td { border-bottom: 0; }
 
+[hidden] {
+  display: none !important;
+}
+
 .mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
@@ -1480,7 +1484,7 @@ tr:last-child td { border-bottom: 0; }
       </div>
       <button class="button" id="refreshNow" type="button">Refresh selected</button>
       <button class="button" id="exportInventoryBtn" type="button">Export inventory</button>
-      <button class="button" id="demoToggle" type="button">Demo data</button>
+      <button class="button" id="demoToggle" type="button" hidden>Demo data</button>
     </div>
   </div>
 
@@ -1811,7 +1815,7 @@ const DEFAULT_TOPOLOGY_LAYERS = { subnets: false, gateways: true, routes: true, 
 const SECURITY_ACTION_HISTORY_KEY = 'meridianSecurityActionHistory';
 const REGION_FILTER_KEY = 'meridianRegionFilter';
 const DEMO_DATA_PATH = '/demodata';
-let useDemoData = false;
+let useDemoData = isDemoDataPathAllowed();
 let refreshInFlight = false;
 let topologyEdges = [];
 let topologyNodeDomIds = {};
@@ -1861,7 +1865,7 @@ function byId(id) {
 }
 
 function isDemoDataPathAllowed() {
-  return window.location.pathname === DEMO_DATA_PATH;
+  return window.location.pathname.replace(/\/+$/, '') === DEMO_DATA_PATH;
 }
 
 function configureDemoDataControl() {
@@ -1872,6 +1876,8 @@ function configureDemoDataControl() {
   if (!allowed) {
     useDemoData = false;
     demoToggle.textContent = 'Demo data';
+  } else {
+    demoToggle.textContent = useDemoData ? 'Use API' : 'Demo data';
   }
 }
 
