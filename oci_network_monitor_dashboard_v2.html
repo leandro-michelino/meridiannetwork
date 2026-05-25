@@ -89,6 +89,18 @@ body {
   flex-wrap: wrap;
 }
 
+.build-badge {
+  border: 1px solid var(--mn-border);
+  border-radius: 999px;
+  color: var(--mn-muted);
+  background: var(--mn-surface-soft);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  padding: 6px 8px;
+  white-space: nowrap;
+}
+
 .region-strip,
 .access-check {
   display: flex;
@@ -217,6 +229,18 @@ body {
   color: var(--mn-text);
   font-size: 12px;
   padding: 5px 8px;
+}
+
+.region-menu-tools select {
+  width: 100%;
+  min-height: 30px;
+  border: 1px solid var(--mn-border);
+  border-radius: 6px;
+  background: var(--mn-surface);
+  color: var(--mn-text);
+  font-size: 12px;
+  padding: 5px 8px;
+  margin-top: 6px;
 }
 
 .region-menu-list {
@@ -818,6 +842,24 @@ body {
   justify-content: flex-end;
 }
 
+.finding-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.finding-toolbar select {
+  min-height: 30px;
+  border: 1px solid var(--mn-border);
+  border-radius: 6px;
+  background: var(--mn-surface);
+  color: var(--mn-text);
+  font-size: 12px;
+  padding: 5px 8px;
+}
+
 .finding-state {
   margin-top: 4px;
   color: var(--mn-blue);
@@ -1169,6 +1211,19 @@ tr:last-child td { border-bottom: 0; }
   accent-color: var(--mn-orange);
 }
 
+.topology-quickbar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.topology-quickbar .button.active {
+  border-color: #e1a58f;
+  background: #fff2ed;
+  color: var(--mn-orange);
+}
+
 .topology-modes {
   display: inline-flex;
   gap: 4px;
@@ -1463,10 +1518,15 @@ tr:last-child td { border-bottom: 0; }
           <div class="region-menu-title" id="regionMenuTitle">Subscribed regions</div>
           <div class="region-menu-tools">
             <input id="regionSearch" type="search" placeholder="Search region">
+            <select id="regionSavedView" aria-label="Saved region view">
+              <option value="">Saved views</option>
+            </select>
           </div>
           <div class="region-menu-actions">
             <button class="button" id="regionSelectAll" type="button">Select all</button>
             <button class="button" id="regionClearAll" type="button">Clear</button>
+            <button class="button" id="regionSaveView" type="button">Save view</button>
+            <button class="button" id="regionDeleteView" type="button">Delete view</button>
           </div>
           <div class="region-menu-list" id="regionMenuList"></div>
         </div>
@@ -1486,6 +1546,7 @@ tr:last-child td { border-bottom: 0; }
       <button class="button" id="refreshNow" type="button">Refresh selected</button>
       <button class="button" id="exportInventoryBtn" type="button">Export inventory</button>
       <button class="button" id="demoToggle" type="button" hidden>Demo data</button>
+      <span class="build-badge" id="deploymentBadge" title="Deployment version">build local</span>
     </div>
   </div>
 
@@ -1536,6 +1597,12 @@ tr:last-child td { border-bottom: 0; }
           <select class="topology-select" id="topologyLifecycleScope" aria-label="Topology lifecycle state"></select>
           <label><input id="topologyConnectedOnly" type="checkbox"> Connected only</label>
         </div>
+        <div class="topology-quickbar" id="topologyQuickbar" aria-label="Topology quick filters">
+          <button class="button" type="button" data-topology-quick="">All resources</button>
+          <button class="button" type="button" data-topology-quick="public_subnets">Public subnets</button>
+          <button class="button" type="button" data-topology-quick="internet_paths">Internet paths</button>
+          <button class="button" type="button" data-topology-quick="findings">Resources with findings</button>
+        </div>
         <div class="topology" id="topology">
           <div class="topology-canvas" id="topologyCanvas">
             <svg id="topologyLines" aria-hidden="true"></svg>
@@ -1555,6 +1622,16 @@ tr:last-child td { border-bottom: 0; }
             <button class="button" id="securityHistoryBtn" type="button" aria-expanded="false">History 0</button>
           </div>
         </summary>
+        <div class="finding-toolbar">
+          <select id="findingWorkflowFilter" aria-label="Finding workflow filter">
+            <option value="">All findings</option>
+            <option value="open">Open</option>
+            <option value="owned">Assigned or tasked</option>
+            <option value="accepted">Accepted risk</option>
+            <option value="false_positive">False positive</option>
+            <option value="dismissed">Dismissed</option>
+          </select>
+        </div>
         <div class="finding-list" id="findingList"></div>
         <div class="security-history-menu" id="securityHistoryMenu" hidden>
           <div class="section-title">Action history</div>
@@ -1769,7 +1846,7 @@ const DEMO_DATA = {
     medium_issues: 1,
     low_issues: 0,
     issues: [
-      { severity: 'medium', issue_type: 'public_default_route', route_table_name: 'public-route-table', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', destination: '0.0.0.0/0', destination_type: 'CIDR_BLOCK', network_entity_id: 'igw-01', description: 'Route table sends default traffic to an Internet Gateway.', recommendation: 'Confirm this route table is only associated with public subnets.' }
+      { severity: 'medium', issue_type: 'public_default_route', route_table_id: 'rt-public', route_table_name: 'public-route-table', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', destination: '0.0.0.0/0', destination_type: 'CIDR_BLOCK', network_entity_id: 'igw-01', description: 'Route table sends default traffic to an Internet Gateway.', recommendation: 'Confirm this route table is only associated with public subnets.' }
     ]
   },
   securityLists: [
@@ -1793,12 +1870,12 @@ const DEMO_DATA = {
     medium_findings: 0,
     low_findings: 4,
     findings: [
-      { severity: 'low', risk_score: 3, rule_type: 'public_web_ingress', resource_name: 'public-security-list', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', description: 'Ingress exposes web listener ports from 0.0.0.0/0: HTTPS (443).', recommendation: 'Confirm public web listeners are intended and protected by TLS and application controls.' },
-      { severity: 'low', risk_score: 3, rule_type: 'broad_public_egress', resource_name: 'public-security-list', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', description: 'Egress allows all protocols to 0.0.0.0/0.', recommendation: 'Confirm unrestricted outbound access is required or scope egress to approved destinations.' },
-      { severity: 'high', risk_score: 25, rule_type: 'public_ssh', resource_name: 'admin-risk-review', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', description: 'Ingress allows SSH from 0.0.0.0/0.', recommendation: 'Restrict SSH to a VPN, Bastion, or administrator source CIDR.' },
-      { severity: 'low', risk_score: 3, rule_type: 'nsg_public_web_ingress', resource_name: 'web-tier-nsg', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', description: 'Ingress exposes web listener ports from 0.0.0.0/0: HTTPS (443).', recommendation: 'Confirm public web listeners are intended and protected by TLS and application controls.' },
-      { severity: 'low', risk_score: 3, rule_type: 'nsg_broad_public_egress', resource_name: 'web-tier-nsg', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', description: 'Egress allows all protocols to 0.0.0.0/0.', recommendation: 'Confirm unrestricted outbound access is required or scope egress to approved destinations.' },
-      { severity: 'high', risk_score: 25, rule_type: 'nsg_public_rdp', resource_name: 'admin-risk-nsg', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', description: 'Ingress allows RDP from 0.0.0.0/0.', recommendation: 'Restrict RDP to a VPN, Bastion, or administrator source CIDR.' }
+      { severity: 'low', risk_score: 3, rule_type: 'public_web_ingress', resource_id: 'sl-public', resource_name: 'public-security-list', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', description: 'Ingress exposes web listener ports from 0.0.0.0/0: HTTPS (443).', recommendation: 'Confirm public web listeners are intended and protected by TLS and application controls.' },
+      { severity: 'low', risk_score: 3, rule_type: 'broad_public_egress', resource_id: 'sl-public', resource_name: 'public-security-list', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', description: 'Egress allows all protocols to 0.0.0.0/0.', recommendation: 'Confirm unrestricted outbound access is required or scope egress to approved destinations.' },
+      { severity: 'high', risk_score: 25, rule_type: 'public_ssh', resource_id: 'sl-admin-risk', resource_name: 'admin-risk-review', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', description: 'Ingress allows SSH from 0.0.0.0/0.', recommendation: 'Restrict SSH to a VPN, Bastion, or administrator source CIDR.' },
+      { severity: 'low', risk_score: 3, rule_type: 'nsg_public_web_ingress', resource_id: 'nsg-web', resource_name: 'web-tier-nsg', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', description: 'Ingress exposes web listener ports from 0.0.0.0/0: HTTPS (443).', recommendation: 'Confirm public web listeners are intended and protected by TLS and application controls.' },
+      { severity: 'low', risk_score: 3, rule_type: 'nsg_broad_public_egress', resource_id: 'nsg-web', resource_name: 'web-tier-nsg', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', description: 'Egress allows all protocols to 0.0.0.0/0.', recommendation: 'Confirm unrestricted outbound access is required or scope egress to approved destinations.' },
+      { severity: 'high', risk_score: 25, rule_type: 'nsg_public_rdp', resource_id: 'nsg-admin-risk', resource_name: 'admin-risk-nsg', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', description: 'Ingress allows RDP from 0.0.0.0/0.', recommendation: 'Restrict RDP to a VPN, Bastion, or administrator source CIDR.' }
     ]
   },
   collection: { requested_regions: [], issues: [] },
@@ -1815,6 +1892,7 @@ const TOPOLOGY_LAYER_KEY = 'meridianTopologyLayers';
 const DEFAULT_TOPOLOGY_LAYERS = { subnets: false, gateways: true, routes: true, security: false };
 const SECURITY_ACTION_HISTORY_KEY = 'meridianSecurityActionHistory';
 const REGION_FILTER_KEY = 'meridianRegionFilter';
+const REGION_SAVED_VIEWS_KEY = 'meridianRegionSavedViews';
 const DEMO_DATA_PATH = '/demodata';
 let useDemoData = isDemoDataPathAllowed();
 let refreshInFlight = false;
@@ -1834,6 +1912,7 @@ let topologyCompartmentScope = '';
 let topologyResourceScope = '';
 let topologyLifecycleScope = '';
 let topologyConnectedOnly = false;
+let topologyQuickFilter = '';
 const topologyTouchPoints = new Map();
 let topologyPinchDistance = 0;
 let topologyPanPoint = null;
@@ -1860,6 +1939,7 @@ let selectedRegionIds = readRegionFilter();
 let collectionPollTimer = 0;
 let coverageFilter = 'all';
 let coveragePanelOpen = true;
+let findingWorkflowFilter = '';
 
 function byId(id) {
   return document.getElementById(id);
@@ -1885,6 +1965,20 @@ function configureDemoDataControl() {
 function text(id, value) {
   const el = byId(id);
   if (el) el.textContent = String(value);
+}
+
+function renderDeploymentBadge() {
+  const badge = byId('deploymentBadge');
+  if (!badge) return;
+  const build = window.MERIDIAN_BUILD || {};
+  const revision = build.short_revision || 'local';
+  const dirty = build.dirty ? ' dirty' : '';
+  badge.textContent = `build ${revision}${dirty}`;
+  badge.title = [
+    `Revision: ${build.revision || revision}`,
+    build.built_at ? `Built: ${build.built_at}` : '',
+    build.dirty ? 'Working tree had local changes at build time.' : 'Built from a clean revision.',
+  ].filter(Boolean).join('\n');
 }
 
 function readTopologyPositions() {
@@ -1984,6 +2078,25 @@ function saveRegionFilter() {
     }
   } catch (error) {
     // Ignore storage failures; the active dashboard filter should still work.
+  }
+}
+
+function readRegionSavedViews() {
+  try {
+    const views = JSON.parse(window.localStorage.getItem(REGION_SAVED_VIEWS_KEY) || '[]');
+    return Array.isArray(views)
+      ? views.filter((view) => view?.name && Array.isArray(view.regions))
+      : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function saveRegionSavedViews(views) {
+  try {
+    window.localStorage.setItem(REGION_SAVED_VIEWS_KEY, JSON.stringify(views));
+  } catch (error) {
+    // Ignore storage failures; ad-hoc region selection still works.
   }
 }
 
@@ -3014,6 +3127,7 @@ function renderRegionStrip(homeRegion, regions, activeRegions) {
     list.innerHTML = '<div class="empty">No regions match this search.</div>';
     return;
   }
+  renderSavedRegionViews();
   list.innerHTML = visibleRegions.map((region) => `
     <label class="region-menu-item region-filter-option">
       <input type="checkbox" data-region-filter="${escapeHtml(region)}" ${isRegionSelected(region) ? 'checked' : ''}>
@@ -3030,6 +3144,65 @@ function renderRegionStrip(homeRegion, regions, activeRegions) {
 
 function isRegionSelected(region) {
   return selectedRegionIds === null ? currentDefaultRegionIds.includes(region) : selectedRegionIds.has(region);
+}
+
+function selectedRegionArray() {
+  return selectedRegionIds === null ? [...currentDefaultRegionIds] : [...selectedRegionIds];
+}
+
+function renderSavedRegionViews() {
+  const select = byId('regionSavedView');
+  if (!select) return;
+  const views = readRegionSavedViews();
+  const currentValue = select.value;
+  select.innerHTML = [
+    '<option value="">Saved views</option>',
+    '<option value="__home">Home region only</option>',
+    '<option value="__selected">Current selection</option>',
+    ...views.map((view) => `<option value="${escapeHtml(view.name)}">${escapeHtml(view.name)} (${escapeHtml(view.regions.length)})</option>`),
+  ].join('');
+  if ([...select.options].some((option) => option.value === currentValue)) select.value = currentValue;
+}
+
+function applySavedRegionView(value) {
+  if (!value) return;
+  if (value === '__home') {
+    selectedRegionIds = new Set([currentHomeRegionId].filter(Boolean));
+  } else if (value === '__selected') {
+    selectedRegionIds = new Set(selectedRegionArray());
+  } else {
+    const view = readRegionSavedViews().find((item) => item.name === value);
+    if (!view) return;
+    selectedRegionIds = new Set(view.regions.filter((region) => currentRegionIds.includes(region)));
+  }
+  saveRegionFilter();
+  refreshDashboard({ showLoading: true });
+}
+
+function saveCurrentRegionView() {
+  const regions = selectedRegionArray().filter((region) => currentRegionIds.includes(region));
+  if (!regions.length) {
+    alert('Select at least one region before saving a view.');
+    return;
+  }
+  const defaultName = regions.length === 1 ? regions[0] : `${regions.length} selected regions`;
+  const name = window.prompt('Saved view name', defaultName);
+  if (!name?.trim()) return;
+  const viewName = name.trim();
+  const views = readRegionSavedViews().filter((view) => view.name !== viewName);
+  views.push({ name: viewName, regions });
+  views.sort((left, right) => left.name.localeCompare(right.name));
+  saveRegionSavedViews(views);
+  renderSavedRegionViews();
+  byId('regionSavedView').value = viewName;
+}
+
+function deleteCurrentRegionView() {
+  const select = byId('regionSavedView');
+  const name = select?.value || '';
+  if (!name || name.startsWith('__')) return;
+  saveRegionSavedViews(readRegionSavedViews().filter((view) => view.name !== name));
+  renderSavedRegionViews();
 }
 
 function regionGeo(region) {
@@ -3054,7 +3227,9 @@ function renderTopology(data) {
       ? useClusterShell && !topologyVcnScope
         ? buildTopologyClusterShell(topologyData, { includeVcns: Boolean(topologyRegionScope) })
         : buildInventoryTopology(topologyData)
-      : useClusterShell && !topologyVcnScope
+      : topologyQuickFilter
+        ? buildInventoryTopology(topologyData)
+        : useClusterShell && !topologyVcnScope
         ? buildTopologyClusterShell(topologyData, { includeVcns: Boolean(topologyRegionScope) })
         : buildClusteredTopology(topologyData);
   const layeredTopology = topologyMode === 'overview' ? rawTopology : filterTopologyLayers(rawTopology);
@@ -3202,6 +3377,10 @@ function renderTopologyControls(data) {
   connectedInput.checked = topologyConnectedOnly;
   connectedInput.disabled = !topologyVcnScope || topologyMode === 'overview';
 
+  byId('topologyQuickbar').querySelectorAll('[data-topology-quick]').forEach((button) => {
+    button.classList.toggle('active', button.getAttribute('data-topology-quick') === topologyQuickFilter);
+  });
+
   const layers = byId('topologyLayerGroup');
   layers.classList.toggle('disabled', topologyMode === 'overview');
   layers.querySelectorAll('input[data-topology-layer]').forEach((input) => {
@@ -3348,6 +3527,9 @@ function filterTopologyGraph(topology) {
   if (query) {
     nodes = nodes.filter((node) => topologyNodeSearchText(node).includes(query));
   }
+  if (topologyQuickFilter) {
+    nodes = nodes.filter((node) => topologyQuickFilterMatches(node));
+  }
 
   let nodeIds = new Set(nodes.map((node) => node.id));
   edges = edges.filter((edge) => nodeIds.has(edge.source_id) && nodeIds.has(edge.target_id));
@@ -3358,6 +3540,35 @@ function filterTopologyGraph(topology) {
     edges = edges.filter((edge) => nodeIds.has(edge.source_id) && nodeIds.has(edge.target_id));
   }
   return { nodes, edges };
+}
+
+function topologyQuickFilterMatches(node) {
+  if (['region', 'compartment', 'vcn'].includes(node.resource_type)) return true;
+  const metadata = node.metadata || {};
+  if (topologyQuickFilter === 'public_subnets') {
+    return node.resource_type === 'subnet' && metadata.subnet_access === 'public subnet';
+  }
+  if (topologyQuickFilter === 'internet_paths') {
+    return node.resource_type === 'internet_gateway'
+      || (node.resource_type === 'route_table' && metadata.public_default_route === 'true')
+      || (node.resource_type === 'subnet' && metadata.subnet_access === 'public subnet');
+  }
+  if (topologyQuickFilter === 'findings') {
+    return resourceIdsWithFindings().has(node.id);
+  }
+  return true;
+}
+
+function resourceIdsWithFindings() {
+  const ids = new Set();
+  (currentDashboardData?.routeIssues?.issues || []).forEach((issue) => {
+    if (issue.route_table_id) ids.add(issue.route_table_id);
+    if (issue.network_entity_id) ids.add(issue.network_entity_id);
+  });
+  (currentDashboardData?.securityPosture?.findings || []).forEach((finding) => {
+    if (finding.resource_id) ids.add(finding.resource_id);
+  });
+  return ids;
 }
 
 function topologyConnectedNodeIds(rootId, edges, nodeIds) {
@@ -3791,7 +4002,10 @@ function buildInventoryTopology(data) {
       vcn_id: item.vcn_id,
       lifecycle_state: item.lifecycle_state,
       console_url: ociConsoleUrl('route_table', item),
-      metadata: { route_rules: String(item.route_rules?.length || 0) },
+      metadata: {
+        route_rules: String(item.route_rules?.length || 0),
+        public_default_route: String(routeTableHasPublicDefaultRoute(item)),
+      },
     });
     addEdge(item.vcn_id, item.id, 'has_route_table');
     (item.route_rules || []).forEach((rule, index) => {
@@ -3924,7 +4138,10 @@ function buildClusteredTopology(data) {
       vcn_id: item.vcn_id,
       lifecycle_state: item.lifecycle_state,
       console_url: ociConsoleUrl('route_table', item),
-      metadata: { route_rules: String(item.route_rules?.length || 0) },
+      metadata: {
+        route_rules: String(item.route_rules?.length || 0),
+        public_default_route: String(routeTableHasPublicDefaultRoute(item)),
+      },
     });
     addEdge(item.vcn_id, item.id, 'has_route_table');
     (item.route_rules || []).forEach((rule, index) => {
@@ -4300,6 +4517,13 @@ function routeIssueMeta(issue) {
   return route ? `${issue.description} / ${route}` : issue.description;
 }
 
+function routeTableHasPublicDefaultRoute(routeTable) {
+  return (routeTable.route_rules || []).some((rule) => (
+    rule.destination === '0.0.0.0/0'
+    && String(rule.network_entity_id || '').toLowerCase().includes('igw')
+  ));
+}
+
 function buildTopologyOverview(data) {
   const nodes = [];
   const edges = [];
@@ -4492,11 +4716,16 @@ function accessBadgeText(preflight) {
 function renderFindings(findings) {
   const list = byId('findingList');
   currentSecurityFindings = findings;
+  const visibleFindings = findings.filter((finding) => findingWorkflowMatches(finding));
   if (!findings.length) {
     list.innerHTML = '<div class="empty">No broad ingress exposure detected by the current backend checks.</div>';
     return;
   }
-  list.innerHTML = findings.slice(0, 8).map((finding) => {
+  if (!visibleFindings.length) {
+    list.innerHTML = '<div class="empty">No findings match this workflow filter.</div>';
+    return;
+  }
+  list.innerHTML = visibleFindings.slice(0, 8).map((finding) => {
     const latestAction = latestActionForFinding(findingKey(finding));
     const consoleUrl = ociConsoleUrl(findingResourceType(finding), { id: finding.resource_id, region: finding.region });
     return `
@@ -4514,6 +4743,18 @@ function renderFindings(findings) {
       </div>
     `;
   }).join('');
+}
+
+function findingWorkflowMatches(finding) {
+  if (!findingWorkflowFilter) return true;
+  const latestAction = latestActionForFinding(findingKey(finding));
+  const actionType = latestAction?.action_type || '';
+  if (findingWorkflowFilter === 'open') return !latestAction || actionType === 'note';
+  if (findingWorkflowFilter === 'owned') return actionType === 'assign_owner' || actionType === 'create_remediation_task';
+  if (findingWorkflowFilter === 'accepted') return actionType === 'accept_risk';
+  if (findingWorkflowFilter === 'false_positive') return actionType === 'false_positive';
+  if (findingWorkflowFilter === 'dismissed') return actionType === 'dismiss' || actionType === 'ignore';
+  return true;
 }
 
 function findingResourceType(finding) {
@@ -4539,7 +4780,7 @@ function renderSecurityActionHistory(actions) {
       <div class="history-item ${escapeHtml(action.action_type)}">
         <div class="resource-row">
           <div>
-            <div class="resource-name">${escapeHtml(actionLabel(action.action_type))} / ${escapeHtml(action.resource_name || 'resource')}</div>
+            <div class="resource-name">${escapeHtml(actionLabel(action.action_type))} / ${resourceLink(action.resource_name || 'resource', actionConsoleUrl(action))}</div>
             <div class="resource-meta">${escapeHtml(actionHistoryMeta(action))}</div>
           </div>
           <span class="${actionBadgeClass(action.action_type)}">${escapeHtml(actionShortLabel(action.action_type))}</span>
@@ -4634,7 +4875,7 @@ function renderFindingActionHistory(findingKeyValue) {
   list.innerHTML = actions.slice(0, 5).map((action) => `
     <div class="resource-row">
       <div>
-        <div class="resource-name">${escapeHtml(actionLabel(action.action_type))}</div>
+        <div class="resource-name">${escapeHtml(actionLabel(action.action_type))} / ${resourceLink(action.resource_name || 'resource', actionConsoleUrl(action))}</div>
         <div class="resource-meta">${escapeHtml(actionHistoryMeta(action))}</div>
       </div>
       <span class="${actionBadgeClass(action.action_type)}">${escapeHtml(actionShortLabel(action.action_type))}</span>
@@ -4660,6 +4901,11 @@ function actionHistoryMeta(action) {
   if (action.expires_at) parts.push(`expires: ${action.expires_at}`);
   if (action.note) parts.push(action.note);
   return parts.filter(Boolean).join(' / ');
+}
+
+function actionConsoleUrl(action) {
+  const resourceType = action.rule_type?.startsWith('nsg_') ? 'network_security_group' : 'security_list';
+  return ociConsoleUrl(resourceType, { id: action.resource_id, region: action.region });
 }
 
 function latestActionForFinding(findingKeyValue) {
@@ -5050,8 +5296,9 @@ byId('coveragePanel').addEventListener('click', (event) => {
 
 function exportQueryParams() {
   const params = new URLSearchParams();
-  if (selectedRegionIds !== null && selectedRegionIds.size > 0) {
-    params.set('regions', [...selectedRegionIds].join(','));
+  const regions = selectedRegionArray();
+  if (regions.length > 0) {
+    params.set('regions', regions.join(','));
   }
   return params.toString();
 }
@@ -5107,6 +5354,11 @@ byId('securityActionType').addEventListener('change', (event) => {
 byId('regionSearch').addEventListener('input', () => {
   renderRegionStrip(currentHomeRegionId || byId('homeRegionName').textContent, new Set(currentRegionIds), currentActiveRegionDetails);
 });
+byId('regionSavedView').addEventListener('change', (event) => {
+  applySavedRegionView(event.target.value);
+});
+byId('regionSaveView').addEventListener('click', saveCurrentRegionView);
+byId('regionDeleteView').addEventListener('click', deleteCurrentRegionView);
 byId('regionSelectAll').addEventListener('click', () => {
   selectedRegionIds = new Set(currentRegionIds);
   saveRegionFilter();
@@ -5172,6 +5424,28 @@ byId('topologyConnectedOnly').addEventListener('change', (event) => {
   topologyConnectedOnly = event.target.checked;
   if (currentDashboardData) renderDashboard(currentDashboardData, currentDashboardMode);
 });
+byId('topologyQuickbar').addEventListener('click', (event) => {
+  const button = event.target.closest('button[data-topology-quick]');
+  if (!button) return;
+  topologyQuickFilter = button.getAttribute('data-topology-quick') || '';
+  if (topologyQuickFilter) {
+    topologyMode = topologyMode === 'overview' ? 'full' : topologyMode;
+    if (topologyQuickFilter === 'public_subnets') {
+      topologyLayers = { ...topologyLayers, subnets: true };
+    } else if (topologyQuickFilter === 'internet_paths') {
+      topologyLayers = { ...topologyLayers, subnets: true, gateways: true, routes: true };
+    } else if (topologyQuickFilter === 'findings') {
+      topologyLayers = { ...topologyLayers, gateways: true, routes: true, security: true };
+    }
+    saveTopologyMode();
+    saveTopologyLayers();
+  }
+  if (currentDashboardData) renderDashboard(currentDashboardData, currentDashboardMode);
+});
+byId('findingWorkflowFilter').addEventListener('change', (event) => {
+  findingWorkflowFilter = event.target.value;
+  renderFindings(currentSecurityFindings);
+});
 byId('regionMenuBtn').addEventListener('click', (event) => {
   event.stopPropagation();
   const menu = byId('regionMenu');
@@ -5203,6 +5477,7 @@ document.querySelectorAll('details.expander').forEach((panel) => {
 window.addEventListener('resize', handleTopologyResize);
 attachTopologyViewportInteractions();
 configureDemoDataControl();
+renderDeploymentBadge();
 refreshDashboard({ showLoading: true });
 window.setInterval(() => {
   if (!useDemoData && document.visibilityState === 'visible') refreshDashboard();

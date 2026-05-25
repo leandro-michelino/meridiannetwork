@@ -228,6 +228,7 @@ def visible_topbar_actions(page) -> list[str]:
 
 def test_frontend_build_artifact_exposes_version(page, dashboard_url: str) -> None:
     assert page.locator('meta[name="meridian-build-revision"]').get_attribute("content")
+    expect(page.locator("#deploymentBadge")).to_contain_text("build")
     with urllib.request.urlopen(f"{dashboard_url}/version.json", timeout=5) as response:
         assert response.headers["Cache-Control"].startswith("no-store")
         version = json.loads(response.read())
@@ -249,6 +250,37 @@ def test_topbar_demo_control_visual_states(page, dashboard_url: str) -> None:
     expect(page.locator("#demoToggle")).to_be_visible()
     assert "Use API" in visible_topbar_actions(page)
     page.locator(".topbar").screenshot(path=SCREENSHOT_DIR / "topbar-demodata.png")
+
+
+def test_saved_views_quick_filters_and_finding_workflow(page, dashboard_url: str) -> None:
+    page.evaluate("localStorage.removeItem('meridianRegionSavedViews')")
+    page.evaluate("localStorage.removeItem('meridianRegionFilter')")
+    page.reload(wait_until="networkidle")
+
+    page.click("#regionMenuBtn")
+    page.fill("#regionSearch", "madrid")
+    page.locator('#regionMenuList input[data-region-filter="eu-madrid-1"]').check()
+    page.once("dialog", lambda dialog: dialog.accept("Europe review"))
+    page.click("#regionSaveView")
+    expect(page.locator("#regionSavedView")).to_contain_text("Europe review")
+    page.click("#regionClearAll")
+    expect(page.locator("#regionMenuBtn")).to_contain_text("Regions 0/38")
+    page.locator("#regionSavedView").select_option("Europe review")
+    expect(page.locator("#regionMenuBtn")).to_contain_text("Regions 2/38", timeout=10_000)
+
+    page.goto(f"{dashboard_url}/demodata", wait_until="networkidle")
+    page.click("#regionMenuBtn")
+    page.click("#regionSelectAll")
+    page.locator("#topologyPanel").scroll_into_view_if_needed()
+    page.click('[data-topology-quick="public_subnets"]')
+    assert "active" in (page.locator('[data-topology-quick="public_subnets"]').get_attribute("class") or "")
+    expect(page.locator("#topologyNodes")).to_contain_text("web-public")
+
+    page.locator("#securityPosturePanel").scroll_into_view_if_needed()
+    page.locator("#findingWorkflowFilter").select_option("owned")
+    expect(page.locator("#findingList")).to_contain_text("No findings match this workflow filter")
+    page.locator("#findingWorkflowFilter").select_option("open")
+    expect(page.locator("#findingList")).to_contain_text("public-security-list")
 
 
 def test_regions_menu_controls_api_and_demo_scope(page, dashboard_url: str) -> None:
