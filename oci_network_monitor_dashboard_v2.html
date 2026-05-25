@@ -803,6 +803,31 @@ body {
   gap: 7px;
 }
 
+.card-header-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.inventory-search {
+  width: min(280px, 28vw);
+  min-width: 180px;
+  border: 1px solid var(--mn-border);
+  border-radius: 999px;
+  padding: 6px 11px;
+  color: var(--mn-text);
+  background: var(--mn-surface);
+  font: inherit;
+  font-size: 12px;
+}
+
+.inventory-search:focus {
+  border-color: var(--mn-blue);
+  outline: 2px solid rgba(0, 111, 139, 0.16);
+  outline-offset: 1px;
+}
+
 .badge {
   border-radius: 999px;
   padding: 3px 8px;
@@ -1441,6 +1466,20 @@ tr:last-child td { border-bottom: 0; }
     grid-template-columns: 1fr;
   }
 
+  .expander > summary.card-header {
+    grid-template-columns: 12px minmax(0, 1fr);
+  }
+
+  .card-header-tools {
+    grid-column: 2 / -1;
+    width: 100%;
+  }
+
+  .inventory-search {
+    width: 100%;
+    min-width: 0;
+  }
+
   .cs-row {
     grid-template-columns: 14px minmax(0, 1fr) auto;
   }
@@ -1707,7 +1746,10 @@ tr:last-child td { border-bottom: 0; }
     <details class="card expander" open>
       <summary class="card-header">
         <div class="card-title">VCNs and Subnets</div>
-        <span class="badge neutral" id="dataModeBadge">api</span>
+        <div class="card-header-tools">
+          <input class="inventory-search" id="networkSearch" type="search" placeholder="Search VCNs, subnets, OCIDs" aria-label="Search VCN and subnet inventory">
+          <span class="badge neutral" id="dataModeBadge">api</span>
+        </div>
       </summary>
       <div class="table-wrap">
         <table>
@@ -1940,6 +1982,7 @@ let collectionPollTimer = 0;
 let coverageFilter = 'all';
 let coveragePanelOpen = true;
 let findingWorkflowFilter = '';
+let networkSearchQuery = '';
 
 function byId(id) {
   return document.getElementById(id);
@@ -5038,7 +5081,13 @@ function renderNetworkTable(vcns, subnets, compartmentMap) {
     body.innerHTML = '<tr><td colspan="10" class="muted">No VCN or subnet inventory returned yet.</td></tr>';
     return;
   }
-  body.innerHTML = rows.map((row) => `
+  const query = networkSearchQuery.trim().toLowerCase();
+  const visibleRows = query ? rows.filter((row) => networkRowSearchText(row).includes(query)) : rows;
+  if (!visibleRows.length) {
+    body.innerHTML = '<tr><td colspan="10" class="muted">No VCNs or subnets match this search.</td></tr>';
+    return;
+  }
+  body.innerHTML = visibleRows.map((row) => `
     <tr>
       <td>${escapeHtml(row.type)}</td>
       <td>${resourceLink(row.name, row.consoleUrl)}</td>
@@ -5052,6 +5101,21 @@ function renderNetworkTable(vcns, subnets, compartmentMap) {
       <td><span class="${badgeClass(row.state === 'AVAILABLE')}">${escapeHtml(row.state || 'unknown')}</span></td>
     </tr>
   `).join('');
+}
+
+function networkRowSearchText(row) {
+  return [
+    row.type,
+    row.name,
+    row.compartment,
+    row.region,
+    row.cidr,
+    row.vcn,
+    row.dns,
+    row.subnetAccess,
+    row.state,
+    row.id,
+  ].filter(Boolean).join(' ').toLowerCase();
 }
 
 function subnetAccessMode(item) {
@@ -5320,6 +5384,16 @@ byId('exportPdfBtn').addEventListener('click', () => window.print());
 byId('accessCheckBtn').addEventListener('click', (event) => {
   event.stopPropagation();
   validateAccess();
+});
+byId('networkSearch').addEventListener('click', (event) => {
+  event.stopPropagation();
+});
+byId('networkSearch').addEventListener('keydown', (event) => {
+  if (event.key === 'Enter' || event.key === ' ') event.stopPropagation();
+});
+byId('networkSearch').addEventListener('input', (event) => {
+  networkSearchQuery = event.target.value;
+  if (currentDashboardData) renderDashboard(currentDashboardData, currentDashboardMode);
 });
 byId('securityHistoryBtn').addEventListener('click', (event) => {
   event.preventDefault();

@@ -346,6 +346,12 @@ def test_regions_menu_controls_api_and_demo_scope(page, dashboard_url: str) -> N
     expect(page.locator("#regionMenuBtn")).to_contain_text("Regions 2/2")
     assert set(selected_regions(page)) == {"eu-frankfurt-1", "eu-amsterdam-1"}
     assert page.locator("#kpiVcns").inner_text() == "2"
+    page.fill("#networkSearch", "web-public")
+    expect(page.locator("#networkTable tr")).to_have_count(1)
+    expect(page.locator("#networkTable")).to_contain_text("web-public")
+    page.fill("#networkSearch", "no-such-network")
+    expect(page.locator("#networkTable")).to_contain_text("No VCNs or subnets match this search")
+    page.fill("#networkSearch", "")
     expect(page.locator("#topologyBadge")).to_contain_text("overview / 8 nodes / 6 links")
 
 
