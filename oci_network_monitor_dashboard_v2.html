@@ -1810,6 +1810,7 @@ const TOPOLOGY_LAYER_KEY = 'meridianTopologyLayers';
 const DEFAULT_TOPOLOGY_LAYERS = { subnets: false, gateways: true, routes: true, security: false };
 const SECURITY_ACTION_HISTORY_KEY = 'meridianSecurityActionHistory';
 const REGION_FILTER_KEY = 'meridianRegionFilter';
+const DEMO_DATA_PATH = '/demodata';
 let useDemoData = false;
 let refreshInFlight = false;
 let topologyEdges = [];
@@ -1857,6 +1858,21 @@ let coveragePanelOpen = true;
 
 function byId(id) {
   return document.getElementById(id);
+}
+
+function isDemoDataPathAllowed() {
+  return window.location.pathname === DEMO_DATA_PATH;
+}
+
+function configureDemoDataControl() {
+  const demoToggle = byId('demoToggle');
+  if (!demoToggle) return;
+  const allowed = isDemoDataPathAllowed();
+  demoToggle.hidden = !allowed;
+  if (!allowed) {
+    useDemoData = false;
+    demoToggle.textContent = 'Demo data';
+  }
 }
 
 function text(id, value) {
@@ -2175,7 +2191,8 @@ async function refreshDashboard({
       mode = 'demo fallback';
     }
 
-    byId('demoToggle').textContent = useDemoData ? 'Use API' : 'Demo data';
+    const demoToggle = byId('demoToggle');
+    if (demoToggle) demoToggle.textContent = useDemoData ? 'Use API' : 'Demo data';
     currentDashboardData = data;
     renderDashboard(data, mode);
   } finally {
@@ -4895,11 +4912,15 @@ function todayDateInputValue() {
   return new Date().toISOString().slice(0, 10);
 }
 
-byId('demoToggle').addEventListener('click', () => {
-  useDemoData = !useDemoData;
-  byId('demoToggle').textContent = useDemoData ? 'Use API' : 'Demo data';
-  refreshDashboard({ showLoading: true });
-});
+const demoToggle = byId('demoToggle');
+if (demoToggle) {
+  demoToggle.addEventListener('click', () => {
+    if (!isDemoDataPathAllowed()) return;
+    useDemoData = !useDemoData;
+    demoToggle.textContent = useDemoData ? 'Use API' : 'Demo data';
+    refreshDashboard({ showLoading: true });
+  });
+}
 byId('refreshNow').addEventListener('click', () => refreshDashboard({
   showLoading: true,
   refresh: true,
@@ -5134,6 +5155,7 @@ document.querySelectorAll('details.expander').forEach((panel) => {
 
 window.addEventListener('resize', handleTopologyResize);
 attachTopologyViewportInteractions();
+configureDemoDataControl();
 refreshDashboard({ showLoading: true });
 window.setInterval(() => {
   if (!useDemoData && document.visibilityState === 'visible') refreshDashboard();
