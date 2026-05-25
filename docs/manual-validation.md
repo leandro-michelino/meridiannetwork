@@ -10,6 +10,8 @@ terraform -chdir=terraform init -backend=false
 terraform -chdir=terraform validate
 ```
 
+Use `make tf-validate` when the local Terraform directory has already been initialized.
+
 ## Ansible
 
 ```bash
@@ -18,14 +20,22 @@ printf '[meridian]\nlocalhost ansible_connection=local\n' > /tmp/meridian_invent
 ansible-playbook --syntax-check -i /tmp/meridian_inventory ansible/playbooks/bootstrap.yml
 ```
 
+## Frontend Build
+
+```bash
+make frontend-build
+```
+
+Expected output is a regenerated ignored `frontend/dist/` directory containing `index.html` and `version.json`.
+
 ## Backend
 
 ```bash
 python3 -m venv .venv
 . .venv/bin/activate
 python -m pip install --upgrade pip
-python -m pip install -r backend/requirements-dev.txt
-PYTHONPATH=backend pytest backend/tests
+make backend-install
+make backend-test
 ruff check backend
 python -m compileall -q backend/app
 ```
@@ -33,7 +43,7 @@ python -m compileall -q backend/app
 ## Dashboard Browser E2E
 
 ```bash
-PYTHONPATH=backend pytest tests/e2e
+make dashboard-e2e
 ```
 
 The E2E tests require Playwright and a local Chrome/Chromium browser. Set `MERIDIAN_E2E_BROWSER` when Chrome is not in
@@ -44,6 +54,7 @@ Optional local API smoke test:
 ```bash
 uvicorn app.main:app --app-dir backend --host 127.0.0.1 --port 8080
 curl http://127.0.0.1:8080/healthz
+curl http://127.0.0.1:8080/api/version
 curl http://127.0.0.1:8080/api/preflight
 curl http://127.0.0.1:8080/api/vcns
 curl http://127.0.0.1:8080/api/subnets
@@ -78,6 +89,20 @@ ansible_python_interpreter=/usr/bin/python3
 find .github -maxdepth 3 -type f -print 2>/dev/null || true
 git status --short --branch
 git ls-tree -r --name-only origin/main
+git diff --check
 ```
 
 There should be no `.github/workflows` files.
+
+## Deployment Smoke Test
+
+After `make deploy`, verify the published VM is serving the same clean revision from the frontend and backend:
+
+```bash
+curl http://<dashboard-host>/version.json
+curl http://<dashboard-host>/api/version
+curl -I http://<dashboard-host>/index.html
+```
+
+Both version endpoints should report the deployed Git revision and `dirty: false`. The `index.html` and `version.json`
+responses should include no-cache headers so browsers do not retain an older dashboard shell.

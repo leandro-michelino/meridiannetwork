@@ -2,7 +2,7 @@
 
 Meridian is a self-hosted OCI Network Monitor for consolidated network observability across compartments and regions.
 
-The product vision is captured in [Meridian_OCI_Network_Monitor.md](Meridian_OCI_Network_Monitor.md). This repository also includes the first deployable infrastructure baseline using Terraform and Ansible.
+It includes the deployable OCI baseline, backend API, buildable dashboard artifact, and operating documentation needed to run Meridian on an OCI Compute VM.
 
 ## Why Meridian
 
@@ -45,11 +45,11 @@ If you are interested in implementing, adapting, or discussing Meridian for an O
 
 ## What Is Included
 
-- Terraform for OCI VCN, public subnet, internet gateway, route table, security list, and Compute host.
+- Terraform for OCI workload compartment, VCN, public subnet, internet gateway, optional NAT gateway, route table, security lists, optional Object Storage archive, and Compute host.
 - Optional OCI dynamic group and IAM policy for instance principal access.
 - FastAPI backend foundation with health, readiness, preflight, regions, and compartments endpoints.
-- Buildable frontend artifact for the API-aware dashboard with fallback demo data, 5-second live refresh, compartment-aware inventory, draggable topology, subnet access labels, NSG context, resource IDs, expanders, and pinned home-region navigation.
-- Dashboard top-bar access validation button for runtime IAM, region, compartment, and network read validation.
+- Buildable frontend artifact for the API-aware dashboard with fallback demo data, live refresh, selected-region coverage, saved region views, draggable topology, quick topology filters, subnet access labels, NSG context, resource IDs, expanders, and pinned home-region navigation.
+- Dashboard topbar access validation button for runtime IAM, region, compartment, and network read validation.
 - Ansible bootstrap to configure Oracle Linux with Nginx, Podman-ready packages, firewall rules, cache-safe dashboard publishing, deployment version metadata, and the backend API service.
 - Inventory generation from Terraform outputs.
 - Documentation for architecture, operations, security/IAM, API design, data model, roadmap, release process, and remote audit.
@@ -59,15 +59,17 @@ If you are interested in implementing, adapting, or discussing Meridian for an O
 
 ```text
 .
-├── ansible/                # Host configuration and dashboard publishing
-├── backend/                # FastAPI backend foundation
-├── docs/                   # Architecture, operations, security, API, roadmap
-├── frontend/               # Dashboard build scripts and generated dist output
-├── scripts/                # Local helper scripts
-├── terraform/              # OCI infrastructure as code
-├── Makefile                # Common local commands
-├── Meridian_OCI_Network_Monitor.md
-└── oci_network_monitor_dashboard_v2.html
+|-- ansible/                 # Host configuration and dashboard publishing
+|-- backend/                 # FastAPI backend and tests
+|-- docs/                    # Architecture, operations, security, API, roadmap
+|-- frontend/                # Build scripts and frontend source helpers
+|   |-- scripts/build.mjs     # Builds frontend/dist from the source HTML
+|   `-- src/                 # Build info and HTML injection helpers
+|-- scripts/                 # Local helper scripts
+|-- terraform/               # OCI infrastructure as code
+|-- tests/e2e/               # Browser E2E coverage for the dashboard
+|-- Makefile                 # Common local commands
+`-- oci_network_monitor_dashboard_v2.html
 ```
 
 ## Prerequisites
@@ -90,7 +92,7 @@ cp terraform/terraform.tfvars.example terraform/terraform.tfvars
 Edit `terraform/terraform.tfvars` with:
 
 - `tenancy_ocid`
-- `compartment_ocid`
+- `compartment_ocid`, or `parent_compartment_ocid` with `create_meridian_compartment = true`
 - `region`
 - `admin_cidr_blocks`
 - `ssh_public_key_path`
@@ -133,6 +135,7 @@ make deploy
 make tf-destroy
 make backend-install
 make backend-test
+make dashboard-e2e
 make backend-run
 ```
 
@@ -210,7 +213,7 @@ When enabled, Terraform creates:
 - A dynamic group matching Compute instances in the application compartment.
 - A read-oriented policy intended for instance principal access to network observability data.
 
-The deployed API exposes `GET /api/preflight`, and the dashboard includes a top-bar `Validate access` button to validate
+The deployed API exposes `GET /api/preflight`, and the dashboard includes a topbar `Validate access` button to validate
 runtime authentication, compartment discovery, configured regions, monitored compartments, and required networking read
 permissions on demand.
 

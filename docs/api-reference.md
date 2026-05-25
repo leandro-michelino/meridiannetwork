@@ -63,6 +63,7 @@ inventory reads (VCN list, security list, NSG list). Each check returns `name`, 
 | Method | Path             | Description                                            |
 | ------ | ---------------- | ------------------------------------------------------ |
 | GET    | `/api/dashboard` | Full inventory snapshot — all resource types in one response |
+| GET    | `/api/dashboard/completeness` | Region coverage and collection completeness summary |
 
 Query parameters:
 
@@ -129,8 +130,30 @@ also accept `vcn_id`.
 | Method | Path                       | Status                                                              |
 | ------ | -------------------------- | ------------------------------------------------------------------- |
 | GET    | `/api/security/posture`    | Implemented — broad ingress/egress risk checks across SLs and NSGs |
+| GET    | `/api/security/finding-actions` | Implemented — list security finding workflow action history     |
+| POST   | `/api/security/finding-actions` | Implemented — record a finding action                           |
 | GET    | `/api/security/risky-rules` | Planned                                                            |
 | GET    | `/api/security/report`     | Planned                                                             |
+
+---
+
+## Identity
+
+| Method | Path                    | Status                                      |
+| ------ | ----------------------- | ------------------------------------------- |
+| GET    | `/api/identity/context` | Implemented — runtime identity context used by the dashboard |
+
+---
+
+## Export
+
+All export endpoints accept `regions`, `compartment_ids`, and where applicable `vcn_id`.
+
+| Method | Path                                | Status                                      |
+| ------ | ----------------------------------- | ------------------------------------------- |
+| GET    | `/api/export/security-posture.csv`  | Implemented — CSV security findings export |
+| GET    | `/api/export/inventory.csv`         | Implemented — CSV VCN, subnet, and gateway export |
+| GET    | `/api/export/completeness.csv`      | Implemented — CSV region coverage export   |
 
 ---
 
@@ -148,7 +171,6 @@ The following endpoint families are specified but not yet implemented:
 /api/oke/*
 /api/cost/*
 /api/healthchecks
-/api/export/*
 /api/notifications/*
 /api/genai/*
 ```

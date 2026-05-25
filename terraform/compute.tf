@@ -3,10 +3,10 @@ resource "oci_core_instance" "meridian" {
     var.availability_domain_name,
     data.oci_identity_availability_domains.ads.availability_domains[0].name
   )
-  compartment_id = var.compartment_ocid
+  compartment_id = local.workload_compartment_ocid
   display_name   = "${local.name_prefix}-host"
   shape          = var.instance_shape
-  freeform_tags  = var.freeform_tags
+  freeform_tags  = local.resource_tags
 
   dynamic "shape_config" {
     for_each = local.is_flex_shape ? [1] : []
@@ -34,4 +34,3 @@ resource "oci_core_instance" "meridian" {
     ssh_authorized_keys = file(pathexpand(var.ssh_public_key_path))
   }
 }
-

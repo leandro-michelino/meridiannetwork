@@ -4,8 +4,9 @@ variable "tenancy_ocid" {
 }
 
 variable "compartment_ocid" {
-  description = "OCI compartment OCID where Meridian infrastructure will be created."
+  description = "Existing OCI compartment OCID where Meridian infrastructure will be created when create_meridian_compartment is false."
   type        = string
+  default     = null
 }
 
 variable "region" {
@@ -29,6 +30,30 @@ variable "environment" {
   description = "Environment label used for OCI resource names."
   type        = string
   default     = "dev"
+}
+
+variable "parent_compartment_ocid" {
+  description = "Parent compartment OCID used when create_meridian_compartment is true. Defaults to the tenancy OCID."
+  type        = string
+  default     = null
+}
+
+variable "parent_compartment_name" {
+  description = "Friendly parent compartment name used only in deployment metadata."
+  type        = string
+  default     = null
+}
+
+variable "create_meridian_compartment" {
+  description = "Create a dedicated workload compartment for Meridian resources."
+  type        = bool
+  default     = false
+}
+
+variable "meridian_compartment_name" {
+  description = "Name of the managed Meridian workload compartment."
+  type        = string
+  default     = "Meridian"
 }
 
 variable "availability_domain_name" {
@@ -108,6 +133,12 @@ variable "app_port" {
   default     = 8080
 }
 
+variable "enable_nat_gateway" {
+  description = "Create a NAT gateway and route default outbound traffic through it while keeping public ingress restricted."
+  type        = bool
+  default     = false
+}
+
 variable "create_identity_policies" {
   description = "Create OCI dynamic group and IAM policy for instance principal access."
   type        = bool
@@ -127,11 +158,50 @@ variable "identity_policy_statements" {
   ]
 }
 
+variable "external_instance_principal_dynamic_group_name" {
+  description = "Name of an externally managed dynamic group used when create_identity_policies is false."
+  type        = string
+  default     = null
+}
+
+variable "external_instance_principal_policy_name" {
+  description = "Name of an externally managed IAM policy used when create_identity_policies is false."
+  type        = string
+  default     = null
+}
+
+variable "instance_principal_access_group_name" {
+  description = "Optional human access group name documented in the deployment card."
+  type        = string
+  default     = null
+}
+
+variable "security_action_archive_enabled" {
+  description = "Create an Object Storage bucket for security finding action history archive."
+  type        = bool
+  default     = false
+}
+
+variable "security_action_archive_bucket_name" {
+  description = "Optional Object Storage bucket name for security action archive. Defaults to <project>-<environment>-action-history."
+  type        = string
+  default     = null
+}
+
+variable "security_action_archive_prefix" {
+  description = "Object name prefix used for security action archive objects."
+  type        = string
+  default     = null
+}
+
+variable "security_action_archive_retention_days" {
+  description = "Retention period, in days, for security action archive objects."
+  type        = number
+  default     = 365
+}
+
 variable "freeform_tags" {
-  description = "Freeform tags applied to OCI resources."
+  description = "Additional freeform tags applied to OCI resources. Project and managed tags are added automatically."
   type        = map(string)
-  default = {
-    project = "meridian"
-    managed = "terraform"
-  }
+  default     = {}
 }

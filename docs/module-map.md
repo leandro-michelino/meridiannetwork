@@ -15,6 +15,9 @@ Status key: **Implemented** · *Planned*
 | Async per-region collection with status panel                        | **Implemented**     |
 | Persistent on-disk snapshot cache                                    | **Implemented**     |
 | OCI runtime preflight checks                                         | **Implemented**     |
+| Deployment version metadata                                          | **Implemented**     |
+| CSV exports for inventory, completeness, and security posture        | **Implemented**     |
+| Optional Object Storage archive for security action history          | **Implemented**     |
 | VCN Flow Logs viewer                                                 | *Planned*           |
 | Inter-region latency                                                 | *Planned*           |
 | VNIC and Compute top consumers                                       | *Planned*           |
@@ -25,8 +28,10 @@ Status key: **Implemented** · *Planned*
 | Feature                                                    | Status          |
 | ---------------------------------------------------------- | --------------- |
 | Region selector with multi-region support                  | **Implemented** |
+| Saved region views                                         | **Implemented** |
 | Compartment discovery and filter                           | **Implemented** |
 | Per-region collection status (Ready / Collecting / Failed / No resources) | **Implemented** |
+| Selected-region coverage panel                             | **Implemented** |
 | Compartment-tag-based scope filter                         | *Planned*       |
 
 ## Security and Governance
@@ -36,6 +41,7 @@ Status key: **Implemented** · *Planned*
 | Security posture score and findings                                    | **Implemented** |
 | Risky Security List rule detection (SSH/RDP/all-protocol from 0.0.0.0/0) | **Implemented** |
 | NSG risky rule detection                                               | **Implemented** |
+| Finding workflow filter and action history                             | **Implemented** |
 | OCI Audit change feed                                                  | *Planned*       |
 | Exportable security reports                                            | *Planned*       |
 
@@ -75,11 +81,14 @@ Status key: **Implemented** · *Planned*
 ```text
 GET /healthz
 GET /readyz
+GET /api/version
 GET /api/preflight
 GET /api/regions/available
 GET /api/regions/active
 GET /api/compartments
+GET /api/identity/context
 GET /api/dashboard
+GET /api/dashboard/completeness
 GET /api/vcns
 GET /api/subnets
 GET /api/gateways
@@ -89,4 +98,9 @@ GET /api/security-lists
 GET /api/network-security-groups
 GET /api/topology
 GET /api/security/posture
+GET /api/security/finding-actions
+POST /api/security/finding-actions
+GET /api/export/security-posture.csv
+GET /api/export/inventory.csv
+GET /api/export/completeness.csv
 ```

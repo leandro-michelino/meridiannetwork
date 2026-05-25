@@ -3,6 +3,11 @@ compartment_ocid = "ocid1.compartment.oc1..replace-me"
 region           = "eu-frankfurt-1"
 oci_profile      = "DEFAULT"
 
+# Optional: create a dedicated Meridian workload compartment instead of using compartment_ocid.
+# parent_compartment_ocid     = "ocid1.compartment.oc1..replace-me"
+# create_meridian_compartment = true
+# meridian_compartment_name   = "Meridian"
+
 # Use a narrow CIDR whenever possible, for example your office or VPN public IP.
 admin_cidr_blocks = [
   "203.0.113.10/32"
@@ -18,3 +23,12 @@ instance_memory_gb = 8
 # Enable only after reviewing IAM policy statements.
 create_identity_policies = false
 
+# Optional: document externally managed instance-principal IAM when Terraform should not create it.
+# external_instance_principal_dynamic_group_name = "existing-dynamic-group"
+# external_instance_principal_policy_name        = "existing-policy"
+
+# Optional: route default outbound traffic through a NAT Gateway and keep public ingress scoped.
+# enable_nat_gateway = true
+
+# Optional: create an Object Storage archive for security finding action history.
+# security_action_archive_enabled = true

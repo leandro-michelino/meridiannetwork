@@ -32,7 +32,9 @@ Status: **complete**.
 - Topology graph derived from live inventory.
 - Async per-region collection with in-memory and on-disk snapshot cache.
 - Per-region collection status UI panel with backoff polling.
-- 27 backend tests.
+- Buildable frontend artifact with browser E2E coverage.
+- Saved region views, selected-region coverage, topology quick filters, and security workflow filtering.
+- 45 backend tests and 5 dashboard browser E2E tests.
 
 ## Phase 3 - Metrics and Alarms
 

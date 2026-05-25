@@ -5,7 +5,7 @@ FastAPI backend foundation for Meridian.
 ## Current Scope
 
 - Application factory.
-- Health and readiness endpoints.
+- Health, readiness, and deployment version endpoints.
 - OCI preflight endpoint for IAM and service readiness validation.
 - OCI client factory abstraction.
 - Regions endpoint.
@@ -17,6 +17,8 @@ FastAPI backend foundation for Meridian.
 - Route issue endpoint for empty route tables, duplicate destinations, unresolved targets, disabled targets, and public default routes.
 - Topology graph endpoint derived from live OCI network inventory when enabled.
 - Initial security posture endpoint for broad Security List and NSG ingress exposure.
+- Security finding action history endpoints.
+- CSV export endpoints for inventory, coverage completeness, and security posture.
 - Test suite for the implemented API surface.
 
 ## Local Setup
@@ -37,7 +39,7 @@ uvicorn app.main:app --app-dir backend --reload --host 127.0.0.1 --port 8080
 ## Test
 
 ```bash
-PYTHONPATH=backend pytest backend/tests
+make backend-test
 ```
 
 ## OCI Modes

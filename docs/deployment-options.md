@@ -38,7 +38,7 @@ Optional OCI resources:
 
 ## Why Not Serverless First
 
-Function-based serverless would force the main API into a different execution model before the product shape is stable. Meridian currently needs a normal web API, static dashboard hosting, future background polling, and likely cache/stateful operational behavior.
+Function-based serverless would force the main API into a different execution model before the product shape is stable. Meridian currently needs a normal web API, built dashboard hosting, future background polling, and likely cache/stateful operational behavior.
 
 ## Future Revisit - OCI Container Instances
 

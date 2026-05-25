@@ -9,11 +9,13 @@ Use this checklist before deploying Meridian into an OCI tenancy.
 - Confirm no secrets are committed.
 - Confirm no Terraform state files are committed.
 - Confirm no generated Ansible inventory is committed.
+- Confirm `frontend/dist/`, E2E screenshots, and cache directories are not committed.
+- Run `make frontend-build`, `make backend-test`, and `make dashboard-e2e`.
 
 ## OCI
 
 - Confirm tenancy OCID.
-- Confirm compartment OCID.
+- Confirm compartment OCID, or confirm `create_meridian_compartment` and `parent_compartment_ocid`.
 - Confirm target region.
 - Confirm home region and any additional active regions.
 - Confirm monitored compartment OCIDs for `MERIDIAN_COMPARTMENT_IDS`.
@@ -22,6 +24,7 @@ Use this checklist before deploying Meridian into an OCI tenancy.
 - Confirm OCI CLI profile.
 - Confirm required permissions for network and compute creation.
 - Confirm runtime policies grant compartment discovery and Virtual Networking read access.
+- Confirm whether NAT egress and the security action Object Storage archive should be enabled.
 
 ## Terraform
 
@@ -43,6 +46,10 @@ Use this checklist before deploying Meridian into an OCI tenancy.
 - Confirm the dashboard URL responds.
 - Run the dashboard `Validate access` button and confirm it has no failed checks.
 - Confirm `GET /api/preflight` returns `pass` before relying on live inventory.
+- Confirm `GET /api/version` returns the expected Git revision.
+- Confirm `/version.json` returns the same frontend revision.
+- Confirm both version endpoints report `dirty: false` after deploying from a clean worktree.
+- Confirm `/index.html` and `/version.json` are served with no-cache headers.
 
 ## Security
 
@@ -59,4 +66,5 @@ Use this checklist before deploying Meridian into an OCI tenancy.
 - Record the instance public IP.
 - Record the dashboard URL.
 - Record the source commit.
+- Record the `/api/version` and `/version.json` responses.
 - Record any manual changes made in OCI.

@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+- Split the frontend build into build-info and HTML artifact helper modules.
+- Add dashboard deployment badge backed by injected frontend metadata and backend version metadata.
+- Scope coverage and exports to the currently selected regions to avoid noisy global views.
+- Add saved region views in the Regions menu.
+- Add topology quick filters for public subnets, internet paths, and findings.
+- Add security finding workflow filter and broader OCI Console links in findings/action history.
+- Refresh README, project status, release, operations, deployment, roadmap, and architecture documentation.
+- Replace architecture diagrams with plain ASCII runtime, build/deploy, topology, and selected-region data-flow diagrams.
+- Clean stale documentation references to the removed product specification and old single-file/no-build dashboard wording.
+- Fix print CSS to target the current `.topbar` selector.
+- Restore Terraform wiring for managed workload compartments, optional NAT egress, default security list lockdown, externally managed IAM metadata, and optional Object Storage action-history archive.
 - Add async per-region collection pipeline with `ThreadPoolExecutor` (4 workers).
 - Add in-memory snapshot cache with configurable TTL and persistent on-disk snapshot cache.
 - Add per-region collection status panel: collecting spinner, ready/failed/no-resources badges,

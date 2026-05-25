@@ -40,6 +40,16 @@ make deploy
 curl http://<dashboard-host>/api/preflight
 ```
 
+8. Confirm deployed revision metadata:
+
+```bash
+curl http://<dashboard-host>/api/version
+curl http://<dashboard-host>/version.json
+```
+
+Both responses should reference the commit you deployed and report `dirty: false` when the deployment was run from a
+clean working tree.
+
 ## Manual Validation
 
 Before changing infrastructure or pushing repository updates, run the checks in [manual-validation.md](manual-validation.md).
@@ -64,11 +74,18 @@ Re-run host configuration:
 make deploy
 ```
 
+Rebuild only the dashboard artifact:
+
+```bash
+make frontend-build
+```
+
 Run the backend locally:
 
 ```bash
 make backend-install
 make backend-test
+make dashboard-e2e
 make backend-run
 ```
 
@@ -99,6 +116,8 @@ Operational recommendations:
 - Use `/32` public IP CIDRs for administrators where possible.
 - Prefer VPN, Bastion, private load balancer, or private subnet for production.
 - Add HTTPS before exposing the dashboard beyond a trusted network.
+- Use `enable_nat_gateway = true` when you want default outbound traffic routed through NAT while keeping public ingress scoped.
+- Use `security_action_archive_enabled = true` only when the tenancy should retain security finding action history in Object Storage.
 
 ## Troubleshooting
 
@@ -122,6 +141,7 @@ If Nginx does not serve the dashboard:
 - Re-run `make deploy`.
 - SSH to the host and check `sudo systemctl status nginx`.
 - Check `/var/log/nginx/meridian_error.log`.
+- Check headers with `curl -I http://<dashboard-host>/index.html`; the dashboard shell should not be cached.
 
 If the API service is unavailable after deployment:
 
@@ -138,3 +158,10 @@ If live inventory is empty or the preflight fails:
 - Confirm `MERIDIAN_COMPARTMENT_IDS` contains the monitored compartment OCIDs, or that tenancy-root inventory is intended.
 - Confirm the instance principal dynamic group matches the Meridian Compute instance.
 - Confirm the dynamic group has `inspect compartments` and `read virtual-network-family` policies.
+
+If the deployment badge or version endpoints show an old revision:
+
+- Run `git status --short --branch` locally and commit or discard intentional local changes before deploying.
+- Run `make deploy` again so Ansible rebuilds `frontend/dist/` and copies the backend to the VM.
+- Compare `curl http://<dashboard-host>/api/version` with `curl http://<dashboard-host>/version.json`.
+- If either response reports `dirty: true`, the deploy was built from a worktree with uncommitted changes.

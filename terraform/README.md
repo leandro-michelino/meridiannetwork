@@ -7,10 +7,14 @@ This directory creates the initial OCI infrastructure for Meridian.
 - VCN.
 - Public subnet.
 - Internet gateway.
+- Optional NAT gateway for restricted outbound access.
 - Route table.
 - Security list.
+- Managed default security list lockdown.
 - Compute instance.
+- Optional workload compartment.
 - Optional dynamic group and IAM policy.
+- Optional Object Storage bucket for security finding action history.
 
 ## Files
 
@@ -22,6 +26,7 @@ This directory creates the initial OCI infrastructure for Meridian.
 - `network.tf`: VCN, subnet, gateway, routing, security list.
 - `compute.tf`: OCI Compute host.
 - `identity.tf`: Optional dynamic group and policy.
+- `object_storage.tf`: Optional action-history archive bucket and lifecycle policy.
 - `outputs.tf`: IPs, URL, SSH command, resource IDs.
 - `terraform.tfvars.example`: Example environment configuration.
 
@@ -52,7 +57,7 @@ terraform -chdir=terraform validate
 ## Required Variables
 
 - `tenancy_ocid`
-- `compartment_ocid`
+- `compartment_ocid`, unless `create_meridian_compartment = true`
 - `region`
 - `admin_cidr_blocks`
 
@@ -66,10 +71,16 @@ terraform -chdir=terraform validate
 - `instance_ocpus = 1`
 - `instance_memory_gb = 8`
 - `create_identity_policies = false`
+- `create_meridian_compartment = false`
+- `enable_nat_gateway = false`
+- `security_action_archive_enabled = false`
 
 When `create_identity_policies = true`, the default runtime policy grants `read virtual-network-family` so Meridian can
 list VCNs, subnets, gateways, route tables, security lists, DRGs, and network security groups during preflight and live
 inventory.
+
+When `create_identity_policies = false`, use `external_instance_principal_dynamic_group_name` and
+`external_instance_principal_policy_name` to document the externally managed IAM objects in Terraform outputs.
 
 ## Production Notes
 
