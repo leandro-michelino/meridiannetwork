@@ -4,6 +4,38 @@ Meridian is a self-hosted OCI Network Monitor for consolidated network observabi
 
 The product vision is captured in [Meridian_OCI_Network_Monitor.md](Meridian_OCI_Network_Monitor.md). This repository also includes the first deployable infrastructure baseline using Terraform and Ansible.
 
+## Why Meridian
+
+Meridian is meant for teams that need a practical, tenant-local view of OCI networking without starting from a heavy platform rollout.
+It runs close to the environment it observes, uses OCI-native authentication patterns, and focuses on the questions that usually come up during operations, reviews, migrations, and customer workshops:
+
+- Which regions and compartments are actually in scope?
+- Which VCNs, subnets, gateways, route tables, security lists, and NSGs exist?
+- Where are public routes, broad ingress rules, or zero-resource regions?
+- Is the runtime identity allowed to read the networking data the dashboard needs?
+- What exact version of the dashboard/API is deployed on the VM?
+
+It is intentionally small enough to understand and adapt, but structured enough to be deployed repeatedly with Terraform and Ansible.
+
+## Use Cases
+
+- **OCI network discovery**: build a fast inventory of VCNs, subnets, gateways, route tables, security lists, and NSGs across selected regions.
+- **Multi-region visibility**: avoid noisy global views by selecting the exact regions you want to inspect.
+- **Security posture review**: highlight public SSH/RDP exposure, broad public egress, public web ingress, and related network findings.
+- **Route and topology analysis**: understand how VCN resources connect through gateways, routes, and subnet associations.
+- **Migration and landing-zone reviews**: validate what exists before or after a migration, region expansion, or landing-zone rollout.
+- **Customer demos and workshops**: use the `/demodata` mode for safe demonstrations, then switch to live OCI mode for real environments.
+- **Operational validation**: use preflight checks to confirm instance principal access, tenancy configuration, compartment scope, and required OCI read permissions.
+- **Deployment traceability**: confirm the deployed Git revision through `/api/version` and `/version.json`.
+
+## Interested in Implementing It?
+
+If you are interested in implementing, adapting, or discussing Meridian for an OCI environment, contact:
+
+**Leandro Michelino, Oracle ACE**
+
+`leandro.michelino@oracle.com`
+
 ## Current Repository Status
 
 - Remote: `https://github.com/leandro-michelino/meridiannetwork.git`
@@ -134,6 +166,7 @@ Local endpoints:
 
 - `GET /healthz`
 - `GET /readyz`
+- `GET /api/version`
 - `GET /api/preflight`
 - `GET /api/regions/available`
 - `GET /api/regions/active`

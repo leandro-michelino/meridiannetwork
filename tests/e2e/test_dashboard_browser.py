@@ -269,12 +269,14 @@ def test_regions_menu_controls_api_and_demo_scope(page, dashboard_url: str) -> N
     expect(page.locator("#coveragePanel")).to_contain_text("Coverage")
     expect(page.locator("#coveragePanel details.expander")).to_be_visible()
     expect(page.locator('#coveragePanel button[data-export-coverage]')).to_be_visible()
+    expect(page.locator('#coveragePanel button[data-coverage-filter="all"]')).to_contain_text("Selected 1")
     expect(page.locator('#coveragePanel button[data-coverage-filter="missing_vcns"]')).to_be_visible()
     page.locator("#coveragePanel summary").click()
     expect(page.locator('#coveragePanel button[data-coverage-filter="missing_vcns"]')).to_be_hidden()
     page.locator("#coveragePanel summary").click()
     expect(page.locator('#coveragePanel button[data-coverage-filter="missing_vcns"]')).to_be_visible()
-    expect(page.locator("#coveragePanel .coverage-row").first).to_contain_text("VCN")
+    expect(page.locator("#coveragePanel .coverage-row")).to_have_count(1)
+    expect(page.locator("#coveragePanel .coverage-row").first).to_contain_text("eu-frankfurt-1")
     expect(page.locator('#collectionStatusPanel button[data-refresh-selected]')).to_be_enabled(timeout=10_000)
 
     page.click('#collectionStatusPanel button[data-refresh-selected]')
@@ -289,12 +291,15 @@ def test_regions_menu_controls_api_and_demo_scope(page, dashboard_url: str) -> N
     page.locator('#regionMenuList input[data-region-filter="eu-madrid-1"]').check()
     expect(page.locator("#regionMenuBtn")).to_contain_text("Regions 2/38", timeout=10_000)
     assert page.locator("#kpiVcnSub").inner_text() == "2/38 selected regions"
+    expect(page.locator('#coveragePanel button[data-coverage-filter="all"]')).to_contain_text("Selected 2")
+    expect(page.locator("#coveragePanel .coverage-row")).to_have_count(2)
 
     page.fill("#regionSearch", "")
     page.click("#regionClearAll")
     expect(page.locator("#regionMenuBtn")).to_contain_text("Regions 0/38")
     assert selected_regions(page) == []
     assert page.locator("#kpiVcnSub").inner_text() == "0/38 selected regions"
+    expect(page.locator("#coveragePanel")).to_be_hidden()
     assert "Select at least one subscribed region" in page.locator("#topologyNodes .empty").inner_text()
     expect(page.locator("#demoToggle")).to_be_hidden()
 

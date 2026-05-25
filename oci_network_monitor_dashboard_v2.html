@@ -2403,13 +2403,14 @@ function renderInventoryNotice(collection) {
 
 function renderCoveragePanel(completeness) {
   const panel = byId('coveragePanel');
-  const rows = completeness?.rows || [];
+  const scopedCompleteness = scopedCoverageCompleteness(completeness);
+  const rows = scopedCompleteness?.rows || [];
   if (!rows.length) {
     panel.hidden = true;
     panel.innerHTML = '';
     return;
   }
-  const filters = coverageFilters(completeness);
+  const filters = coverageFilters(scopedCompleteness);
   if (!filters.some((filter) => filter.id === coverageFilter)) coverageFilter = 'all';
   const visibleRows = coverageFilteredRows(rows, coverageFilter);
   panel.hidden = false;
@@ -2417,15 +2418,15 @@ function renderCoveragePanel(completeness) {
     <details class="coverage-panel expander" data-coverage-expander ${coveragePanelOpen ? 'open' : ''}>
       <summary class="card-header">
         <div class="card-title">Coverage</div>
-        <span class="badge neutral">${escapeHtml(coverageSummary(completeness))}</span>
+        <span class="badge neutral">${escapeHtml(coverageSummary(scopedCompleteness))}</span>
       </summary>
       <div class="cs-summary">
-        ${collectionStat('Subscribed', String(completeness.total_subscribed_regions || 0))}
-        ${collectionStat('Requested', String(completeness.total_requested_regions || 0))}
-        ${collectionStat('With VCNs', String(completeness.total_regions_with_vcns || 0))}
-        ${collectionStat('With subnets', String(completeness.total_regions_with_subnets || 0))}
-        ${collectionStat('Warnings', String(completeness.total_warning_regions || 0))}
-        ${collectionStat('Zero resources', String(completeness.total_zero_resource_regions || 0))}
+        ${collectionStat('Selected', String(scopedCompleteness.total_regions || 0))}
+        ${collectionStat('Requested', String(scopedCompleteness.total_requested_regions || 0))}
+        ${collectionStat('With VCNs', String(scopedCompleteness.total_regions_with_vcns || 0))}
+        ${collectionStat('With subnets', String(scopedCompleteness.total_regions_with_subnets || 0))}
+        ${collectionStat('Warnings', String(scopedCompleteness.total_warning_regions || 0))}
+        ${collectionStat('Zero resources', String(scopedCompleteness.total_zero_resource_regions || 0))}
       </div>
       <div class="coverage-filters">
         <button class="button" type="button" data-export-coverage>Export coverage</button>
@@ -2449,9 +2450,48 @@ function renderCoveragePanel(completeness) {
   }
 }
 
+function scopedCoverageCompleteness(completeness) {
+  if (!completeness?.rows?.length) return completeness;
+  const selected = effectiveSelectedRegionIds();
+  const rows = completeness.rows.filter((row) => selected.has(row.id));
+  const idsFor = (predicate) => rows.filter(predicate).map((row) => row.id);
+  const completedRegions = idsFor((row) => row.completed);
+  const pendingRegions = idsFor((row) => row.pending);
+  const failedRegions = idsFor((row) => row.failed);
+  const warningRegions = idsFor((row) => Number(row.warning_count || 0) > 0);
+  const zeroResourceRegions = idsFor((row) => row.zero_resources);
+  const regionsWithVcns = idsFor((row) => row.has_vcns);
+  const regionsWithSubnets = idsFor((row) => row.has_subnets);
+  const requestedRegions = idsFor((row) => row.requested);
+  const subscribedRegions = idsFor((row) => row.subscribed);
+  return {
+    ...completeness,
+    rows,
+    subscribed_regions: subscribedRegions,
+    requested_regions: requestedRegions,
+    completed_regions: completedRegions,
+    pending_regions: pendingRegions,
+    failed_regions: failedRegions,
+    warning_regions: warningRegions,
+    zero_resource_regions: zeroResourceRegions,
+    regions_with_vcns: regionsWithVcns,
+    regions_with_subnets: regionsWithSubnets,
+    total_regions: rows.length,
+    total_subscribed_regions: subscribedRegions.length,
+    total_requested_regions: requestedRegions.length,
+    total_completed_regions: completedRegions.length,
+    total_pending_regions: pendingRegions.length,
+    total_failed_regions: failedRegions.length,
+    total_warning_regions: warningRegions.length,
+    total_zero_resource_regions: zeroResourceRegions.length,
+    total_regions_with_vcns: regionsWithVcns.length,
+    total_regions_with_subnets: regionsWithSubnets.length,
+  };
+}
+
 function coverageFilters(completeness) {
   return [
-    ['all', `All ${completeness.rows?.length || 0}`],
+    ['all', `Selected ${completeness.rows?.length || 0}`],
     ['failed', `Failed ${completeness.total_failed_regions || 0}`],
     ['warnings', `Warnings ${completeness.total_warning_regions || 0}`],
     ['zero', `Zero resources ${completeness.total_zero_resource_regions || 0}`],
