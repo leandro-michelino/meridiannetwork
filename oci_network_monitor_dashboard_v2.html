@@ -822,7 +822,20 @@ body {
   font-size: 12px;
 }
 
-.inventory-search:focus {
+.inventory-filter {
+  max-width: 220px;
+  min-width: 170px;
+  border: 1px solid var(--mn-border);
+  border-radius: 999px;
+  padding: 6px 28px 6px 11px;
+  color: var(--mn-text);
+  background: var(--mn-surface);
+  font: inherit;
+  font-size: 12px;
+}
+
+.inventory-search:focus,
+.inventory-filter:focus {
   border-color: var(--mn-blue);
   outline: 2px solid rgba(0, 111, 139, 0.16);
   outline-offset: 1px;
@@ -845,6 +858,28 @@ body {
   display: flex;
   flex-direction: column;
   gap: 7px;
+}
+
+.resource-filterbar {
+  margin-bottom: 8px;
+}
+
+.resource-filterbar input {
+  width: 100%;
+  min-height: 30px;
+  border: 1px solid var(--mn-border);
+  border-radius: 6px;
+  background: var(--mn-surface);
+  color: var(--mn-text);
+  font: inherit;
+  font-size: 12px;
+  padding: 5px 8px;
+}
+
+.resource-filterbar input:focus {
+  border-color: var(--mn-blue);
+  outline: 2px solid rgba(0, 111, 139, 0.16);
+  outline-offset: 1px;
 }
 
 .resource-row,
@@ -1480,6 +1515,12 @@ tr:last-child td { border-bottom: 0; }
     min-width: 0;
   }
 
+  .inventory-filter {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+  }
+
   .cs-row {
     grid-template-columns: 14px minmax(0, 1fr) auto;
   }
@@ -1707,6 +1748,9 @@ tr:last-child td { border-bottom: 0; }
           <div class="card-title">Gateways</div>
           <span class="badge neutral" id="gatewayCountBadge">0</span>
         </summary>
+        <div class="resource-filterbar">
+          <input data-resource-search="gatewayList" type="search" placeholder="Search gateways" aria-label="Search gateways">
+        </div>
         <div class="resource-list" id="gatewayList"></div>
       </details>
 
@@ -1715,6 +1759,9 @@ tr:last-child td { border-bottom: 0; }
           <div class="card-title">Route Tables</div>
           <span class="badge neutral" id="routeCountBadge">0</span>
         </summary>
+        <div class="resource-filterbar">
+          <input data-resource-search="routeList" type="search" placeholder="Search route tables" aria-label="Search route tables">
+        </div>
         <div class="resource-list" id="routeList"></div>
       </details>
 
@@ -1723,6 +1770,9 @@ tr:last-child td { border-bottom: 0; }
           <div class="card-title">Route Issues</div>
           <span class="badge neutral" id="routeIssueBadge">0</span>
         </summary>
+        <div class="resource-filterbar">
+          <input data-resource-search="routeIssueList" type="search" placeholder="Search route issues" aria-label="Search route issues">
+        </div>
         <div class="resource-list" id="routeIssueList"></div>
       </details>
 
@@ -1731,6 +1781,9 @@ tr:last-child td { border-bottom: 0; }
           <div class="card-title">Security Lists</div>
           <span class="badge neutral" id="securityListBadge">0</span>
         </summary>
+        <div class="resource-filterbar">
+          <input data-resource-search="securityList" type="search" placeholder="Search security lists" aria-label="Search security lists">
+        </div>
         <div class="resource-list" id="securityList"></div>
       </details>
 
@@ -1739,6 +1792,9 @@ tr:last-child td { border-bottom: 0; }
           <div class="card-title">Network Security Groups</div>
           <span class="badge neutral" id="nsgBadge">0</span>
         </summary>
+        <div class="resource-filterbar">
+          <input data-resource-search="nsgList" type="search" placeholder="Search NSGs" aria-label="Search network security groups">
+        </div>
         <div class="resource-list" id="nsgList"></div>
       </details>
     </section>
@@ -1747,6 +1803,9 @@ tr:last-child td { border-bottom: 0; }
       <summary class="card-header">
         <div class="card-title">VCNs and Subnets</div>
         <div class="card-header-tools">
+          <select class="inventory-filter" id="networkRegionFilter" aria-label="Filter VCN and subnet inventory by region">
+            <option value="">All selected regions</option>
+          </select>
           <input class="inventory-search" id="networkSearch" type="search" placeholder="Search VCNs, subnets, OCIDs" aria-label="Search VCN and subnet inventory">
           <span class="badge neutral" id="dataModeBadge">api</span>
         </div>
@@ -1959,6 +2018,8 @@ const topologyTouchPoints = new Map();
 let topologyPinchDistance = 0;
 let topologyPanPoint = null;
 let topologyResizeTimer = 0;
+let topologySuppressClickNodeId = '';
+let topologySuppressClickTimer = 0;
 let currentSecurityFindings = [];
 let pendingSecurityFinding = null;
 let securityActionHistory = readSecurityActionHistory();
@@ -1983,6 +2044,8 @@ let coverageFilter = 'all';
 let coveragePanelOpen = true;
 let findingWorkflowFilter = '';
 let networkSearchQuery = '';
+let networkRegionFilter = '';
+const resourceListQueries = {};
 
 function byId(id) {
   return document.getElementById(id);
@@ -4357,6 +4420,14 @@ function attachTopologyInteractions(container) {
 
 function handleTopologyNodeClick(event) {
   const node = event.currentTarget;
+  if (topologySuppressClickNodeId === node.dataset.nodeId) {
+    event.preventDefault();
+    event.stopPropagation();
+    topologySuppressClickNodeId = '';
+    if (topologySuppressClickTimer) window.clearTimeout(topologySuppressClickTimer);
+    topologySuppressClickTimer = 0;
+    return;
+  }
   if (node.dataset.resourceType === 'region') {
     const regionId = node.dataset.nodeId.replace(/^region:/, '');
     topologyRegionScope = topologyRegionScope === regionId ? '' : regionId;
@@ -4383,13 +4454,29 @@ function openTopologyNodeConsole(event) {
 function startTopologyNodeDrag(event) {
   if (event.button !== 0 && event.pointerType !== 'touch') return;
   const node = event.currentTarget;
+  const canvasRect = byId('topologyCanvas').getBoundingClientRect();
+  const startPosition = topologyNodePositions[node.dataset.nodeId] || {
+    x: Number.parseFloat(node.style.left) || 50,
+    y: Number.parseFloat(node.style.top) || 50,
+  };
+  const startClient = { x: event.clientX, y: event.clientY };
+  const pointerOffset = {
+    x: event.clientX - (canvasRect.left + (startPosition.x / 100) * canvasRect.width),
+    y: event.clientY - (canvasRect.top + (startPosition.y / 100) * canvasRect.height),
+  };
+  let didDrag = false;
   event.preventDefault();
-  node.classList.add('dragging');
   node.setPointerCapture(event.pointerId);
-  updateTopologyNodePosition(node, event.clientX, event.clientY);
 
   const move = (moveEvent) => {
-    updateTopologyNodePosition(node, moveEvent.clientX, moveEvent.clientY);
+    const distance = Math.hypot(moveEvent.clientX - startClient.x, moveEvent.clientY - startClient.y);
+    if (!didDrag && distance < 4) return;
+    if (!didDrag) {
+      didDrag = true;
+      node.classList.add('dragging');
+    }
+    moveEvent.preventDefault();
+    updateTopologyNodePosition(node, moveEvent.clientX - pointerOffset.x, moveEvent.clientY - pointerOffset.y);
   };
   const end = () => {
     node.classList.remove('dragging');
@@ -4401,7 +4488,15 @@ function startTopologyNodeDrag(event) {
     node.removeEventListener('pointermove', move);
     node.removeEventListener('pointerup', end);
     node.removeEventListener('pointercancel', end);
-    saveTopologyPositions();
+    if (didDrag) {
+      topologySuppressClickNodeId = node.dataset.nodeId;
+      if (topologySuppressClickTimer) window.clearTimeout(topologySuppressClickTimer);
+      topologySuppressClickTimer = window.setTimeout(() => {
+        topologySuppressClickNodeId = '';
+        topologySuppressClickTimer = 0;
+      }, 350);
+      saveTopologyPositions();
+    }
   };
 
   node.addEventListener('pointermove', move);
@@ -4515,21 +4610,34 @@ function centerOf(id, parentRect) {
 
 function renderGateways(gateways, compartmentMap) {
   text('gatewayCountBadge', gateways.length);
-  renderResourceList('gatewayList', gateways.slice(0, 8), (item) => ({
+  renderResourceList('gatewayList', gateways, (item) => ({
     title: `${shortGatewayType(item.gateway_type)} / ${item.name}`,
     consoleUrl: ociConsoleUrl(item.gateway_type, item),
     meta: `${compartmentName(compartmentMap, item.compartment_id)} / ${item.region} / ${item.vcn_id || 'regional'}`,
     badge: resourceAttentionBadge(item.lifecycle_state, item.is_enabled),
+    searchText: [item.id, item.gateway_type, item.lifecycle_state, item.compartment_id, item.vcn_id, item.region].join(' '),
   }));
 }
 
 function renderRouteTables(routeTables, compartmentMap) {
   text('routeCountBadge', routeTables.length);
-  renderResourceList('routeList', routeTables.slice(0, 8), (item) => ({
+  renderResourceList('routeList', routeTables, (item) => ({
     title: item.name,
     consoleUrl: ociConsoleUrl('route_table', item),
     meta: `${compartmentName(compartmentMap, item.compartment_id)} / ${item.region} / ${item.route_rules?.length || 0} route rules / ${item.vcn_id}`,
     badge: resourceAttentionBadge(item.lifecycle_state),
+    searchText: [
+      item.id,
+      item.compartment_id,
+      item.region,
+      item.vcn_id,
+      item.lifecycle_state,
+      ...(item.route_rules || []).flatMap((rule) => [
+        rule.destination,
+        rule.destination_type,
+        rule.network_entity_id,
+      ]),
+    ].join(' '),
   }));
 }
 
@@ -4544,15 +4652,29 @@ function renderRouteIssues(routeIssues) {
     list.innerHTML = '<div class="empty">No route table issues detected by the current backend checks.</div>';
     return;
   }
-  list.innerHTML = issues.slice(0, 8).map((issue) => `
-    <div class="resource-row">
-      <div>
-        <div class="resource-name">${escapeHtml(issue.issue_type)} / ${resourceLink(issue.route_table_name, ociConsoleUrl('route_table', { id: issue.route_table_id, region: issue.region }))}</div>
-        <div class="resource-meta">${escapeHtml(routeIssueMeta(issue))}</div>
-      </div>
-      <span class="${badgeClass(issue.severity)}">${escapeHtml(issue.severity)}</span>
-    </div>
-  `).join('');
+  renderResourceList('routeIssueList', issues, (issue) => ({
+    title: `${issue.issue_type} / ${issue.route_table_name}`,
+    consoleUrl: ociConsoleUrl('route_table', { id: issue.route_table_id, region: issue.region }),
+    meta: routeIssueMeta(issue),
+    badge: issue.severity,
+    searchText: [
+      issue.issue_type,
+      issue.severity,
+      issue.route_table_id,
+      issue.route_table_name,
+      issue.region,
+      issue.compartment_id,
+      issue.vcn_id,
+      issue.destination,
+      issue.destination_type,
+      issue.network_entity_id,
+      issue.description,
+      issue.recommendation,
+    ].join(' '),
+  }), {
+    emptyText: 'No route table issues detected by the current backend checks.',
+    emptyFilterText: 'No route issues match this search.',
+  });
 }
 
 function routeIssueMeta(issue) {
@@ -4631,22 +4753,48 @@ function buildTopologyOverview(data) {
 
 function renderSecurityLists(securityLists, compartmentMap) {
   text('securityListBadge', securityLists.length);
-  renderResourceList('securityList', securityLists.slice(0, 8), (item) => ({
+  renderResourceList('securityList', securityLists, (item) => ({
     title: item.name,
     consoleUrl: ociConsoleUrl('security_list', item),
     meta: `${compartmentName(compartmentMap, item.compartment_id)} / ${item.region} / ${item.ingress_rules?.length || 0} ingress / ${item.egress_rules?.length || 0} egress`,
     badge: resourceAttentionBadge(item.lifecycle_state),
+    searchText: securityResourceSearchText(item),
   }));
 }
 
 function renderNetworkSecurityGroups(networkSecurityGroups, compartmentMap) {
   text('nsgBadge', networkSecurityGroups.length);
-  renderResourceList('nsgList', networkSecurityGroups.slice(0, 8), (item) => ({
+  renderResourceList('nsgList', networkSecurityGroups, (item) => ({
     title: item.name,
     consoleUrl: ociConsoleUrl('network_security_group', item),
     meta: `${compartmentName(compartmentMap, item.compartment_id)} / ${item.region} / ${item.ingress_rules?.length || 0} ingress / ${item.egress_rules?.length || 0} egress`,
     badge: resourceAttentionBadge(item.lifecycle_state),
+    searchText: securityResourceSearchText(item),
   }));
+}
+
+function securityResourceSearchText(item) {
+  return [
+    item.id,
+    item.compartment_id,
+    item.region,
+    item.vcn_id,
+    item.lifecycle_state,
+    ...(item.ingress_rules || []).flatMap(securityRuleSearchParts),
+    ...(item.egress_rules || []).flatMap(securityRuleSearchParts),
+  ].join(' ');
+}
+
+function securityRuleSearchParts(rule) {
+  return [
+    rule.protocol,
+    rule.source,
+    rule.destination,
+    rule.source_type,
+    rule.destination_type,
+    rule.min_port,
+    rule.max_port,
+  ];
 }
 
 async function validateAccess() {
@@ -5008,30 +5156,58 @@ function actionDayLabel(value) {
   return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function renderResourceList(id, items, mapItem) {
+function renderResourceList(id, items, mapItem, options = {}) {
   const list = byId(id);
   if (!items.length) {
-    list.innerHTML = '<div class="empty">No data returned yet. Enable live OCI mode or use demo data.</div>';
+    list.innerHTML = `<div class="empty">${escapeHtml(options.emptyText || 'No data returned yet. Enable live OCI mode or use demo data.')}</div>`;
     return;
   }
-  list.innerHTML = items.map((item) => {
-    const mapped = mapItem(item);
-    const badgeConfig = typeof mapped.badge === 'object'
-      ? mapped.badge
-      : { badge: mapped.badge, badgeClass: mapped.badgeClass };
-    const badge = badgeConfig?.badge
-      ? `<span class="${badgeConfig.badgeClass || badgeClass(badgeConfig.badge)}">${escapeHtml(badgeConfig.badge)}</span>`
-      : '';
-    return `
-      <div class="resource-row">
-        <div>
-          <div class="resource-name">${resourceLink(mapped.title, mapped.consoleUrl)}</div>
-          <div class="resource-meta">${escapeHtml(mapped.meta)}</div>
+  const mappedItems = items.map((item) => mapItem(item));
+  const query = (resourceListQueries[id] || '').trim().toLowerCase();
+  const filteredItems = query
+    ? mappedItems.filter((item) => resourceListSearchText(item).includes(query))
+    : mappedItems;
+  if (!filteredItems.length) {
+    list.innerHTML = `<div class="empty">${escapeHtml(options.emptyFilterText || 'No resources match this search.')}</div>`;
+    return;
+  }
+  const visibleLimit = query ? 25 : 8;
+  const visibleItems = filteredItems.slice(0, visibleLimit);
+  const moreCount = filteredItems.length - visibleItems.length;
+  list.innerHTML = [
+    ...visibleItems.map((mapped) => {
+      const badgeConfig = typeof mapped.badge === 'object'
+        ? mapped.badge
+        : { badge: mapped.badge, badgeClass: mapped.badgeClass };
+      const badge = badgeConfig?.badge
+        ? `<span class="${badgeConfig.badgeClass || badgeClass(badgeConfig.badge)}">${escapeHtml(badgeConfig.badge)}</span>`
+        : '';
+      return `
+        <div class="resource-row">
+          <div>
+            <div class="resource-name">${resourceLink(mapped.title, mapped.consoleUrl)}</div>
+            <div class="resource-meta">${escapeHtml(mapped.meta)}</div>
+          </div>
+          ${badge}
         </div>
-        ${badge}
-      </div>
-    `;
-  }).join('');
+      `;
+    }),
+    moreCount > 0
+      ? `<div class="empty">Showing ${visibleItems.length} of ${filteredItems.length}. Refine the search to narrow results.</div>`
+      : '',
+  ].join('');
+}
+
+function resourceListSearchText(item) {
+  const badgeConfig = typeof item.badge === 'object'
+    ? item.badge
+    : { badge: item.badge, badgeClass: item.badgeClass };
+  return [
+    item.title,
+    item.meta,
+    item.searchText,
+    badgeConfig?.badge,
+  ].filter(Boolean).join(' ').toLowerCase();
 }
 
 function resourceAttentionBadge(lifecycleState, isEnabled = true) {
@@ -5076,15 +5252,21 @@ function renderNetworkTable(vcns, subnets, compartmentMap) {
       id: item.id,
     })),
   ];
+  renderNetworkRegionFilter(rows);
   const body = byId('networkTable');
   if (!rows.length) {
     body.innerHTML = '<tr><td colspan="10" class="muted">No VCN or subnet inventory returned yet.</td></tr>';
     return;
   }
   const query = networkSearchQuery.trim().toLowerCase();
-  const visibleRows = query ? rows.filter((row) => networkRowSearchText(row).includes(query)) : rows;
+  const visibleRows = rows.filter((row) => {
+    if (networkRegionFilter && row.region !== networkRegionFilter) return false;
+    if (query && !networkRowSearchText(row).includes(query)) return false;
+    return true;
+  });
   if (!visibleRows.length) {
-    body.innerHTML = '<tr><td colspan="10" class="muted">No VCNs or subnets match this search.</td></tr>';
+    const emptyText = networkInventoryEmptyText(query);
+    body.innerHTML = `<tr><td colspan="10" class="muted">${escapeHtml(emptyText)}</td></tr>`;
     return;
   }
   body.innerHTML = visibleRows.map((row) => `
@@ -5101,6 +5283,26 @@ function renderNetworkTable(vcns, subnets, compartmentMap) {
       <td><span class="${badgeClass(row.state === 'AVAILABLE')}">${escapeHtml(row.state || 'unknown')}</span></td>
     </tr>
   `).join('');
+}
+
+function renderNetworkRegionFilter(rows) {
+  const select = byId('networkRegionFilter');
+  if (!select) return;
+  const regions = [...new Set(rows.map((row) => row.region).filter(Boolean))].sort();
+  if (networkRegionFilter && !regions.includes(networkRegionFilter)) networkRegionFilter = '';
+  select.innerHTML = [
+    '<option value="">All selected regions</option>',
+    ...regions.map((region) => `<option value="${escapeHtml(region)}">${escapeHtml(region)}</option>`),
+  ].join('');
+  select.value = networkRegionFilter;
+  select.disabled = !regions.length;
+}
+
+function networkInventoryEmptyText(query) {
+  if (query && networkRegionFilter) return 'No VCNs or subnets match this search and region filter.';
+  if (query) return 'No VCNs or subnets match this search.';
+  if (networkRegionFilter) return 'No VCNs or subnets match this region filter.';
+  return 'No VCNs or subnets match these filters.';
 }
 
 function networkRowSearchText(row) {
@@ -5394,6 +5596,22 @@ byId('networkSearch').addEventListener('keydown', (event) => {
 byId('networkSearch').addEventListener('input', (event) => {
   networkSearchQuery = event.target.value;
   if (currentDashboardData) renderDashboard(currentDashboardData, currentDashboardMode);
+});
+byId('networkRegionFilter').addEventListener('click', (event) => {
+  event.stopPropagation();
+});
+byId('networkRegionFilter').addEventListener('keydown', (event) => {
+  if (event.key === 'Enter' || event.key === ' ') event.stopPropagation();
+});
+byId('networkRegionFilter').addEventListener('change', (event) => {
+  networkRegionFilter = event.target.value;
+  if (currentDashboardData) renderDashboard(currentDashboardData, currentDashboardMode);
+});
+document.querySelectorAll('[data-resource-search]').forEach((input) => {
+  input.addEventListener('input', (event) => {
+    resourceListQueries[event.target.getAttribute('data-resource-search')] = event.target.value;
+    if (currentDashboardData) renderDashboard(currentDashboardData, currentDashboardMode);
+  });
 });
 byId('securityHistoryBtn').addEventListener('click', (event) => {
   event.preventDefault();

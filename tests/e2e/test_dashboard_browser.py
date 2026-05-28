@@ -346,6 +346,34 @@ def test_regions_menu_controls_api_and_demo_scope(page, dashboard_url: str) -> N
     expect(page.locator("#regionMenuBtn")).to_contain_text("Regions 2/2")
     assert set(selected_regions(page)) == {"eu-frankfurt-1", "eu-amsterdam-1"}
     assert page.locator("#kpiVcns").inner_text() == "2"
+    expect(page.locator("#networkRegionFilter")).to_contain_text("eu-frankfurt-1")
+    expect(page.locator("#networkRegionFilter")).to_contain_text("eu-amsterdam-1")
+    page.locator("#networkRegionFilter").select_option("eu-amsterdam-1")
+    expect(page.locator("#networkTable tr")).to_have_count(2)
+    expect(page.locator("#networkTable")).to_contain_text("vcn-dr-ams")
+    expect(page.locator("#networkTable")).not_to_contain_text("web-public")
+    page.locator("#networkRegionFilter").select_option("eu-frankfurt-1")
+    expect(page.locator("#networkTable tr")).to_have_count(3)
+    expect(page.locator("#networkTable")).to_contain_text("web-public")
+    page.locator('details:has(#gatewayList) summary').click()
+    page.locator('[data-resource-search="gatewayList"]').fill("nat")
+    expect(page.locator("#gatewayList")).to_contain_text("prod-nat-gateway")
+    expect(page.locator("#gatewayList")).not_to_contain_text("prod-internet-gateway")
+    page.locator('details:has(#routeList) summary').click()
+    page.locator('[data-resource-search="routeList"]').fill("private")
+    expect(page.locator("#routeList")).to_contain_text("private-route-table")
+    expect(page.locator("#routeList")).not_to_contain_text("public-route-table")
+    page.locator('details:has(#routeIssueList) summary').click()
+    page.locator('[data-resource-search="routeIssueList"]').fill("public_default_route")
+    expect(page.locator("#routeIssueList")).to_contain_text("public_default_route")
+    page.locator('details:has(#securityList) summary').click()
+    page.locator('[data-resource-search="securityList"]').fill("admin")
+    expect(page.locator("#securityList")).to_contain_text("admin-risk-review")
+    expect(page.locator("#securityList")).not_to_contain_text("public-security-list")
+    page.locator('details:has(#nsgList) summary').click()
+    page.locator('[data-resource-search="nsgList"]').fill("web-tier")
+    expect(page.locator("#nsgList")).to_contain_text("web-tier-nsg")
+    expect(page.locator("#nsgList")).not_to_contain_text("admin-risk-nsg")
     page.fill("#networkSearch", "web-public")
     expect(page.locator("#networkTable tr")).to_have_count(1)
     expect(page.locator("#networkTable")).to_contain_text("web-public")
@@ -363,6 +391,21 @@ def test_topology_layout_modes_do_not_clip_horizontally(page, dashboard_url: str
 
     expect(page.locator("#topologyBadge")).to_contain_text("overview / 8 nodes / 6 links")
     assert horizontally_clipped_topology_nodes(page) == []
+    start_left = page.locator('[data-node-id="vcn-prod-fra"]').evaluate("node => parseFloat(node.style.left)")
+    node_box = page.locator('[data-node-id="vcn-prod-fra"]').bounding_box()
+    assert node_box is not None
+    page.mouse.move(node_box["x"] + node_box["width"] / 2, node_box["y"] + node_box["height"] / 2)
+    page.mouse.down()
+    page.mouse.move(node_box["x"] + node_box["width"] / 2 + 80, node_box["y"] + node_box["height"] / 2 + 36, steps=6)
+    page.mouse.up()
+    expect(page.locator("#topologyBadge")).to_contain_text("overview / 8 nodes / 6 links")
+    assert page.locator("#topologyVcnScope").input_value() == ""
+    end_left = page.locator('[data-node-id="vcn-prod-fra"]').evaluate("node => parseFloat(node.style.left)")
+    assert end_left > start_left
+    assert page.evaluate(
+        """() => [...document.querySelectorAll('#topologyLines line')]
+          .every((line) => ['x1', 'y1', 'x2', 'y2'].every((attr) => Number.isFinite(Number(line.getAttribute(attr)))))"""
+    )
 
     page.click('[data-topology-mode="full"]')
     expect(page.locator("#topologyBadge")).to_contain_text("layers (gateways, routes) / 2 nodes / 0 links")
