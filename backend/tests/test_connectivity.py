@@ -170,3 +170,20 @@ def test_connectivity_service_returns_actionable_failure_for_oci_errors():
     assert result.reachable is False
     assert "Network Path Analyzer failed" in result.message
     assert any("Flow Logs only" in action for action in result.next_actions)
+
+
+def test_connectivity_service_suggests_limit_increase_for_large_tenancy():
+    service = ConnectivityService(
+        settings=Settings(enable_live_oci=True, tenancy_ocid="tenancy-1", compartment_ids=["compartment-1"]),
+        client_factory=FakeFactory(),
+    )
+
+    actions = service._next_actions(
+        [
+            "The tenancy has more than 100 compartments. Network Path Analyzer default limits does not support tenancies that have more than 100 compartments. Submit a limit increase request."
+        ],
+        None,
+        None,
+    )
+
+    assert any("service limit increase" in action for action in actions)

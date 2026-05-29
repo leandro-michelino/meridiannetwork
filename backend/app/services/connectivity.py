@@ -244,6 +244,10 @@ class ConnectivityService:
     def _next_actions(self, findings: list[str], forward_status: str | None, return_status: str | None) -> list[str]:
         text = " ".join(findings).lower()
         actions: list[str] = []
+        if "network path analyzer" in text and "more than 100 compartments" in text:
+            actions.append("Request an OCI Network Path Analyzer service limit increase for the tenancy compartment count, then rerun the check.")
+        elif "limit increase" in text and "compartment" in text:
+            actions.append("Review OCI Network Path Analyzer service limits for this tenancy and request the required compartment-count increase.")
         if "security" in text or "ingress" in text or "egress" in text or "deny" in text:
             actions.append("Review source egress and destination ingress rules for the selected protocol and port.")
         if "route" in text or "no_route" in text or "blackhole" in text:
