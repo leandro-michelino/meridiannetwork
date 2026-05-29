@@ -120,6 +120,8 @@ class TrafficTelemetryService:
             compartment_ids=request.compartment_ids,
             vcn_ids=request.vcn_ids,
         )
+        if not vcns:
+            raise ValueError("Choose at least one valid VCN before enabling traffic telemetry.")
         items: list[TrafficEnablementItem] = []
         for vcn in vcns:
             try:
@@ -160,6 +162,8 @@ class TrafficTelemetryService:
             compartment_ids=request.compartment_ids,
             vcn_ids=request.vcn_ids,
         )
+        if not vcns:
+            raise ValueError("Choose at least one valid VCN before disabling traffic telemetry.")
         items: list[TrafficEnablementItem] = []
         for vcn in vcns:
             try:

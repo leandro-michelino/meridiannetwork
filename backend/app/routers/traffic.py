@@ -46,6 +46,11 @@ def enable_traffic_telemetry(
 ) -> TrafficEnablementResponse:
     try:
         return service.enable(request)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": "INVALID_TRAFFIC_SCOPE", "message": str(exc)},
+        ) from exc
     except PermissionError as exc:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -65,6 +70,11 @@ def disable_traffic_telemetry(
 ) -> TrafficEnablementResponse:
     try:
         return service.disable(request)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": "INVALID_TRAFFIC_SCOPE", "message": str(exc)},
+        ) from exc
     except PermissionError as exc:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

@@ -290,6 +290,24 @@ def test_enablement_creates_log_group_capture_filter_and_flow_log():
     assert factory.logging_client.logs[0].freeform_tags["expires_at"] == result.expires_at
 
 
+def test_enablement_rejects_unknown_vcn():
+    settings = Settings(
+        enable_live_oci=True,
+        traffic_flow_logs_enablement_allowed=True,
+        tenancy_ocid="tenancy-1",
+        compartment_ids=["compartment-1"],
+        active_regions=["eu-frankfurt-1"],
+    )
+    service = TrafficTelemetryService(
+        settings=settings,
+        client_factory=FakeFactory(),
+        network_inventory=FakeNetworkInventory(),
+    )
+
+    with pytest.raises(ValueError, match="valid VCN"):
+        service.enable(TrafficEnableRequest(vcn_ids=["missing-vcn"]))
+
+
 def test_enablement_duration_is_clamped_to_one_hour():
     settings = Settings(
         enable_live_oci=True,
