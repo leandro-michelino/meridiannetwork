@@ -19,6 +19,7 @@ _PROTOCOL_NUMBERS = {
     "17": 17,
 }
 _TERMINAL_WORK_REQUEST_STATES = {"SUCCEEDED", "FAILED", "CANCELED", "CANCELING"}
+_WORK_REQUEST_WAIT_SECONDS = 20
 
 
 @dataclass(frozen=True)
@@ -70,6 +71,17 @@ class ConnectivityService:
 
             work_request = self._wait_for_work_request(client, work_request_id)
             work_status = str(getattr(work_request, "status", "") or "").upper()
+            if work_status not in _TERMINAL_WORK_REQUEST_STATES:
+                return ConnectivityCheckResponse(
+                    status="running",
+                    reachable=None,
+                    work_request_id=work_request_id,
+                    message=(
+                        "OCI Network Path Analyzer is still running. "
+                        "No Flow Logs were enabled; rerun the check in a moment for the final path result."
+                    ),
+                    next_actions=["Rerun the connectivity check in a moment to retrieve a completed path analysis result."],
+                )
             if work_status != "SUCCEEDED":
                 errors = self._work_request_errors(client, work_request_id)
                 return ConnectivityCheckResponse(
@@ -155,7 +167,7 @@ class ConnectivityService:
         return headers.get("opc-work-request-id") or headers.get("Opc-Work-Request-Id") or headers.get("OPC-WORK-REQUEST-ID")
 
     def _wait_for_work_request(self, client: Any, work_request_id: str) -> Any:
-        deadline = time.monotonic() + 30
+        deadline = time.monotonic() + _WORK_REQUEST_WAIT_SECONDS
         last_response = None
         while time.monotonic() < deadline:
             last_response = client.get_work_request(work_request_id).data

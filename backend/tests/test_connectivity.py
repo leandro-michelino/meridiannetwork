@@ -3,6 +3,7 @@ from fastapi.testclient import TestClient
 from app.config import Settings
 from app.main import create_app
 from app.models import ConnectivityCheckRequest, ConnectivityEndpoint
+from app.services import connectivity as connectivity_module
 from app.services.connectivity import ConnectivityService
 
 
@@ -18,9 +19,10 @@ class OciResponse:
 
 
 class FakeVnMonitoringClient:
-    def __init__(self, reachable=True, fail=False):
+    def __init__(self, reachable=True, fail=False, work_status="SUCCEEDED"):
         self.reachable = reachable
         self.fail = fail
+        self.work_status = work_status
         self.path_analysis_details = None
 
     def get_path_analysis(self, get_path_analysis_details):
@@ -30,7 +32,7 @@ class FakeVnMonitoringClient:
         return OciResponse(headers={"opc-work-request-id": "wr-1"})
 
     def get_work_request(self, work_request_id):
-        return OciResponse(OciObject(status="SUCCEEDED"))
+        return OciResponse(OciObject(status=self.work_status))
 
     def list_work_request_results(self, work_request_id):
         reachability = "REACHABLE" if self.reachable else "NOT_REACHABLE"
@@ -61,8 +63,8 @@ class FakeVnMonitoringClient:
 
 
 class FakeFactory:
-    def __init__(self, reachable=True, fail=False):
-        self.client = FakeVnMonitoringClient(reachable=reachable, fail=fail)
+    def __init__(self, reachable=True, fail=False, work_status="SUCCEEDED"):
+        self.client = FakeVnMonitoringClient(reachable=reachable, fail=fail, work_status=work_status)
 
     def vn_monitoring_client(self, region=None):
         return self.client
@@ -187,3 +189,25 @@ def test_connectivity_service_suggests_limit_increase_for_large_tenancy():
     )
 
     assert any("service limit increase" in action for action in actions)
+
+
+def test_connectivity_service_returns_running_before_proxy_timeout(monkeypatch):
+    monkeypatch.setattr(connectivity_module, "_WORK_REQUEST_WAIT_SECONDS", 0.01)
+    service = ConnectivityService(
+        settings=Settings(enable_live_oci=True, tenancy_ocid="tenancy-1", compartment_ids=["compartment-1"]),
+        client_factory=FakeFactory(work_status="IN_PROGRESS"),
+    )
+
+    result = service.check(
+        ConnectivityCheckRequest(
+            source=ConnectivityEndpoint(type="ip_address", value="10.0.0.10"),
+            destination=ConnectivityEndpoint(type="ip_address", value="10.0.1.20"),
+            protocol="TCP",
+            destination_port=443,
+        )
+    )
+
+    assert result.status == "running"
+    assert result.reachable is None
+    assert result.work_request_id == "wr-1"
+    assert "still running" in result.message
