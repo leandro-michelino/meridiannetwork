@@ -10,6 +10,7 @@ from app.services.regions import RegionService
 from app.services.route_analysis import RouteAnalysisService
 from app.services.security_actions import SecurityActionsService
 from app.services.security_posture import SecurityPostureService
+from app.services.traffic_telemetry import TrafficTelemetryService
 
 
 def get_oci_client_factory(settings: Settings = Depends(get_settings)) -> OciClientFactory:
@@ -54,6 +55,18 @@ def get_security_actions_service(
     client_factory: OciClientFactory = Depends(get_oci_client_factory),
 ) -> SecurityActionsService:
     return SecurityActionsService(settings=settings, client_factory=client_factory)
+
+
+def get_traffic_telemetry_service(
+    settings: Settings = Depends(get_settings),
+    client_factory: OciClientFactory = Depends(get_oci_client_factory),
+    network_inventory: NetworkInventoryService = Depends(get_network_inventory_service),
+) -> TrafficTelemetryService:
+    return TrafficTelemetryService(
+        settings=settings,
+        client_factory=client_factory,
+        network_inventory=network_inventory,
+    )
 
 
 def get_preflight_service(

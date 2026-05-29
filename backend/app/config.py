@@ -42,6 +42,15 @@ class Settings(BaseSettings):
     security_action_object_storage_prefix: str = "meridian/security-actions/"
     security_action_retention_days: int = 365
 
+    # Traffic telemetry — VCN Flow Logs opt-in
+    traffic_flow_logs_enablement_allowed: bool = False
+    traffic_flow_logs_log_group_name: str = "meridian-traffic-flow-logs"
+    traffic_flow_logs_capture_filter_name: str = "meridian-traffic-capture-filter"
+    traffic_flow_logs_log_name_prefix: str = "meridian-flow"
+    traffic_flow_logs_default_lookback_minutes: int = 60
+    traffic_flow_logs_max_lookback_hours: int = 24
+    traffic_flow_logs_search_limit: int = 100
+
     @field_validator("active_regions", "compartment_ids", mode="before")
     @classmethod
     def parse_csv_list(cls, value: object) -> list[str]:

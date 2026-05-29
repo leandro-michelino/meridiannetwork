@@ -1075,6 +1075,63 @@ body {
   border-left-color: var(--mn-muted);
 }
 
+.traffic-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.traffic-toolbar {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(120px, 1fr)) auto auto;
+  gap: 7px;
+  align-items: center;
+}
+
+.traffic-toolbar input,
+.traffic-toolbar select {
+  min-height: 30px;
+  min-width: 0;
+  border: 1px solid var(--mn-border);
+  border-radius: 6px;
+  background: var(--mn-surface);
+  color: var(--mn-text);
+  font: inherit;
+  font-size: 12px;
+  padding: 5px 8px;
+}
+
+.traffic-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--mn-border-soft);
+  border-radius: 6px;
+  background: var(--mn-border-soft);
+}
+
+.traffic-summary .cs-stat {
+  padding: 8px 10px;
+}
+
+.traffic-message {
+  border: 1px solid var(--mn-border-soft);
+  border-radius: 6px;
+  background: var(--mn-surface-soft);
+  color: var(--mn-muted);
+  font-size: 11px;
+  padding: 8px 10px;
+}
+
+.traffic-table table {
+  min-width: 980px;
+}
+
+.traffic-name {
+  color: var(--mn-text);
+  font-weight: 750;
+}
+
 .modal-history {
   max-height: 132px;
   overflow: auto;
@@ -1455,6 +1512,7 @@ tr:last-child td { border-bottom: 0; }
 @media (max-width: 1100px) {
   .grid-2,
   .grid-3 { grid-template-columns: 1fr; }
+  .traffic-toolbar { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 @media (max-width: 720px) {
@@ -1495,6 +1553,7 @@ tr:last-child td { border-bottom: 0; }
 
   .history-toolbar,
   .history-summary,
+  .traffic-toolbar,
   .topology-filterbar,
   .cs-summary,
   .cs-issue {
@@ -1742,6 +1801,61 @@ tr:last-child td { border-bottom: 0; }
       </details>
     </section>
 
+    <details class="card expander" open id="trafficTelemetryPanel">
+      <summary class="card-header">
+        <div class="card-title">Traffic Telemetry</div>
+        <div class="card-header-tools">
+          <span class="badge neutral" id="trafficTelemetryBadge">not checked</span>
+          <button class="button primary" id="enableTrafficTelemetryBtn" type="button">Enable telemetry</button>
+          <button class="button" id="disableTrafficTelemetryBtn" type="button">Disable telemetry</button>
+        </div>
+      </summary>
+      <div class="traffic-panel">
+        <div class="traffic-summary" id="trafficTelemetrySummary"></div>
+        <div class="traffic-message" id="trafficTelemetryMessage"></div>
+        <div class="traffic-toolbar">
+          <select id="trafficVcnScope" aria-label="Traffic telemetry VCN"></select>
+          <input id="trafficSourceIp" type="search" list="trafficEndpointList" placeholder="Source VM IP" aria-label="Source VM private IP">
+          <input id="trafficDestinationIp" type="search" list="trafficEndpointList" placeholder="Destination VM IP" aria-label="Destination VM private IP">
+          <input id="trafficPort" type="number" min="1" max="65535" step="1" placeholder="Port" aria-label="Destination port">
+          <select id="trafficAction" aria-label="Traffic action">
+            <option value="">Accepted and rejected</option>
+            <option value="ACCEPT">Accepted only</option>
+            <option value="REJECT">Rejected only</option>
+          </select>
+          <select id="trafficLookback" aria-label="Traffic lookback window">
+            <option value="15">Last 15 min</option>
+            <option value="60" selected>Last hour</option>
+            <option value="360">Last 6 hours</option>
+            <option value="1440">Last 24 hours</option>
+          </select>
+          <button class="button" id="queryTrafficFlowsBtn" type="button">Query flows</button>
+          <button class="button" id="clearTrafficFiltersBtn" type="button">Clear</button>
+        </div>
+        <datalist id="trafficEndpointList"></datalist>
+        <div class="table-wrap traffic-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Source</th>
+                <th>Destination</th>
+                <th>Port</th>
+                <th>Protocol</th>
+                <th>Action</th>
+                <th>Packets</th>
+                <th>Bytes</th>
+                <th>Region</th>
+              </tr>
+            </thead>
+            <tbody id="trafficFlowTable">
+              <tr><td colspan="9" class="muted">No flow query has run yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </details>
+
     <section class="grid-3">
       <details class="card expander">
         <summary class="card-header">
@@ -1895,6 +2009,10 @@ const API_PATHS = {
   topology: '/api/topology',
   securityPosture: '/api/security/posture',
   securityActions: '/api/security/finding-actions',
+  trafficStatus: '/api/traffic/telemetry/status',
+  trafficEnable: '/api/traffic/telemetry/enable',
+  trafficDisable: '/api/traffic/telemetry/disable',
+  trafficFlows: '/api/traffic/flows',
   identityContext: '/api/identity/context',
   dashboardCompleteness: '/api/dashboard/completeness',
   exportCompleteness: '/api/export/completeness.csv',
@@ -1979,6 +2097,31 @@ const DEMO_DATA = {
       { severity: 'high', risk_score: 25, rule_type: 'nsg_public_rdp', resource_id: 'nsg-admin-risk', resource_name: 'admin-risk-nsg', region: 'eu-frankfurt-1', compartment_id: 'prod', vcn_id: 'vcn-prod-fra', description: 'Ingress allows RDP from 0.0.0.0/0.', recommendation: 'Restrict RDP to a VPN, Bastion, or administrator source CIDR.' }
     ]
   },
+  trafficTelemetryStatus: {
+    status: 'enabled',
+    live_oci_enabled: true,
+    enablement_allowed: true,
+    log_group_name: 'meridian-traffic-flow-logs',
+    capture_filter_name: 'meridian-traffic-capture-filter',
+    checked_vcns: 2,
+    enabled_vcns: 2,
+    missing_vcns: 0,
+    message: 'Demo telemetry is enabled for selected VCNs.',
+  },
+  trafficFlows: {
+    status: 'ok',
+    total_flows: 2,
+    time_window_minutes: 60,
+    endpoints: [
+      { ip_address: '10.0.10.14', name: 'web-01', instance_name: 'web-01', subnet_id: 'subnet-web', vcn_id: 'vcn-prod-fra', region: 'eu-frankfurt-1', compartment_id: 'prod' },
+      { ip_address: '10.0.20.21', name: 'app-01', instance_name: 'app-01', subnet_id: 'subnet-app', vcn_id: 'vcn-prod-fra', region: 'eu-frankfurt-1', compartment_id: 'prod' },
+      { ip_address: '10.20.10.18', name: 'dr-app-01', instance_name: 'dr-app-01', subnet_id: 'subnet-dr', vcn_id: 'vcn-dr-ams', region: 'eu-amsterdam-1', compartment_id: 'dr' },
+    ],
+    flows: [
+      { time_start: new Date(Date.now() - 11 * 60 * 1000).toISOString(), source_ip: '10.0.10.14', destination_ip: '10.0.20.21', destination_port: 443, protocol: '6', action: 'ACCEPT', packets: 18, bytes: 13244, region: 'eu-frankfurt-1', compartment_id: 'prod', source: { ip_address: '10.0.10.14', name: 'web-01', subnet_id: 'subnet-web' }, destination: { ip_address: '10.0.20.21', name: 'app-01', subnet_id: 'subnet-app' } },
+      { time_start: new Date(Date.now() - 29 * 60 * 1000).toISOString(), source_ip: '10.0.20.21', destination_ip: '10.20.10.18', destination_port: 1521, protocol: '6', action: 'REJECT', packets: 3, bytes: 180, region: 'eu-frankfurt-1', compartment_id: 'prod', source: { ip_address: '10.0.20.21', name: 'app-01', subnet_id: 'subnet-app' }, destination: { ip_address: '10.20.10.18', name: 'dr-app-01', subnet_id: 'subnet-dr' } },
+    ],
+  },
   collection: { requested_regions: [], issues: [] },
   securityActionHistory: { total_actions: 0, actions: [] }
 };
@@ -2045,6 +2188,9 @@ let coveragePanelOpen = true;
 let findingWorkflowFilter = '';
 let networkSearchQuery = '';
 let networkRegionFilter = '';
+let trafficVcnScope = '';
+let trafficTelemetryStatus = DEMO_DATA.trafficTelemetryStatus;
+let trafficFlows = DEMO_DATA.trafficFlows;
 const resourceListQueries = {};
 
 function byId(id) {
@@ -2254,8 +2400,16 @@ function resourceLink(label, url, title = 'Open in OCI Console') {
 
 async function getJson(path) {
   const response = await fetch(path, { cache: 'no-store', headers: { Accept: 'application/json' } });
-  if (!response.ok) throw new Error(`${path} returned ${response.status}`);
+  if (!response.ok) throw new Error(await responseErrorMessage(response, path));
   return response.json();
+}
+
+async function safeGetJson(path, fallback) {
+  try {
+    return await getJson(path);
+  } catch (error) {
+    return fallback;
+  }
 }
 
 async function postJson(path, payload) {
@@ -2264,8 +2418,20 @@ async function postJson(path, payload) {
     headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
-  if (!response.ok) throw new Error(`${path} returned ${response.status}`);
+  if (!response.ok) throw new Error(await responseErrorMessage(response, path));
   return response.json();
+}
+
+async function responseErrorMessage(response, path) {
+  try {
+    const body = await response.json();
+    const detail = body?.detail;
+    const message = typeof detail === 'string' ? detail : detail?.message;
+    if (message) return `${path} returned ${response.status}: ${message}`;
+  } catch (_) {
+    // Fall through to a compact HTTP status message.
+  }
+  return `${path} returned ${response.status}`;
 }
 
 async function loadApiData(options = {}) {
@@ -2274,11 +2440,21 @@ async function loadApiData(options = {}) {
     availableRegions,
     activeRegions,
     securityActionHistory,
+    trafficTelemetryStatus,
   ] = await Promise.all([
     getJson(API_PATHS.identityContext),
     getJson(API_PATHS.availableRegions),
     getJson(API_PATHS.activeRegions),
     getJson(API_PATHS.securityActions),
+    safeGetJson(API_PATHS.trafficStatus, {
+      status: 'unknown',
+      live_oci_enabled: false,
+      enablement_allowed: false,
+      checked_vcns: 0,
+      enabled_vcns: 0,
+      missing_vcns: 0,
+      message: 'Traffic telemetry status is not available.',
+    }),
   ]);
   const dashboardOptions = { ...options };
   if (!Array.isArray(dashboardOptions.regionsOverride) && selectedRegionIds === null) {
@@ -2293,6 +2469,8 @@ async function loadApiData(options = {}) {
       availableRegions,
       ...emptyDashboardData(activeRegions, compartments),
       securityActionHistory,
+      trafficTelemetryStatus,
+      trafficFlows,
     };
   }
   const dashboard = await getJson(dashboardPath);
@@ -2313,6 +2491,8 @@ async function loadApiData(options = {}) {
     collection: dashboard.collection || { requested_regions: [], issues: [] },
     completeness: dashboard.completeness || null,
     securityActionHistory,
+    trafficTelemetryStatus,
+    trafficFlows,
   };
 }
 
@@ -2370,6 +2550,8 @@ function emptyDashboardData(activeRegions, compartments) {
     networkSecurityGroups: [],
     topology: { nodes: [], edges: [] },
     securityPosture: { status: 'ok', risk_score: 0, total_findings: 0, findings: [] },
+    trafficTelemetryStatus: { status: 'disabled', checked_vcns: 0, enabled_vcns: 0, missing_vcns: 0, message: 'No traffic telemetry status available.' },
+    trafficFlows: { status: 'idle', total_flows: 0, time_window_minutes: 60, flows: [], endpoints: [] },
     collection: { status: 'idle', requested_regions: [], issues: [] },
     completeness: null,
   };
@@ -2441,6 +2623,8 @@ function renderDashboard(data, mode) {
   data.securityLists = data.securityLists || [];
   data.networkSecurityGroups = data.networkSecurityGroups || [];
   data.securityPosture = data.securityPosture || { status: 'ok', risk_score: 0, total_findings: 0, findings: [] };
+  data.trafficTelemetryStatus = data.trafficTelemetryStatus || trafficTelemetryStatus || {};
+  data.trafficFlows = data.trafficFlows || trafficFlows || { status: 'idle', total_flows: 0, flows: [], endpoints: [] };
   data.collection = data.collection || { requested_regions: [], issues: [] };
   data.completeness = data.completeness || buildCompletenessFromDashboard(data);
   data.securityActionHistory = mode === 'api'
@@ -2461,6 +2645,8 @@ function renderDashboard(data, mode) {
   currentDefaultRegionIds = defaultRegionIds(regions, data.activeRegions, homeRegion);
   pruneRegionFilter(regions, data.activeRegions, homeRegion);
   const viewData = filterDashboardDataByRegions(data);
+  trafficTelemetryStatus = data.trafficTelemetryStatus;
+  trafficFlows = data.trafficFlows;
   const compartmentMap = buildCompartmentMap(viewData);
   const compartmentCount = Object.keys(compartmentMap).length;
 
@@ -2501,6 +2687,7 @@ function renderDashboard(data, mode) {
   renderInventoryNotice(data.collection);
   renderCoveragePanel(data.completeness);
   scheduleCollectionPoll(data.collection);
+  renderTrafficTelemetry(viewData);
   renderSecurityActionHistory(securityActionHistory);
   renderNetworkTable(viewData.vcns, viewData.subnets, compartmentMap);
   text('lastUpdated', `Last refresh: ${new Date().toLocaleString()} / ${mode}`);
@@ -2564,6 +2751,8 @@ function filterDashboardDataByRegions(data) {
     securityLists: data.securityLists.filter(byRegion),
     networkSecurityGroups: data.networkSecurityGroups.filter(byRegion),
     securityPosture: filterSecurityPostureByRegion(data.securityPosture, effectiveRegionIds),
+    trafficFlows: filterTrafficFlowsByRegion(data.trafficFlows, effectiveRegionIds),
+    trafficTelemetryStatus: data.trafficTelemetryStatus,
   };
   return {
     ...viewData,
@@ -2598,6 +2787,17 @@ function filterSecurityPostureByRegion(securityPosture, effectiveRegionIds) {
     low_findings: countSeverity('low'),
     risk_score: Math.min(100, sum(findings, (finding) => finding.risk_score || 0)),
     status: securityPostureStatus(findings),
+  };
+}
+
+function filterTrafficFlowsByRegion(flowSummary = {}, effectiveRegionIds) {
+  const flows = (flowSummary.flows || []).filter((item) => !item.region || effectiveRegionIds.has(item.region));
+  const endpoints = (flowSummary.endpoints || []).filter((item) => !item.region || effectiveRegionIds.has(item.region));
+  return {
+    ...flowSummary,
+    flows,
+    endpoints,
+    total_flows: flows.length,
   };
 }
 
@@ -4156,6 +4356,16 @@ function buildInventoryTopology(data) {
     });
     addEdge(item.vcn_id, item.id, 'has_network_security_group');
   });
+  (data.trafficFlows?.flows || []).forEach((flow) => {
+    const sourceSubnetId = flow.source?.subnet_id;
+    const destinationSubnetId = flow.destination?.subnet_id;
+    if (!sourceSubnetId || !destinationSubnetId || sourceSubnetId === destinationSubnetId) return;
+    addEdge(sourceSubnetId, destinationSubnetId, flow.action === 'REJECT' ? 'traffic_reject' : 'traffic_accept', {
+      port: String(flow.destination_port || ''),
+      protocol: String(flow.protocol || ''),
+      action: String(flow.action || ''),
+    });
+  });
 
   const nodeIds = new Set(nodes.map((node) => node.id));
   return { nodes, edges: edges.filter((edge) => nodeIds.has(edge.source_id) && nodeIds.has(edge.target_id)) };
@@ -4575,9 +4785,9 @@ function drawTopologyLines() {
     line.setAttribute('x2', b.x);
     line.setAttribute('y2', b.y);
     line.setAttribute('stroke', topologyEdgeColor(edge.relationship));
-    line.setAttribute('stroke-width', '1.5');
-    line.setAttribute('stroke-dasharray', '5 4');
-    line.setAttribute('opacity', '0.65');
+    line.setAttribute('stroke-width', edge.relationship?.startsWith('traffic_') ? '2.4' : '1.5');
+    line.setAttribute('stroke-dasharray', edge.relationship?.startsWith('traffic_') ? '1 0' : '5 4');
+    line.setAttribute('opacity', edge.relationship?.startsWith('traffic_') ? '0.82' : '0.65');
     svg.appendChild(line);
   });
 }
@@ -4595,6 +4805,8 @@ function topologyEdgeColor(relationship) {
     has_network_security_group: '#a32d2d',
     uses_route_table: '#8a5a00',
     uses_security_list: '#a32d2d',
+    traffic_accept: '#2f6b2f',
+    traffic_reject: '#a32d2d',
   }[relationship] || '#66717f';
 }
 
@@ -5099,6 +5311,261 @@ function actionConsoleUrl(action) {
   return ociConsoleUrl(resourceType, { id: action.resource_id, region: action.region });
 }
 
+function renderTrafficTelemetry(data) {
+  const status = data.trafficTelemetryStatus || {};
+  const summary = data.trafficFlows || { flows: [], endpoints: [], total_flows: 0 };
+  renderTrafficVcnScope(data.vcns || []);
+  const badge = byId('trafficTelemetryBadge');
+  const statusLabel = trafficStatusLabel(status.status);
+  badge.textContent = statusLabel;
+  badge.className = trafficStatusBadgeClass(status.status);
+  const hasSelectedVcn = Boolean(trafficVcnScope);
+  const enableButton = byId('enableTrafficTelemetryBtn');
+  enableButton.disabled = currentDashboardMode !== 'api' || !status.enablement_allowed || !hasSelectedVcn || isCollectionBusy();
+  enableButton.textContent = status.status === 'enabled' ? 'Telemetry enabled' : 'Enable telemetry';
+  const disableButton = byId('disableTrafficTelemetryBtn');
+  disableButton.disabled = currentDashboardMode !== 'api' || !status.enablement_allowed || !hasSelectedVcn || isCollectionBusy();
+
+  byId('trafficTelemetrySummary').innerHTML = [
+    collectionStat('Telemetry', statusLabel),
+    collectionStat('VCNs enabled', status.checked_vcns ? `${status.enabled_vcns || 0}/${status.checked_vcns}` : 'not checked'),
+    collectionStat('Flow records', String(summary.total_flows || 0)),
+    collectionStat('Window', `${summary.time_window_minutes || byId('trafficLookback')?.value || 60} min`),
+  ].join('');
+  byId('trafficTelemetryMessage').textContent = trafficTelemetryMessage(status, summary);
+  renderTrafficEndpointOptions(summary.endpoints || []);
+  renderTrafficFlowTable(summary.flows || []);
+}
+
+function renderTrafficVcnScope(vcns) {
+  const select = byId('trafficVcnScope');
+  const scopedVcns = vcns
+    .slice()
+    .sort((left, right) => `${left.region}/${left.name}`.localeCompare(`${right.region}/${right.name}`));
+  if (trafficVcnScope && !scopedVcns.some((vcn) => vcn.id === trafficVcnScope)) trafficVcnScope = '';
+  select.innerHTML = [
+    '<option value="">Choose VCN for telemetry</option>',
+    ...scopedVcns.map((vcn) => `<option value="${escapeHtml(vcn.id)}">${escapeHtml(vcn.name || vcn.id)} / ${escapeHtml(vcn.region)}</option>`),
+  ].join('');
+  select.value = trafficVcnScope;
+  select.disabled = !scopedVcns.length;
+}
+
+function trafficTelemetryMessage(status, summary) {
+  if (summary.message) return summary.message;
+  if (status.message) return status.message;
+  return 'Traffic telemetry has not returned a status yet.';
+}
+
+function trafficStatusLabel(status) {
+  return {
+    ready: 'ready',
+    blocked: 'blocked',
+    enabled: 'enabled',
+    partial: 'partial',
+    not_enabled: 'not enabled',
+    no_vcns: 'no VCNs',
+    disabled: 'disabled',
+    degraded: 'degraded',
+    failed: 'failed',
+  }[status] || status || 'unknown';
+}
+
+function trafficStatusBadgeClass(status) {
+  if (status === 'enabled') return 'badge ok';
+  if (status === 'ready') return 'badge ok';
+  if (status === 'blocked' || status === 'partial' || status === 'not_enabled' || status === 'no_vcns') return 'badge warn';
+  if (status === 'degraded' || status === 'failed') return 'badge err';
+  return 'badge neutral';
+}
+
+function renderTrafficEndpointOptions(endpoints) {
+  const datalist = byId('trafficEndpointList');
+  const unique = new Map();
+  endpoints.forEach((endpoint) => {
+    if (endpoint.ip_address) unique.set(endpoint.ip_address, endpoint);
+  });
+  datalist.innerHTML = [...unique.values()].map((endpoint) => `
+    <option value="${escapeHtml(endpoint.ip_address)}" label="${escapeHtml(trafficEndpointName(endpoint))}"></option>
+  `).join('');
+}
+
+function renderTrafficFlowTable(flows) {
+  const body = byId('trafficFlowTable');
+  if (!flows.length) {
+    body.innerHTML = '<tr><td colspan="9" class="muted">No flow records match this query.</td></tr>';
+    return;
+  }
+  body.innerHTML = flows.slice(0, 100).map((flow) => `
+    <tr>
+      <td>${escapeHtml(flowTime(flow))}</td>
+      <td>${trafficEndpointCell(flow.source, flow.source_ip)}</td>
+      <td>${trafficEndpointCell(flow.destination, flow.destination_ip)}</td>
+      <td>${escapeHtml(flow.destination_port || '-')}</td>
+      <td>${escapeHtml(protocolLabel(flow.protocol))}</td>
+      <td><span class="${flowActionBadgeClass(flow.action)}">${escapeHtml(flow.action || flow.status || '-')}</span></td>
+      <td>${escapeHtml(flow.packets ?? '-')}</td>
+      <td>${escapeHtml(flow.bytes ?? '-')}</td>
+      <td>${escapeHtml(flow.region || '-')}</td>
+    </tr>
+  `).join('');
+}
+
+function trafficEndpointCell(endpoint, ip) {
+  if (!endpoint) return `<span class="mono">${escapeHtml(ip || '-')}</span>`;
+  return `
+    <div class="traffic-name">${escapeHtml(trafficEndpointName(endpoint))}</div>
+    <div class="resource-meta mono">${escapeHtml(ip || endpoint.ip_address || '-')}</div>
+  `;
+}
+
+function trafficEndpointName(endpoint) {
+  return endpoint.instance_name || endpoint.name || endpoint.ip_address || 'endpoint';
+}
+
+function flowTime(flow) {
+  const value = flow.time_start || flow.time_end;
+  if (!value) return '-';
+  return relativeTime(value);
+}
+
+function protocolLabel(protocol) {
+  return { 1: 'ICMP', 6: 'TCP', 17: 'UDP', ICMP: 'ICMP', TCP: 'TCP', UDP: 'UDP' }[protocol] || protocol || '-';
+}
+
+function flowActionBadgeClass(action) {
+  if (action === 'ACCEPT') return 'badge ok';
+  if (action === 'REJECT') return 'badge err';
+  return 'badge neutral';
+}
+
+function trafficQueryParams() {
+  const params = new URLSearchParams();
+  const regions = selectedRegionArray();
+  if (regions.length) params.set('regions', regions.join(','));
+  const sourceIp = byId('trafficSourceIp').value.trim();
+  const destinationIp = byId('trafficDestinationIp').value.trim();
+  const port = byId('trafficPort').value.trim();
+  const action = byId('trafficAction').value;
+  const lookback = byId('trafficLookback').value;
+  if (sourceIp) params.set('source_ip', sourceIp);
+  if (destinationIp) params.set('destination_ip', destinationIp);
+  if (port) params.set('port', port);
+  if (action) params.set('action', action);
+  if (lookback) params.set('lookback_minutes', lookback);
+  return params.toString();
+}
+
+async function queryTrafficFlows() {
+  if (useDemoData) {
+    trafficFlows = DEMO_DATA.trafficFlows;
+    if (currentDashboardData) {
+      currentDashboardData.trafficFlows = trafficFlows;
+      renderDashboard(currentDashboardData, currentDashboardMode);
+    }
+    return;
+  }
+  text('lastUpdated', 'Querying traffic flows...');
+  try {
+    const query = trafficQueryParams();
+    trafficFlows = await getJson(`${API_PATHS.trafficFlows}${query ? '?' + query : ''}`);
+    if (currentDashboardData) {
+      currentDashboardData.trafficFlows = trafficFlows;
+      renderDashboard(currentDashboardData, currentDashboardMode);
+    }
+  } catch (error) {
+    text('lastUpdated', `Traffic query failed: ${error.message}`);
+  }
+}
+
+async function enableTrafficTelemetry() {
+  if (useDemoData) {
+    alert('Switch to API mode to enable live traffic telemetry.');
+    return;
+  }
+  const vcn = selectedTrafficVcn();
+  if (!vcn) {
+    alert('Choose one VCN before enabling traffic telemetry.');
+    return;
+  }
+  const confirmed = window.confirm(
+    `Enable OCI VCN Flow Logs for ${vcn.name || vcn.id}?`
+    + ' This can create billable log ingestion until telemetry is disabled again.'
+  );
+  if (!confirmed) return;
+  const button = byId('enableTrafficTelemetryBtn');
+  button.disabled = true;
+  text('lastUpdated', 'Enabling traffic telemetry...');
+  try {
+    const result = await postJson(API_PATHS.trafficEnable, {
+      regions: [vcn.region].filter(Boolean),
+      compartment_ids: [vcn.compartment_id].filter(Boolean),
+      vcn_ids: [vcn.id],
+    });
+    trafficTelemetryStatus = await safeGetJson(API_PATHS.trafficStatus, trafficTelemetryStatus);
+    if (currentDashboardData) {
+      currentDashboardData.trafficTelemetryStatus = trafficTelemetryStatus;
+      renderDashboard(currentDashboardData, currentDashboardMode);
+    }
+    text('lastUpdated', `Traffic telemetry: ${result.enabled || 0} enabled / ${result.skipped || 0} already enabled / ${result.failed || 0} failed`);
+  } catch (error) {
+    text('lastUpdated', `Traffic telemetry enablement failed: ${error.message}`);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function disableTrafficTelemetry() {
+  if (useDemoData) {
+    alert('Switch to API mode to disable live traffic telemetry.');
+    return;
+  }
+  const vcn = selectedTrafficVcn();
+  if (!vcn) {
+    alert('Choose one VCN before disabling traffic telemetry.');
+    return;
+  }
+  const confirmed = window.confirm(
+    `Disable Meridian VCN Flow Logs for ${vcn.name || vcn.id}?`
+    + ' This stops the dashboard-created flow log for that VCN.'
+  );
+  if (!confirmed) return;
+  const button = byId('disableTrafficTelemetryBtn');
+  button.disabled = true;
+  text('lastUpdated', 'Disabling traffic telemetry...');
+  try {
+    const result = await postJson(API_PATHS.trafficDisable, {
+      regions: [vcn.region].filter(Boolean),
+      compartment_ids: [vcn.compartment_id].filter(Boolean),
+      vcn_ids: [vcn.id],
+    });
+    trafficTelemetryStatus = await safeGetJson(API_PATHS.trafficStatus, trafficTelemetryStatus);
+    if (currentDashboardData) {
+      currentDashboardData.trafficTelemetryStatus = trafficTelemetryStatus;
+      renderDashboard(currentDashboardData, currentDashboardMode);
+    }
+    text('lastUpdated', `Traffic telemetry disabled: ${result.enabled || 0} disabled / ${result.skipped || 0} not enabled / ${result.failed || 0} failed`);
+  } catch (error) {
+    text('lastUpdated', `Traffic telemetry disablement failed: ${error.message}`);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+function selectedTrafficVcn() {
+  const data = currentDashboardData || {};
+  const viewData = filterDashboardDataByRegions(data);
+  return (viewData.vcns || []).find((vcn) => vcn.id === trafficVcnScope) || null;
+}
+
+function clearTrafficFilters() {
+  byId('trafficSourceIp').value = '';
+  byId('trafficDestinationIp').value = '';
+  byId('trafficPort').value = '';
+  byId('trafficAction').value = '';
+  byId('trafficLookback').value = '60';
+}
+
 function latestActionForFinding(findingKeyValue) {
   return securityActionHistory.find((action) => action.finding_key === findingKeyValue) || null;
 }
@@ -5582,6 +6049,23 @@ byId('exportPostureBtn').addEventListener('click', () => {
 });
 
 byId('exportPdfBtn').addEventListener('click', () => window.print());
+
+byId('enableTrafficTelemetryBtn').addEventListener('click', (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  enableTrafficTelemetry();
+});
+byId('disableTrafficTelemetryBtn').addEventListener('click', (event) => {
+  event.preventDefault();
+  event.stopPropagation();
+  disableTrafficTelemetry();
+});
+byId('trafficVcnScope').addEventListener('change', (event) => {
+  trafficVcnScope = event.target.value;
+  if (currentDashboardData) renderDashboard(currentDashboardData, currentDashboardMode);
+});
+byId('queryTrafficFlowsBtn').addEventListener('click', queryTrafficFlows);
+byId('clearTrafficFiltersBtn').addEventListener('click', clearTrafficFilters);
 
 byId('accessCheckBtn').addEventListener('click', (event) => {
   event.stopPropagation();

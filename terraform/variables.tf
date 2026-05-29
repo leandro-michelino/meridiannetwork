@@ -154,7 +154,24 @@ variable "identity_policy_statements" {
     "allow dynamic-group {dynamic_group_name} to inspect instance-family in tenancy",
     "allow dynamic-group {dynamic_group_name} to read metrics in tenancy",
     "allow dynamic-group {dynamic_group_name} to read logging-family in tenancy",
+    "allow dynamic-group {dynamic_group_name} to read log-content in tenancy",
     "allow dynamic-group {dynamic_group_name} to read alarms in tenancy"
+  ]
+}
+
+variable "enable_traffic_flow_log_management_policy" {
+  description = "Add broad OCI permissions that let the Meridian instance principal create VCN Flow Log log groups, log content, and capture filters from the dashboard opt-in button."
+  type        = bool
+  default     = false
+}
+
+variable "traffic_flow_log_management_policy_statements" {
+  description = "Additional IAM policy statements used only when enable_traffic_flow_log_management_policy is true."
+  type        = list(string)
+  default = [
+    "allow dynamic-group {dynamic_group_name} to manage log-groups in tenancy",
+    "allow dynamic-group {dynamic_group_name} to read log-content in tenancy",
+    "allow dynamic-group {dynamic_group_name} to manage virtual-network-family in tenancy"
   ]
 }
 

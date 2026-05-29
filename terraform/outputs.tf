@@ -77,6 +77,15 @@ output "instance_principal_iam_source" {
   value = {
     dynamic_group = local.instance_principal_dynamic_group
     policy        = local.instance_principal_policy
+    traffic_flow_log_management_policy = (
+      length(oci_identity_policy.traffic_flow_log_management) > 0
+      ? oci_identity_policy.traffic_flow_log_management[0].name
+      : (
+        var.enable_traffic_flow_log_management_policy && var.create_identity_policies
+        ? oci_identity_policy.meridian[0].name
+        : "disabled"
+      )
+    )
   }
 }
 
@@ -108,6 +117,7 @@ Internet egress    : ${var.enable_nat_gateway ? "none configured beyond NAT TCP 
 Oracle Services    : ${var.enable_nat_gateway ? "${local.oracle_services_cidr} on TCP 443" : "not separately restricted"}
 IAM principal      : ${local.instance_principal_dynamic_group}
 IAM policy         : ${local.instance_principal_policy}
+Traffic telemetry  : ${var.enable_traffic_flow_log_management_policy ? "management policy enabled" : "management policy disabled"}
 IAM access group   : ${coalesce(var.instance_principal_access_group_name, "not specified")}
 Action archive     : ${var.security_action_archive_enabled ? "${local.security_action_archive_bucket_name}/${local.security_action_archive_prefix}/" : "disabled"}
 EOT

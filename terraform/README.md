@@ -74,10 +74,14 @@ terraform -chdir=terraform validate
 - `create_meridian_compartment = false`
 - `enable_nat_gateway = false`
 - `security_action_archive_enabled = false`
+- `enable_traffic_flow_log_management_policy = false`
 
-When `create_identity_policies = true`, the default runtime policy grants `read virtual-network-family` so Meridian can
-list VCNs, subnets, gateways, route tables, security lists, DRGs, and network security groups during preflight and live
-inventory.
+When `create_identity_policies = true`, the default runtime policy grants read-oriented inventory and logging access so
+Meridian can list VCNs, subnets, gateways, route tables, security lists, DRGs, network security groups, and existing VCN
+Flow Log records during preflight and live inventory.
+
+Set `enable_traffic_flow_log_management_policy = true` only when the runtime principal should be allowed to create the
+log groups, log content, and capture filters needed by the dashboard Traffic Telemetry enablement button.
 
 When `create_identity_policies = false`, use `external_instance_principal_dynamic_group_name` and
 `external_instance_principal_policy_name` to document the externally managed IAM objects in Terraform outputs.

@@ -184,7 +184,9 @@ Exports and coverage panels use the selected region scope by default
 - The API binds only to `127.0.0.1`; external access is through Nginx.
 - `/opt/meridian/config/meridian.env` is owned by the `meridian` system user and is not committed.
 - Terraform state, generated inventory, and frontend build output are ignored by Git.
-- No OCI network resource mutation is implemented by the application.
+- OCI resource mutation is limited to the explicitly gated Traffic Telemetry enablement flow, which can create VCN Flow
+  Log resources only when `MERIDIAN_TRAFFIC_FLOW_LOGS_ENABLEMENT_ALLOWED=true` and the runtime principal has matching
+  permissions.
 
 ## Planned Extensions
 

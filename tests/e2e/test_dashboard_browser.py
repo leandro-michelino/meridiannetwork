@@ -383,6 +383,36 @@ def test_regions_menu_controls_api_and_demo_scope(page, dashboard_url: str) -> N
     expect(page.locator("#topologyBadge")).to_contain_text("overview / 8 nodes / 6 links")
 
 
+def test_traffic_telemetry_controls_are_scoped_and_cost_gated(page, dashboard_url: str) -> None:
+    expect(page.locator("#dataModeBadge")).to_have_text("api", timeout=10_000)
+    page.locator("#trafficTelemetryPanel").scroll_into_view_if_needed()
+    expect(page.locator("#trafficTelemetryPanel")).to_contain_text("Traffic Telemetry")
+    expect(page.locator("#trafficTelemetryBadge")).to_contain_text("disabled")
+    expect(page.locator("#trafficTelemetrySummary")).to_contain_text("not checked")
+    expect(page.locator("#enableTrafficTelemetryBtn")).to_be_disabled()
+    expect(page.locator("#disableTrafficTelemetryBtn")).to_be_disabled()
+    expect(page.locator("#trafficTelemetryMessage")).to_contain_text("Live OCI mode is disabled")
+
+    page.goto(f"{dashboard_url}/demodata", wait_until="networkidle")
+    expect(page.locator("#dataModeBadge")).to_contain_text("demo", timeout=10_000)
+    page.click("#regionMenuBtn")
+    page.click("#regionSelectAll")
+    page.locator("#trafficTelemetryPanel").scroll_into_view_if_needed()
+    expect(page.locator("#trafficVcnScope")).to_contain_text("vcn-prod-fra")
+    page.locator("#trafficVcnScope").select_option("vcn-prod-fra")
+    expect(page.locator("#enableTrafficTelemetryBtn")).to_be_disabled()
+    expect(page.locator("#disableTrafficTelemetryBtn")).to_be_disabled()
+    page.click("#queryTrafficFlowsBtn")
+    expect(page.locator("#trafficFlowTable")).to_contain_text("web-01")
+    expect(page.locator("#trafficFlowTable")).to_contain_text("app-01")
+    expect(page.locator("#trafficFlowTable")).to_contain_text("ACCEPT")
+    expect(page.locator("#trafficFlowTable")).to_contain_text("REJECT")
+    page.locator("#trafficAction").select_option("REJECT")
+    page.click("#clearTrafficFiltersBtn")
+    expect(page.locator("#trafficAction")).to_have_value("")
+    expect(page.locator("#trafficLookback")).to_have_value("60")
+
+
 def test_topology_layout_modes_do_not_clip_horizontally(page, dashboard_url: str) -> None:
     expect(page.locator("#dataModeBadge")).to_have_text("api", timeout=10_000)
     page.goto(f"{dashboard_url}/demodata", wait_until="networkidle")

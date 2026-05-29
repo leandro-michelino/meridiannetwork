@@ -118,6 +118,8 @@ Operational recommendations:
 - Add HTTPS before exposing the dashboard beyond a trusted network.
 - Use `enable_nat_gateway = true` when you want default outbound traffic routed through NAT while keeping public ingress scoped.
 - Use `security_action_archive_enabled = true` only when the tenancy should retain security finding action history in Object Storage.
+- Keep `MERIDIAN_TRAFFIC_FLOW_LOGS_ENABLEMENT_ALLOWED=false` unless the customer has explicitly approved dashboard-driven
+  VCN Flow Log setup and the runtime principal has the matching OCI Logging and capture-filter permissions.
 
 ## Troubleshooting
 
@@ -158,6 +160,14 @@ If live inventory is empty or the preflight fails:
 - Confirm `MERIDIAN_COMPARTMENT_IDS` contains the monitored compartment OCIDs, or that tenancy-root inventory is intended.
 - Confirm the instance principal dynamic group matches the Meridian Compute instance.
 - Confirm the dynamic group has `inspect compartments` and `read virtual-network-family` policies.
+
+If Traffic Telemetry does not show VM-to-VM flow records:
+
+- Confirm VCN Flow Logs are enabled for the selected VCNs.
+- Confirm the runtime principal can `read log-content`.
+- Use the dashboard Traffic Telemetry button only after setting `MERIDIAN_TRAFFIC_FLOW_LOGS_ENABLEMENT_ALLOWED=true`.
+- Confirm the source and destination IPs are private IPs visible from VNIC inventory.
+- Allow a short delay for newly enabled VCN Flow Logs to start producing records.
 
 If the deployment badge or version endpoints show an old revision:
 

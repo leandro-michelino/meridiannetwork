@@ -137,6 +137,20 @@ also accept `vcn_id`.
 
 ---
 
+## Traffic
+
+| Method | Path                            | Status                                                              |
+| ------ | ------------------------------- | ------------------------------------------------------------------- |
+| GET    | `/api/traffic/telemetry/status` | Implemented — checks VCN Flow Log coverage for the selected scope   |
+| POST   | `/api/traffic/telemetry/enable` | Implemented — opt-in VCN Flow Log setup, gated by runtime config    |
+| POST   | `/api/traffic/telemetry/disable` | Implemented — disables Meridian-created VCN Flow Logs for selected VCNs |
+| GET    | `/api/traffic/flows`            | Implemented — searches recent VCN Flow Log records with VM/IP filters |
+
+`GET /api/traffic/flows` accepts `regions`, `compartment_ids`, `source_ip`, `destination_ip`, `port`, `action`,
+`lookback_minutes`, and `limit`.
+
+---
+
 ## Identity
 
 | Method | Path                    | Status                                      |

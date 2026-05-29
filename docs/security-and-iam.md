@@ -13,6 +13,8 @@
 - `admin_cidr_blocks`: controls who can reach SSH, HTTP, and HTTPS.
 - `create_identity_policies`: creates tenancy-level IAM resources when enabled.
 - `identity_policy_statements`: defines runtime OCI permissions for Meridian.
+- `enable_traffic_flow_log_management_policy`: adds optional `manage` permissions used only when customers allow the
+  dashboard to create VCN Flow Logs from the Traffic Telemetry panel.
 - `ssh_public_key_path`: controls SSH key installed on the instance.
 
 ## Default IAM Policy Intent
@@ -65,6 +67,7 @@ allow dynamic-group <meridian-dynamic-group> to read virtual-network-family in t
 allow dynamic-group <meridian-dynamic-group> to inspect instance-family in tenancy
 allow dynamic-group <meridian-dynamic-group> to read metrics in tenancy
 allow dynamic-group <meridian-dynamic-group> to read logging-family in tenancy
+allow dynamic-group <meridian-dynamic-group> to read log-content in tenancy
 allow dynamic-group <meridian-dynamic-group> to read alarms in tenancy
 ```
 
@@ -83,8 +86,12 @@ those compartments directly.
 
 - Network inventory requires OCI Networking APIs and `read virtual-network-family`.
 - Compartment names require Identity compartment discovery through `inspect compartments`.
-- Metrics, alarms, and logging permissions are reserved for planned modules; they are included in Terraform defaults so
-  the policy can be reviewed before those modules are enabled.
+- Traffic Telemetry reads VCN Flow Logs through OCI Logging Search and needs `read log-content`.
+- The Traffic Telemetry enablement button is disabled unless `MERIDIAN_TRAFFIC_FLOW_LOGS_ENABLEMENT_ALLOWED=true`.
+  If customers want the dashboard to create the required log group, service logs, and capture filters, the runtime
+  principal also needs the optional management policy statements from `enable_traffic_flow_log_management_policy`.
+- Metrics and alarms permissions are reserved for planned modules; they are included in Terraform defaults so the policy
+  can be reviewed before those modules are enabled.
 - Config-file authentication requires a valid OCI config profile and API key on the host.
 - Instance principal authentication requires the Compute instance to match a dynamic group and for that dynamic group to
   have the policy statements above.

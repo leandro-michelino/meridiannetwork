@@ -29,3 +29,7 @@ meridian_inventory_snapshot_ttl: 900
 # snapshot dir defaults to {{ meridian_app_root }}/data/snapshots (set in template)
 # override here to use a custom path:
 # meridian_inventory_snapshot_dir: /opt/meridian/data/snapshots
+
+# Traffic telemetry opt-in. Keep false unless the runtime principal has the
+# required OCI Logging and capture-filter permissions.
+meridian_traffic_flow_logs_enablement_allowed: "false"

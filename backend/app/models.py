@@ -258,6 +258,84 @@ class SecurityActionHistoryResponse(BaseModel):
     storage: str = "object-storage"
     archive_enabled: bool = False
     archive_prefix: str | None = None
+
+
+class TrafficEndpointSummary(BaseModel):
+    ip_address: str
+    name: str | None = None
+    instance_id: str | None = None
+    instance_name: str | None = None
+    vnic_id: str | None = None
+    subnet_id: str | None = None
+    vcn_id: str | None = None
+    region: str | None = None
+    compartment_id: str | None = None
+
+
+class TrafficTelemetryStatus(BaseModel):
+    status: str
+    live_oci_enabled: bool
+    enablement_allowed: bool
+    log_group_name: str
+    capture_filter_name: str
+    checked_vcns: int = 0
+    enabled_vcns: int = 0
+    missing_vcns: int = 0
+    message: str
+
+
+class TrafficEnableRequest(BaseModel):
+    regions: list[str] = Field(default_factory=list)
+    compartment_ids: list[str] = Field(default_factory=list)
+    vcn_ids: list[str] = Field(default_factory=list)
+
+
+class TrafficEnablementItem(BaseModel):
+    vcn_id: str
+    vcn_name: str
+    region: str
+    compartment_id: str
+    status: str
+    message: str
+    log_group_id: str | None = None
+    log_id: str | None = None
+    capture_filter_id: str | None = None
+
+
+class TrafficEnablementResponse(BaseModel):
+    status: str
+    enabled: int
+    skipped: int
+    failed: int
+    items: list[TrafficEnablementItem]
+
+
+class TrafficFlowRecord(BaseModel):
+    time_start: str | None = None
+    time_end: str | None = None
+    source_ip: str
+    destination_ip: str
+    source_port: int | None = None
+    destination_port: int | None = None
+    protocol: str | None = None
+    action: str | None = None
+    status: str | None = None
+    packets: int | None = None
+    bytes: int | None = None
+    region: str | None = None
+    compartment_id: str | None = None
+    log_id: str | None = None
+    source: TrafficEndpointSummary | None = None
+    destination: TrafficEndpointSummary | None = None
+
+
+class TrafficFlowSummary(BaseModel):
+    status: str
+    total_flows: int
+    time_window_minutes: int
+    flows: list[TrafficFlowRecord]
+    endpoints: list[TrafficEndpointSummary] = Field(default_factory=list)
+    message: str | None = None
     archive_error: str | None = None
 
 

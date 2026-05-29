@@ -58,6 +58,13 @@ class OciClientFactory:
             return oci.core.VirtualNetworkClient(config=config, signer=signer)
         return oci.core.VirtualNetworkClient(config)
 
+    def compute_client(self, region: str | None = None) -> Any:
+        oci = self._load_oci()
+        signer, config = self.signer_and_config(region=region)
+        if signer is not None:
+            return oci.core.ComputeClient(config=config, signer=signer)
+        return oci.core.ComputeClient(config)
+
     def resource_search_client(self, region: str | None = None) -> Any:
         oci = self._load_oci()
         signer, config = self.signer_and_config(region=region)
@@ -76,6 +83,32 @@ class OciClientFactory:
         if signer is not None:
             return oci.object_storage.ObjectStorageClient(config=config, signer=signer)
         return oci.object_storage.ObjectStorageClient(config)
+
+    def logging_management_client(self, region: str | None = None) -> Any:
+        oci = self._load_oci()
+        signer, config = self.signer_and_config(region=region)
+        if signer is not None:
+            return oci.logging.LoggingManagementClient(config=config, signer=signer)
+        return oci.logging.LoggingManagementClient(config)
+
+    def logging_search_client(self, region: str | None = None) -> Any:
+        oci = self._load_oci()
+        signer, config = self.signer_and_config(region=region)
+        if signer is not None:
+            return oci.loggingsearch.LogSearchClient(config=config, signer=signer)
+        return oci.loggingsearch.LogSearchClient(config)
+
+    def logging_model(self, name: str, **kwargs: Any) -> Any:
+        oci = self._load_oci()
+        return getattr(oci.logging.models, name)(**kwargs)
+
+    def core_model(self, name: str, **kwargs: Any) -> Any:
+        oci = self._load_oci()
+        return getattr(oci.core.models, name)(**kwargs)
+
+    def loggingsearch_model(self, name: str, **kwargs: Any) -> Any:
+        oci = self._load_oci()
+        return getattr(oci.loggingsearch.models, name)(**kwargs)
 
     def list_all(self, list_func: Any, *args: Any, **kwargs: Any) -> list[Any]:
         oci = self._load_oci()

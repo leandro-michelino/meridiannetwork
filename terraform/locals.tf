@@ -31,9 +31,22 @@ locals {
   ])
 
   dynamic_group_name = "${local.name_prefix}-instances"
+  effective_instance_principal_dynamic_group_name = (
+    var.create_identity_policies
+    ? local.dynamic_group_name
+    : var.external_instance_principal_dynamic_group_name
+  )
   rendered_identity_policy_statements = [
-    for statement in var.identity_policy_statements :
+    for statement in concat(
+      var.identity_policy_statements,
+      var.enable_traffic_flow_log_management_policy ? var.traffic_flow_log_management_policy_statements : []
+    ) :
     replace(statement, "{dynamic_group_name}", local.dynamic_group_name)
+  ]
+  rendered_external_traffic_flow_log_policy_statements = [
+    for statement in var.traffic_flow_log_management_policy_statements :
+    replace(statement, "{dynamic_group_name}", local.effective_instance_principal_dynamic_group_name)
+    if local.effective_instance_principal_dynamic_group_name != null
   ]
   instance_principal_dynamic_group = (
     var.create_identity_policies

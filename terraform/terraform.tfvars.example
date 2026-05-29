@@ -32,3 +32,8 @@ create_identity_policies = false
 
 # Optional: create an Object Storage archive for security finding action history.
 # security_action_archive_enabled = true
+
+# Optional: if Terraform manages the instance-principal IAM policy, add the
+# extra permissions required for the dashboard button to create VCN Flow Logs.
+# Keep disabled unless you intentionally allow dashboard-driven flow-log setup.
+# enable_traffic_flow_log_management_policy = true
