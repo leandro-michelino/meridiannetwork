@@ -191,6 +191,24 @@ def test_connectivity_service_suggests_limit_increase_for_large_tenancy():
     assert any("service limit increase" in action for action in actions)
 
 
+def test_connectivity_service_compacts_large_tenancy_limit_message():
+    service = ConnectivityService(
+        settings=Settings(enable_live_oci=True, tenancy_ocid="tenancy-1", compartment_ids=["compartment-1"]),
+        client_factory=FakeFactory(),
+    )
+    raw_message = (
+        "The tenancy ocid1.tenancy.oc1..example has more than 100 compartments. "
+        "Network Path Analyzer default limits does not support tenancies that have more than 100 compartments."
+        "Submit a limit increase request for Network Path Analyzer to the number of compartments in tenancy."
+    )
+
+    assert service._primary_message([raw_message]) == (
+        "Connectivity check could not complete because this tenancy has more compartments than the current "
+        "OCI Network Path Analyzer service limit."
+    )
+    assert service._user_findings([raw_message]) == [service._primary_message([raw_message])]
+
+
 def test_connectivity_service_returns_running_before_proxy_timeout(monkeypatch):
     monkeypatch.setattr(connectivity_module, "_WORK_REQUEST_WAIT_SECONDS", 0.01)
     service = ConnectivityService(

@@ -1138,7 +1138,10 @@ body {
   background: var(--mn-surface);
   color: var(--mn-text);
   font-size: 11px;
+  line-height: 1.45;
   padding: 8px 10px;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .connectivity-hop-table table {
@@ -5462,8 +5465,12 @@ function renderConnectivityCheck(data) {
     collectionStat('Return', result.return_status || 'not checked'),
     collectionStat('Cost action', result.cost_impact === 'no_flow_logs_enabled' ? 'no logs enabled' : result.cost_impact || 'none'),
   ].join('');
-  byId('connectivityMessage').textContent = result.message || DEFAULT_CONNECTIVITY_CHECK.message;
-  const findings = [...(result.findings || []), ...(result.next_actions || []).map((action) => `Next: ${action}`)];
+  const message = result.message || DEFAULT_CONNECTIVITY_CHECK.message;
+  byId('connectivityMessage').textContent = message;
+  const findings = [
+    ...(result.findings || []).filter((finding) => finding && finding !== message),
+    ...(result.next_actions || []).map((action) => `Next: ${action}`),
+  ];
   byId('connectivityFindings').innerHTML = findings.length
     ? findings.map((finding) => `<div class="connectivity-finding">${escapeHtml(finding)}</div>`).join('')
     : '';

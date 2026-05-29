@@ -84,23 +84,26 @@ class ConnectivityService:
                 )
             if work_status != "SUCCEEDED":
                 errors = self._work_request_errors(client, work_request_id)
+                message = self._primary_message(errors) or f"OCI Network Path Analyzer work request ended with {work_status or 'unknown status'}."
+                findings = self._user_findings(errors)
                 return ConnectivityCheckResponse(
                     status="failed",
                     reachable=False,
                     work_request_id=work_request_id,
-                    message=errors[0] if errors else f"OCI Network Path Analyzer work request ended with {work_status or 'unknown status'}.",
-                    findings=errors,
-                    next_actions=self._next_actions(errors, None, None),
+                    message=message,
+                    findings=findings,
+                    next_actions=self._next_actions(errors or [message], None, None),
                 )
 
             return self._result_response(client, work_request_id)
         except Exception as exc:  # pragma: no cover - specific OCI exceptions vary by SDK/client version
             message = self._error_message(exc)
+            user_message = self._primary_message([message]) or f"OCI Network Path Analyzer failed: {message}"
             return ConnectivityCheckResponse(
                 status="failed",
                 reachable=False,
-                message=f"OCI Network Path Analyzer failed: {message}",
-                findings=[message],
+                message=user_message,
+                findings=self._user_findings([message]),
                 next_actions=self._next_actions([message], None, None),
             )
 
@@ -270,6 +273,29 @@ class ConnectivityService:
             actions.append("Use the path hops to inspect the first denied security action or missing route target.")
         actions.append("Enable Flow Logs only if packet-level evidence is still needed after this path analysis.")
         return actions[:5]
+
+    def _primary_message(self, findings: list[str]) -> str | None:
+        text = " ".join(findings)
+        normalized = text.lower()
+        if "network path analyzer" in normalized and "more than 100 compartments" in normalized:
+            return (
+                "Connectivity check could not complete because this tenancy has more compartments than the current "
+                "OCI Network Path Analyzer service limit."
+            )
+        if "limit increase" in normalized and "compartment" in normalized:
+            return "Connectivity check could not complete because OCI Network Path Analyzer needs a service limit increase."
+        return None
+
+    def _user_findings(self, findings: list[str]) -> list[str]:
+        primary = self._primary_message(findings)
+        if primary:
+            return [primary]
+        compact: list[str] = []
+        for finding in findings:
+            value = " ".join(str(finding).split())
+            if value and value not in compact:
+                compact.append(value)
+        return compact[:6]
 
     def _hops(self, route: Any) -> list[ConnectivityHop]:
         hops: list[ConnectivityHop] = []
