@@ -18,11 +18,14 @@ class OciResponse:
 
 
 class FakeVnMonitoringClient:
-    def __init__(self, reachable=True):
+    def __init__(self, reachable=True, fail=False):
         self.reachable = reachable
+        self.fail = fail
         self.path_analysis_details = None
 
     def get_path_analysis(self, get_path_analysis_details):
+        if self.fail:
+            raise RuntimeError("missing Network Path Analyzer permission")
         self.path_analysis_details = get_path_analysis_details
         return OciResponse(headers={"opc-work-request-id": "wr-1"})
 
@@ -58,8 +61,8 @@ class FakeVnMonitoringClient:
 
 
 class FakeFactory:
-    def __init__(self, reachable=True):
-        self.client = FakeVnMonitoringClient(reachable=reachable)
+    def __init__(self, reachable=True, fail=False):
+        self.client = FakeVnMonitoringClient(reachable=reachable, fail=fail)
 
     def vn_monitoring_client(self, region=None):
         return self.client
@@ -141,3 +144,29 @@ def test_connectivity_service_reports_blocked_path_findings():
     assert any("ingress rules" in action for action in result.next_actions)
     assert any("Flow Logs only" in action for action in result.next_actions)
     assert any(hop.ingress_action == "DENY" for hop in result.hops)
+
+
+def test_connectivity_service_returns_actionable_failure_for_oci_errors():
+    service = ConnectivityService(
+        settings=Settings(
+            enable_live_oci=True,
+            tenancy_ocid="tenancy-1",
+            active_regions=["eu-frankfurt-1"],
+            compartment_ids=["compartment-1"],
+        ),
+        client_factory=FakeFactory(fail=True),
+    )
+
+    result = service.check(
+        ConnectivityCheckRequest(
+            source=ConnectivityEndpoint(type="ip_address", value="10.0.0.10"),
+            destination=ConnectivityEndpoint(type="ip_address", value="10.0.1.20"),
+            protocol="TCP",
+            destination_port=443,
+        )
+    )
+
+    assert result.status == "failed"
+    assert result.reachable is False
+    assert "Network Path Analyzer failed" in result.message
+    assert any("Flow Logs only" in action for action in result.next_actions)

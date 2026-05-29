@@ -58,28 +58,39 @@ class ConnectivityService:
             ),
         )
 
-        response = client.get_path_analysis(details)
-        work_request_id = self._work_request_id(response)
-        if not work_request_id:
-            return ConnectivityCheckResponse(
-                status="failed",
-                reachable=None,
-                message="OCI Network Path Analyzer did not return a work request ID.",
-            )
+        try:
+            response = client.get_path_analysis(details)
+            work_request_id = self._work_request_id(response)
+            if not work_request_id:
+                return ConnectivityCheckResponse(
+                    status="failed",
+                    reachable=None,
+                    message="OCI Network Path Analyzer did not return a work request ID.",
+                )
 
-        work_request = self._wait_for_work_request(client, work_request_id)
-        work_status = str(getattr(work_request, "status", "") or "").upper()
-        if work_status != "SUCCEEDED":
-            errors = self._work_request_errors(client, work_request_id)
+            work_request = self._wait_for_work_request(client, work_request_id)
+            work_status = str(getattr(work_request, "status", "") or "").upper()
+            if work_status != "SUCCEEDED":
+                errors = self._work_request_errors(client, work_request_id)
+                return ConnectivityCheckResponse(
+                    status="failed",
+                    reachable=False,
+                    work_request_id=work_request_id,
+                    message=errors[0] if errors else f"OCI Network Path Analyzer work request ended with {work_status or 'unknown status'}.",
+                    findings=errors,
+                    next_actions=self._next_actions(errors, None, None),
+                )
+
+            return self._result_response(client, work_request_id)
+        except Exception as exc:  # pragma: no cover - specific OCI exceptions vary by SDK/client version
+            message = self._error_message(exc)
             return ConnectivityCheckResponse(
                 status="failed",
                 reachable=False,
-                work_request_id=work_request_id,
-                message=errors[0] if errors else f"OCI Network Path Analyzer work request ended with {work_status or 'unknown status'}.",
-                findings=errors,
+                message=f"OCI Network Path Analyzer failed: {message}",
+                findings=[message],
+                next_actions=self._next_actions([message], None, None),
             )
-
-        return self._result_response(client, work_request_id)
 
     def _compartment_id(self, request: ConnectivityCheckRequest) -> str | None:
         return request.compartment_id or (self.settings.compartment_ids[0] if self.settings.compartment_ids else None) or self.settings.tenancy_ocid
@@ -265,3 +276,10 @@ class ConnectivityService:
 
     def _status_value(self, value: Any) -> str | None:
         return str(value).upper() if value is not None else None
+
+    def _error_message(self, exc: Exception) -> str:
+        message = getattr(exc, "message", None) or str(exc)
+        code = getattr(exc, "code", None)
+        status = getattr(exc, "status", None)
+        parts = [str(part) for part in [status, code, message] if part]
+        return " / ".join(parts) if parts else exc.__class__.__name__
