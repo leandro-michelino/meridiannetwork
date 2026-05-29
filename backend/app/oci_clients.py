@@ -101,9 +101,10 @@ class OciClientFactory:
     def vn_monitoring_client(self, region: str | None = None) -> Any:
         oci = self._load_oci()
         signer, config = self.signer_and_config(region=region)
+        kwargs: dict[str, Any] = {"timeout": (5, 10)}
         if signer is not None:
-            return oci.vn_monitoring.VnMonitoringClient(config=config, signer=signer)
-        return oci.vn_monitoring.VnMonitoringClient(config)
+            kwargs["signer"] = signer
+        return oci.vn_monitoring.VnMonitoringClient(config, **kwargs)
 
     def logging_model(self, name: str, **kwargs: Any) -> Any:
         oci = self._load_oci()
