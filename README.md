@@ -46,8 +46,9 @@ If the path is blocked, Meridian points you at the usual suspects first:
 
 Use **Enable telemetry** only when path analysis is not enough and you need packet-level evidence.
 That flow is intentionally scoped to the VCN the customer picks, asks for confirmation, and can be turned off again with
-**Disable telemetry** after the investigation. By default, the dashboard cannot create Flow Logs unless the operator
-explicitly sets `MERIDIAN_TRAFFIC_FLOW_LOGS_ENABLEMENT_ALLOWED=true`.
+**Disable telemetry** after the investigation. Any telemetry enablement is leased for 60 minutes max and the VM sweeper
+disables/cleans up expired Meridian-created Flow Logs even if the browser is closed. By default, the dashboard cannot
+create Flow Logs unless the operator explicitly sets `MERIDIAN_TRAFFIC_FLOW_LOGS_ENABLEMENT_ALLOWED=true`.
 
 ## Interested in Implementing It?
 
@@ -253,6 +254,7 @@ Meridian is deliberately boring about costs:
 - Connectivity Check uses OCI Network Path Analyzer first.
 - Flow Log enablement is blocked unless `MERIDIAN_TRAFFIC_FLOW_LOGS_ENABLEMENT_ALLOWED=true`.
 - The telemetry buttons work on selected VCNs, not every VCN in the tenancy.
+- Telemetry leases are capped at 60 minutes and automatically cleaned up by the VM.
 - Customers can disable Meridian-created Flow Logs from the same panel when the troubleshooting window is done.
 
 ## Documentation

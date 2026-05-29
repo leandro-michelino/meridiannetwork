@@ -192,6 +192,8 @@ Exports and coverage panels use the selected region scope by default
 - OCI resource mutation is limited to the explicitly gated Traffic Telemetry enablement flow, which can create VCN Flow
   Log resources only when `MERIDIAN_TRAFFIC_FLOW_LOGS_ENABLEMENT_ALLOWED=true` and the runtime principal has matching
   permissions.
+- Traffic Telemetry writes local leases under `/opt/meridian/data/` and a backend sweeper disables/deletes expired
+  Meridian-created Flow Logs. The default maximum lease is 60 minutes.
 - Connectivity Check stays read-only from Meridian's side. It asks OCI Network Path Analyzer for an exact path analysis
   and returns `cost_impact: no_flow_logs_enabled`.
 

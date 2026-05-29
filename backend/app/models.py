@@ -278,9 +278,11 @@ class TrafficTelemetryStatus(BaseModel):
     enablement_allowed: bool
     log_group_name: str
     capture_filter_name: str
+    max_enablement_minutes: int = 60
     checked_vcns: int = 0
     enabled_vcns: int = 0
     missing_vcns: int = 0
+    expires_at: str | None = None
     message: str
 
 
@@ -288,6 +290,7 @@ class TrafficEnableRequest(BaseModel):
     regions: list[str] = Field(default_factory=list)
     compartment_ids: list[str] = Field(default_factory=list)
     vcn_ids: list[str] = Field(default_factory=list)
+    enablement_minutes: int | None = Field(default=None, ge=1, le=1440)
 
 
 class TrafficEnablementItem(BaseModel):
@@ -300,6 +303,7 @@ class TrafficEnablementItem(BaseModel):
     log_group_id: str | None = None
     log_id: str | None = None
     capture_filter_id: str | None = None
+    expires_at: str | None = None
 
 
 class TrafficEnablementResponse(BaseModel):
@@ -307,6 +311,7 @@ class TrafficEnablementResponse(BaseModel):
     enabled: int
     skipped: int
     failed: int
+    expires_at: str | None = None
     items: list[TrafficEnablementItem]
 
 

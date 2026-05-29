@@ -29,7 +29,7 @@ exact-resource connectivity checks, cost-gated traffic telemetry, deployment ver
 - Security posture checks across Security Lists and NSGs.
 - Security action history and workflow filtering support.
 - OCI Network Path Analyzer integration for exact source/destination connectivity checks.
-- Cost-gated VCN Flow Log telemetry status, enable, disable, and recent flow search APIs.
+- Cost-gated VCN Flow Log telemetry status, enable, disable, recent flow search APIs, and 60-minute max telemetry leases.
 - Async per-region collection pipeline with `ThreadPoolExecutor`.
 - In-memory snapshot cache with configurable TTL.
 - Persistent on-disk snapshot cache that survives restarts.
@@ -50,7 +50,7 @@ exact-resource connectivity checks, cost-gated traffic telemetry, deployment ver
 - Security posture panel with workflow filter, risky rule listings, action history, and OCI Console links.
 - Route issue analysis panel.
 - Connectivity Check panel with source/destination inputs, direction, NPA status, findings, next actions, and hop table.
-- Traffic Telemetry controls that are selected-VCN, confirm-before-enable, and reversible after troubleshooting.
+- Traffic Telemetry controls that are selected-VCN, confirm-before-enable, time-boxed, and reversible after troubleshooting.
 - Inventory tables for VCNs, subnets, gateways, route tables, security lists, and NSGs.
 - Region selector and compartment filter.
 - OCI preflight access validation in the topbar.

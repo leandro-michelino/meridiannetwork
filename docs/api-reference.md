@@ -191,8 +191,25 @@ Traffic telemetry is intentionally separate from Connectivity Check:
 
 - `GET /api/traffic/telemetry/status` is lightweight by default and does not scan all VCNs.
 - Add `check_vcns=true` only when you want to verify VCN Flow Log coverage.
-- `POST /api/traffic/telemetry/enable` is blocked unless `MERIDIAN_TRAFFIC_FLOW_LOGS_ENABLEMENT_ALLOWED=true`.
+- `POST /api/traffic/telemetry/enable` is blocked unless `MERIDIAN_TRAFFIC_FLOW_LOGS_ENABLEMENT_ALLOWED=true`. It accepts
+  optional `enablement_minutes`, but the server clamps the lease to `max_enablement_minutes` (60 by default).
 - `POST /api/traffic/telemetry/disable` removes Meridian-created Flow Logs for the selected VCNs.
+- Status and enable responses can include `expires_at`, so the dashboard can show when automatic cleanup will run.
+
+Example enable request:
+
+```json
+{
+  "regions": ["me-abudhabi-1"],
+  "compartment_ids": ["ocid1.compartment.oc1..example"],
+  "vcn_ids": ["ocid1.vcn.oc1..example"],
+  "enablement_minutes": 30
+}
+```
+
+Expired leases are cleaned up by the API process. Cleanup disables the Flow Log and deletes the Meridian-created log
+resource when the OCI Logging client supports deletion. Previously ingested records remain subject to the customer's OCI
+Logging retention policy.
 
 ---
 

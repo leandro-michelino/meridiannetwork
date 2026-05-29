@@ -181,8 +181,10 @@ If a customer is troubleshooting VM-to-VM, subnet-to-subnet, or VM-to-service re
   `MERIDIAN_TRAFFIC_FLOW_LOGS_ENABLEMENT_ALLOWED=true`.
 - Confirm the runtime principal can `read log-content`, and if the dashboard is allowed to create telemetry, confirm it
   also has the optional Flow Log management policy.
-- When the customer has enough evidence, click **Disable telemetry** for that same VCN. This keeps the investigation
-  useful without leaving surprise log-ingestion costs behind.
+- Telemetry enablement is leased for 60 minutes max. The backend clamps longer requests, records the lease, and the VM
+  sweeper disables/deletes expired Meridian-created Flow Logs so log ingestion does not keep running.
+- When the customer has enough evidence, click **Disable telemetry** for that same VCN. Do not wait for the lease if the
+  investigation is done early.
 - Allow a short delay for newly enabled VCN Flow Logs to start producing records.
 
 Useful live checks from your laptop:
@@ -196,6 +198,14 @@ curl 'http://<dashboard-host>/api/traffic/telemetry/status?check_vcns=true'
 
 The lightweight telemetry status call should not scan every VCN. Use `check_vcns=true` only when you really want the
 coverage check.
+
+To inspect the local lease file on the VM:
+
+```bash
+sudo cat /opt/meridian/data/traffic-telemetry-leases.json
+```
+
+An empty list means there are no Meridian-managed telemetry leases waiting for cleanup.
 
 If the deployment badge or version endpoints show an old revision:
 

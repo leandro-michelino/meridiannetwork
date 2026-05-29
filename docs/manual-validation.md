@@ -111,7 +111,10 @@ Expected behavior for the default safe configuration:
 - The coverage call can scan VCN Flow Log state only when explicitly requested.
 - The enable call returns `403 TRAFFIC_ENABLEMENT_DISABLED` unless
   `MERIDIAN_TRAFFIC_FLOW_LOGS_ENABLEMENT_ALLOWED=true`.
+- When telemetry is allowed, enable responses include `expires_at`; values longer than 60 minutes are clamped.
 - The dashboard should let the user disable Meridian-created telemetry after the troubleshooting window.
+- Expired leases are swept from `/opt/meridian/data/traffic-telemetry-leases.json` after Meridian disables/deletes the
+  Flow Log resource.
 
 Optional local API smoke test:
 

@@ -33,3 +33,6 @@ meridian_inventory_snapshot_ttl: 900
 # Traffic telemetry opt-in. Keep false unless the runtime principal has the
 # required OCI Logging and capture-filter permissions.
 meridian_traffic_flow_logs_enablement_allowed: "false"
+meridian_traffic_flow_logs_max_enablement_minutes: 60
+meridian_traffic_flow_logs_expiry_sweep_seconds: 30
+meridian_traffic_flow_logs_lease_path: /opt/meridian/data/traffic-telemetry-leases.json

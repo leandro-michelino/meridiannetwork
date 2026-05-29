@@ -15,6 +15,7 @@ Status key: **Implemented** · *Planned*
 | Exact-resource Connectivity Check with OCI Network Path Analyzer     | **Implemented**     |
 | Cost-gated VCN Flow Logs evidence collection                         | **Implemented**     |
 | Reversible selected-VCN telemetry enable/disable workflow             | **Implemented**     |
+| 60-minute max telemetry lease with automatic cleanup                  | **Implemented**     |
 | Async per-region collection with status panel                        | **Implemented**     |
 | Persistent on-disk snapshot cache                                    | **Implemented**     |
 | OCI runtime preflight checks                                         | **Implemented**     |

@@ -1,9 +1,21 @@
-from fastapi.testclient import TestClient
+from datetime import datetime, timedelta, timezone
+import json
 
-from app.config import Settings
+from fastapi.testclient import TestClient
+import pytest
+
+from app.config import Settings, get_settings
 from app.main import create_app
 from app.models import TrafficEnableRequest, VcnSummary
 from app.services.traffic_telemetry import TrafficTelemetryService
+
+
+@pytest.fixture(autouse=True)
+def isolated_traffic_lease_path(tmp_path, monkeypatch):
+    monkeypatch.setenv("MERIDIAN_TRAFFIC_FLOW_LOGS_LEASE_PATH", str(tmp_path / "leases.json"))
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
 
 
 class OciObject:
@@ -42,6 +54,7 @@ class FakeLoggingManagementClient:
     def __init__(self):
         self.log_groups = []
         self.logs = []
+        self.deleted_logs = []
 
     def list_log_groups(self, **kwargs):
         return self.log_groups
@@ -61,6 +74,7 @@ class FakeLoggingManagementClient:
             display_name=create_log_details.display_name,
             configuration=create_log_details.configuration,
             is_enabled=True,
+            freeform_tags=create_log_details.freeform_tags,
         )
         self.logs.append(log)
         return OciResponse(log)
@@ -69,6 +83,11 @@ class FakeLoggingManagementClient:
         log = next(item for item in self.logs if item.id == log_id)
         log.is_enabled = update_log_details.is_enabled
         return OciResponse(log)
+
+    def delete_log(self, log_group_id, log_id):
+        self.deleted_logs.append((log_group_id, log_id))
+        self.logs = [item for item in self.logs if item.id != log_id]
+        return OciResponse(None)
 
 
 class FakeVirtualNetworkClient:
@@ -267,6 +286,59 @@ def test_enablement_creates_log_group_capture_filter_and_flow_log():
     assert factory.logging_client.log_groups[0].display_name == "meridian-traffic-flow-logs"
     assert factory.network_client.capture_filters[0].display_name == "meridian-traffic-capture-filter"
     assert factory.logging_client.logs[0].configuration.source.resource == "vcn-1"
+    assert result.expires_at is not None
+    assert factory.logging_client.logs[0].freeform_tags["expires_at"] == result.expires_at
+
+
+def test_enablement_duration_is_clamped_to_one_hour():
+    settings = Settings(
+        enable_live_oci=True,
+        traffic_flow_logs_enablement_allowed=True,
+        traffic_flow_logs_max_enablement_minutes=60,
+        tenancy_ocid="tenancy-1",
+        compartment_ids=["compartment-1"],
+        active_regions=["eu-frankfurt-1"],
+    )
+    service = TrafficTelemetryService(
+        settings=settings,
+        client_factory=FakeFactory(),
+        network_inventory=FakeNetworkInventory(),
+    )
+
+    result = service.enable(TrafficEnableRequest(vcn_ids=["vcn-1"], enablement_minutes=240))
+    expires_at = datetime.fromisoformat(result.expires_at.replace("Z", "+00:00"))
+
+    assert result.status == "enabled"
+    assert expires_at <= datetime.now(timezone.utc) + timedelta(minutes=61)
+
+
+def test_expired_enablement_disables_and_deletes_flow_log(monkeypatch, tmp_path):
+    now = datetime(2026, 5, 29, 10, 0, tzinfo=timezone.utc)
+    monkeypatch.setattr(TrafficTelemetryService, "_now", lambda self: now)
+    settings = Settings(
+        enable_live_oci=True,
+        traffic_flow_logs_enablement_allowed=True,
+        traffic_flow_logs_lease_path=str(tmp_path / "leases.json"),
+        tenancy_ocid="tenancy-1",
+        compartment_ids=["compartment-1"],
+        active_regions=["eu-frankfurt-1"],
+    )
+    factory = FakeFactory()
+    service = TrafficTelemetryService(
+        settings=settings,
+        client_factory=factory,
+        network_inventory=FakeNetworkInventory(),
+    )
+    service.enable(TrafficEnableRequest(vcn_ids=["vcn-1"], enablement_minutes=1))
+    assert factory.logging_client.logs
+
+    monkeypatch.setattr(TrafficTelemetryService, "_now", lambda self: now + timedelta(minutes=61))
+    disabled = service.disable_expired_leases()
+
+    assert disabled == 1
+    assert factory.logging_client.logs == []
+    assert factory.logging_client.deleted_logs == [("log-group-1", "log-1")]
+    assert json.loads((tmp_path / "leases.json").read_text()) == []
 
 
 def test_flow_query_maps_search_results_to_records():

@@ -50,6 +50,9 @@ class Settings(BaseSettings):
     traffic_flow_logs_default_lookback_minutes: int = 60
     traffic_flow_logs_max_lookback_hours: int = 24
     traffic_flow_logs_search_limit: int = 100
+    traffic_flow_logs_max_enablement_minutes: int = 60
+    traffic_flow_logs_expiry_sweep_seconds: int = 30
+    traffic_flow_logs_lease_path: str = "/tmp/meridian-traffic-telemetry-leases.json"
 
     @field_validator("active_regions", "compartment_ids", mode="before")
     @classmethod

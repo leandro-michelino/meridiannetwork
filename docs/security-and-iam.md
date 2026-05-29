@@ -103,6 +103,8 @@ those compartments directly.
 - The Traffic Telemetry enablement button is disabled unless `MERIDIAN_TRAFFIC_FLOW_LOGS_ENABLEMENT_ALLOWED=true`.
   If customers want the dashboard to create the required log group, service logs, and capture filters, the runtime
   principal also needs the optional management policy statements from `enable_traffic_flow_log_management_policy`.
+- Telemetry enablement is time-boxed. Meridian stores a local lease for each Meridian-created Flow Log, caps the lease at
+  60 minutes by default, and a VM sweeper disables/deletes expired Flow Logs.
 - Metrics and alarms permissions are reserved for planned modules; they are included in Terraform defaults so the policy
   can be reviewed before those modules are enabled.
 - Config-file authentication requires a valid OCI config profile and API key on the host.
@@ -117,6 +119,7 @@ Keep this mental model: **Connectivity Check is read-only analysis; Traffic Tele
 - Connectivity Check does not enable Flow Logs.
 - The telemetry enable button checks the runtime gate first.
 - The customer must choose the VCN and confirm the cost warning before Flow Logs are created.
+- Flow Log creation has a 60-minute max lease even if the browser asks for more.
 - The disable button is part of the normal workflow, not an emergency-only tool. Use it as soon as the investigation is
   done.
 

@@ -37,6 +37,7 @@
 - Add snapshot directory to Ansible bootstrap directory-creation loop.
 - Document the Connectivity Check first workflow, cost-gated Flow Log telemetry, large-tenancy NPA limit behavior, and
   repeatable live validation commands.
+- Add a 60-minute max telemetry lease with automatic expired Flow Log cleanup.
 
 - Add FastAPI backend foundation.
 - Add health and readiness endpoints.

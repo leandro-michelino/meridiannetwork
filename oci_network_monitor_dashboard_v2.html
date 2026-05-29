@@ -1885,6 +1885,11 @@ tr:last-child td { border-bottom: 0; }
         <div class="traffic-message" id="trafficTelemetryMessage"></div>
         <div class="traffic-toolbar">
           <select id="trafficVcnScope" aria-label="Traffic telemetry VCN"></select>
+          <select id="trafficTelemetryDuration" aria-label="Telemetry duration">
+            <option value="15">15 min</option>
+            <option value="30">30 min</option>
+            <option value="60" selected>60 min max</option>
+          </select>
           <input id="trafficSourceIp" type="search" list="trafficEndpointList" placeholder="Source VM IP" aria-label="Source VM private IP">
           <input id="trafficDestinationIp" type="search" list="trafficEndpointList" placeholder="Destination VM IP" aria-label="Destination VM private IP">
           <input id="trafficPort" type="number" min="1" max="65535" step="1" placeholder="Port" aria-label="Destination port">
@@ -5447,6 +5452,7 @@ function renderTrafficTelemetry(data) {
   byId('trafficTelemetrySummary').innerHTML = [
     collectionStat('Telemetry', statusLabel),
     collectionStat('VCNs enabled', status.checked_vcns ? `${status.enabled_vcns || 0}/${status.checked_vcns}` : 'not checked'),
+    collectionStat('Expires', status.expires_at ? relativeTime(status.expires_at) : 'not leased'),
     collectionStat('Flow records', String(summary.total_flows || 0)),
     collectionStat('Window', `${summary.time_window_minutes || byId('trafficLookback')?.value || 60} min`),
   ].join('');
@@ -5797,7 +5803,7 @@ async function enableTrafficTelemetry() {
     }
     const confirmed = window.confirm(
       `Enable OCI VCN Flow Logs for ${vcn.name || vcn.id}?`
-      + ' This can create billable log ingestion until telemetry is disabled again.'
+      + ` This can create billable log ingestion for up to ${selectedTelemetryMinutes()} minutes unless disabled sooner.`
     );
     if (!confirmed) return;
     text('lastUpdated', 'Enabling traffic telemetry...');
@@ -5805,18 +5811,25 @@ async function enableTrafficTelemetry() {
       regions: [vcn.region].filter(Boolean),
       compartment_ids: [vcn.compartment_id].filter(Boolean),
       vcn_ids: [vcn.id],
+      enablement_minutes: selectedTelemetryMinutes(),
     });
     trafficTelemetryStatus = await safeGetJson(`${API_PATHS.trafficStatus}?check_vcns=true&vcn_id=${encodeURIComponent(vcn.id)}`, trafficTelemetryStatus);
     if (currentDashboardData) {
       currentDashboardData.trafficTelemetryStatus = trafficTelemetryStatus;
       renderDashboard(currentDashboardData, currentDashboardMode);
     }
-    text('lastUpdated', `Traffic telemetry: ${result.enabled || 0} enabled / ${result.skipped || 0} already enabled / ${result.failed || 0} failed`);
+    text('lastUpdated', `Traffic telemetry: ${result.enabled || 0} enabled / ${result.skipped || 0} already enabled / ${result.failed || 0} failed${result.expires_at ? ` / expires ${relativeTime(result.expires_at)}` : ''}`);
   } catch (error) {
     text('lastUpdated', `Traffic telemetry enablement failed: ${error.message}`);
   } finally {
     button.disabled = false;
   }
+}
+
+function selectedTelemetryMinutes() {
+  const selected = Number(byId('trafficTelemetryDuration')?.value || 60);
+  const maxMinutes = Number(trafficTelemetryStatus?.max_enablement_minutes || 60);
+  return Math.max(1, Math.min(selected, maxMinutes));
 }
 
 async function disableTrafficTelemetry() {

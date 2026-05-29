@@ -3,6 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from ipaddress import ip_address
+import json
+from pathlib import Path
+import threading
 from typing import Any
 
 from app.config import Settings
@@ -18,6 +21,9 @@ from app.models import (
 )
 from app.oci_clients import OciClientError, OciClientFactory
 from app.services.network_inventory import NetworkInventoryService
+
+
+_LEASE_LOCK = threading.Lock()
 
 
 @dataclass(frozen=True)
@@ -41,6 +47,7 @@ class TrafficTelemetryService:
                     "message": "Live OCI mode is disabled; VCN Flow Logs cannot be checked from this API process.",
                 }
             )
+        self.disable_expired_leases()
         if not check_vcns:
             return base.model_copy(
                 update={
@@ -63,11 +70,16 @@ class TrafficTelemetryService:
             )
 
         enabled = 0
+        expirations: list[str] = []
         failures: list[str] = []
         for vcn in vcns:
             try:
-                if self._flow_log_for_vcn(vcn, require_enabled=True):
+                flow_log = self._flow_log_for_vcn(vcn, require_enabled=True)
+                if flow_log:
                     enabled += 1
+                    expires_at = self._lease_expiration(vcn_id=vcn.id, log_id=getattr(flow_log, "id", None))
+                    if expires_at:
+                        expirations.append(expires_at)
             except Exception as exc:  # pragma: no cover - exercised by OCI integration
                 failures.append(f"{vcn.name}: {self._error_message(exc)}")
 
@@ -88,6 +100,7 @@ class TrafficTelemetryService:
                 "checked_vcns": len(vcns),
                 "enabled_vcns": enabled,
                 "missing_vcns": missing,
+                "expires_at": min(expirations) if expirations else None,
                 "message": message,
             }
         )
@@ -99,6 +112,8 @@ class TrafficTelemetryService:
             raise PermissionError(
                 "Traffic telemetry enablement is disabled. Set MERIDIAN_TRAFFIC_FLOW_LOGS_ENABLEMENT_ALLOWED=true."
             )
+        self.disable_expired_leases()
+        expires_at = self._expires_at(getattr(request, "enablement_minutes", None))
 
         vcns = self._selected_vcns(
             regions=request.regions,
@@ -108,7 +123,7 @@ class TrafficTelemetryService:
         items: list[TrafficEnablementItem] = []
         for vcn in vcns:
             try:
-                items.append(self._enable_vcn(vcn))
+                items.append(self._enable_vcn(vcn, expires_at=expires_at))
             except Exception as exc:  # pragma: no cover - exercised by OCI integration
                 items.append(
                     TrafficEnablementItem(
@@ -118,6 +133,7 @@ class TrafficTelemetryService:
                         compartment_id=vcn.compartment_id,
                         status="failed",
                         message=self._error_message(exc),
+                        expires_at=expires_at,
                     )
                 )
 
@@ -130,12 +146,14 @@ class TrafficTelemetryService:
             enabled=enabled,
             skipped=skipped,
             failed=failed,
+            expires_at=expires_at if enabled or skipped else None,
             items=items,
         )
 
     def disable(self, request: TrafficEnableRequest) -> TrafficEnablementResponse:
         if not self.settings.enable_live_oci:
             raise PermissionError("Live OCI mode is disabled.")
+        self.disable_expired_leases()
 
         vcns = self._selected_vcns(
             regions=request.regions,
@@ -250,6 +268,27 @@ class TrafficTelemetryService:
             message=message,
         )
 
+    def disable_expired_leases(self) -> int:
+        now = self._now()
+        leases = self._load_leases()
+        disabled = 0
+        pending: list[dict[str, Any]] = []
+        for lease in leases:
+            expires_at = self._parse_time(str(lease.get("expires_at") or ""))
+            if not expires_at or expires_at > now:
+                pending.append(lease)
+                continue
+            try:
+                client = self.client_factory.logging_management_client(region=lease.get("region"))
+                self._cleanup_log_resource(client=client, log_group_id=lease["log_group_id"], log_id=lease["log_id"])
+                disabled += 1
+            except Exception as exc:  # pragma: no cover - exercised by OCI integration
+                lease["last_error"] = self._error_message(exc)
+                pending.append(lease)
+        if len(pending) != len(leases):
+            self._save_leases(pending)
+        return disabled
+
     def _base_status(self) -> TrafficTelemetryStatus:
         return TrafficTelemetryStatus(
             status="unknown",
@@ -257,6 +296,7 @@ class TrafficTelemetryService:
             enablement_allowed=self.settings.traffic_flow_logs_enablement_allowed,
             log_group_name=self.settings.traffic_flow_logs_log_group_name,
             capture_filter_name=self.settings.traffic_flow_logs_capture_filter_name,
+            max_enablement_minutes=self.settings.traffic_flow_logs_max_enablement_minutes,
             message="Traffic telemetry status has not been checked.",
         )
 
@@ -272,35 +312,40 @@ class TrafficTelemetryService:
             vcns = [vcn for vcn in vcns if vcn.id in selected_ids]
         return vcns
 
-    def _enable_vcn(self, vcn: VcnSummary) -> TrafficEnablementItem:
+    def _enable_vcn(self, vcn: VcnSummary, expires_at: str) -> TrafficEnablementItem:
         existing_log = self._flow_log_for_vcn(vcn, require_enabled=True)
         if existing_log is not None:
+            log_group_id = getattr(existing_log, "_meridian_log_group_id", None) or getattr(existing_log, "log_group_id", None)
+            self._record_lease(vcn=vcn, log_group_id=log_group_id, log_id=getattr(existing_log, "id", None), expires_at=expires_at)
             return TrafficEnablementItem(
                 vcn_id=vcn.id,
                 vcn_name=vcn.name,
                 region=vcn.region,
                 compartment_id=vcn.compartment_id,
                 status="already_enabled",
-                message="A Meridian VCN Flow Log already exists for this VCN.",
+                message=f"A Meridian VCN Flow Log already exists for this VCN and is leased until {expires_at}.",
                 log_id=getattr(existing_log, "id", None),
-                log_group_id=getattr(existing_log, "log_group_id", None),
+                log_group_id=log_group_id,
+                expires_at=expires_at,
             )
 
         log_client = self.client_factory.logging_management_client(region=vcn.region)
         network_client = self.client_factory.virtual_network_client(region=vcn.region)
         log_group = self._ensure_log_group(log_client, vcn.compartment_id)
         capture_filter = self._ensure_capture_filter(network_client, vcn.compartment_id)
-        log = self._create_flow_log(log_client, log_group, vcn, capture_filter)
+        log = self._create_flow_log(log_client, log_group, vcn, capture_filter, expires_at=expires_at)
+        self._record_lease(vcn=vcn, log_group_id=getattr(log_group, "id", None), log_id=getattr(log, "id", None), expires_at=expires_at)
         return TrafficEnablementItem(
             vcn_id=vcn.id,
             vcn_name=vcn.name,
             region=vcn.region,
             compartment_id=vcn.compartment_id,
             status="enabled",
-            message="VCN Flow Logs were enabled for this VCN.",
+            message=f"VCN Flow Logs were enabled for this VCN until {expires_at}.",
             log_group_id=getattr(log_group, "id", None),
             log_id=getattr(log, "id", None),
             capture_filter_id=getattr(capture_filter, "id", None),
+            expires_at=expires_at,
         )
 
     def _disable_vcn(self, vcn: VcnSummary) -> TrafficEnablementItem:
@@ -322,6 +367,7 @@ class TrafficTelemetryService:
             log_id=existing_log.id,
             update_log_details=details,
         )
+        self._remove_lease(log_id=getattr(existing_log, "id", None), vcn_id=vcn.id)
         return TrafficEnablementItem(
             vcn_id=vcn.id,
             vcn_name=vcn.name,
@@ -375,7 +421,7 @@ class TrafficTelemetryService:
             sampling_rate=1,
         )
 
-    def _create_flow_log(self, client: Any, log_group: Any, vcn: VcnSummary, capture_filter: Any) -> Any:
+    def _create_flow_log(self, client: Any, log_group: Any, vcn: VcnSummary, capture_filter: Any, expires_at: str) -> Any:
         source = self.client_factory.logging_model(
             "OciService",
             source_type="OCISERVICE",
@@ -395,7 +441,12 @@ class TrafficTelemetryService:
             log_type="SERVICE",
             is_enabled=True,
             configuration=configuration,
-            freeform_tags={"project": "meridian-network", "managed": "meridian", "vcn_id": vcn.id},
+            freeform_tags={
+                "project": "meridian-network",
+                "managed": "meridian",
+                "vcn_id": vcn.id,
+                **({"expires_at": expires_at} if expires_at else {}),
+            },
         )
         return client.create_log(log_group_id=log_group.id, create_log_details=details).data
 
@@ -590,6 +641,92 @@ class TrafficTelemetryService:
     def _bounded_limit(self, value: int | None) -> int:
         default = self.settings.traffic_flow_logs_search_limit
         return max(1, min(int(value or default), 500))
+
+    def _expires_at(self, requested_minutes: int | None) -> str:
+        max_minutes = max(1, int(self.settings.traffic_flow_logs_max_enablement_minutes))
+        minutes = max(1, min(int(requested_minutes or max_minutes), max_minutes))
+        return (self._now() + timedelta(minutes=minutes)).isoformat().replace("+00:00", "Z")
+
+    def _lease_path(self) -> Path:
+        return Path(self.settings.traffic_flow_logs_lease_path)
+
+    def _load_leases(self) -> list[dict[str, Any]]:
+        path = self._lease_path()
+        if not path.exists():
+            return []
+        with _LEASE_LOCK:
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                return []
+        return data if isinstance(data, list) else []
+
+    def _save_leases(self, leases: list[dict[str, Any]]) -> None:
+        path = self._lease_path()
+        with _LEASE_LOCK:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(json.dumps(leases, indent=2, sort_keys=True), encoding="utf-8")
+
+    def _record_lease(self, vcn: VcnSummary, log_group_id: str | None, log_id: str | None, expires_at: str) -> None:
+        if not log_group_id or not log_id:
+            return
+        leases = [
+            lease
+            for lease in self._load_leases()
+            if lease.get("log_id") != log_id and lease.get("vcn_id") != vcn.id
+        ]
+        leases.append(
+            {
+                "vcn_id": vcn.id,
+                "vcn_name": vcn.name,
+                "region": vcn.region,
+                "compartment_id": vcn.compartment_id,
+                "log_group_id": log_group_id,
+                "log_id": log_id,
+                "expires_at": expires_at,
+                "created_at": self._now().isoformat().replace("+00:00", "Z"),
+            }
+        )
+        self._save_leases(leases)
+
+    def _remove_lease(self, log_id: str | None, vcn_id: str | None) -> None:
+        leases = [
+            lease
+            for lease in self._load_leases()
+            if not ((log_id and lease.get("log_id") == log_id) or (vcn_id and lease.get("vcn_id") == vcn_id))
+        ]
+        self._save_leases(leases)
+
+    def _lease_expiration(self, vcn_id: str | None, log_id: str | None) -> str | None:
+        expirations = [
+            str(lease.get("expires_at"))
+            for lease in self._load_leases()
+            if (vcn_id and lease.get("vcn_id") == vcn_id) or (log_id and lease.get("log_id") == log_id)
+        ]
+        return min(expirations) if expirations else None
+
+    def _cleanup_log_resource(self, client: Any, log_group_id: str, log_id: str) -> None:
+        details = self.client_factory.logging_model("UpdateLogDetails", is_enabled=False)
+        client.update_log(
+            log_group_id=log_group_id,
+            log_id=log_id,
+            update_log_details=details,
+        )
+        delete_log = getattr(client, "delete_log", None)
+        if delete_log is not None:
+            delete_log(log_group_id=log_group_id, log_id=log_id)
+
+    def _now(self) -> datetime:
+        return datetime.now(timezone.utc)
+
+    def _parse_time(self, value: str) -> datetime | None:
+        if not value:
+            return None
+        try:
+            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+        return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
 
     def _validated_ip(self, value: str | None) -> str | None:
         if not value:
