@@ -5469,7 +5469,7 @@ function renderConnectivityCheck(data) {
     : '';
   renderConnectivityHopTable(result.hops || []);
   const checkButton = byId('checkConnectivityBtn');
-  checkButton.disabled = isCollectionBusy() || (!useDemoData && currentDashboardMode !== 'api');
+  checkButton.disabled = !useDemoData && currentDashboardMode !== 'api';
   checkButton.textContent = result.status === 'checking' ? 'Checking...' : 'Check connectivity';
 }
 
