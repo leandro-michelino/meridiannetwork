@@ -14,6 +14,7 @@ Status key: **Implemented** · *Planned*
 | Security posture panel (risky ingress/egress rule detection)         | **Implemented**     |
 | Exact-resource Connectivity Check with OCI Network Path Analyzer     | **Implemented**     |
 | Cost-gated VCN Flow Logs evidence collection                         | **Implemented**     |
+| Reversible selected-VCN telemetry enable/disable workflow             | **Implemented**     |
 | Async per-region collection with status panel                        | **Implemented**     |
 | Persistent on-disk snapshot cache                                    | **Implemented**     |
 | OCI runtime preflight checks                                         | **Implemented**     |
@@ -52,6 +53,7 @@ Status key: **Implemented** · *Planned*
 | Feature                            | Status    |
 | ---------------------------------- | --------- |
 | DRG inventory (listed under gateways) | **Implemented** |
+| Exact source/destination path analysis | **Implemented** |
 | DRG route inspector                | *Planned* |
 | OKE network health                 | *Planned* |
 | Cost-aware egress                  | *Planned* |

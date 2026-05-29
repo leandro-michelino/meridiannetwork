@@ -48,6 +48,9 @@ OCI Compute VM inside the tenant it monitors.
 |             GET /api/route-issues, /security-lists, /topology         |
 |             GET /api/network-security-groups                          |
 | - security: GET /api/security/posture                                 |
+| - connectivity: POST /api/connectivity/check                          |
+| - traffic: GET /api/traffic/telemetry/status, /api/traffic/flows      |
+|            POST /api/traffic/telemetry/enable|disable                 |
 |                                                                       |
 | Collection pipeline                                                   |
 | - ThreadPoolExecutor: 4 workers, one collection job per region         |
@@ -63,6 +66,8 @@ OCI Compute VM inside the tenant it monitors.
 | - Identity: compartment discovery                                     |
 | - Core VCN: VCNs, subnets, gateways, route tables, SLs, NSGs          |
 | - Resource Search: optional OCID-based scope narrowing                |
+| - Network Monitoring: OCI Network Path Analyzer checks                |
+| - Logging: optional VCN Flow Log evidence after explicit enablement   |
 +-----------------------------------------------------------------------+
 ```
 
@@ -187,6 +192,8 @@ Exports and coverage panels use the selected region scope by default
 - OCI resource mutation is limited to the explicitly gated Traffic Telemetry enablement flow, which can create VCN Flow
   Log resources only when `MERIDIAN_TRAFFIC_FLOW_LOGS_ENABLEMENT_ALLOWED=true` and the runtime principal has matching
   permissions.
+- Connectivity Check stays read-only from Meridian's side. It asks OCI Network Path Analyzer for an exact path analysis
+  and returns `cost_impact: no_flow_logs_enabled`.
 
 ## Planned Extensions
 

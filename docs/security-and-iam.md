@@ -96,6 +96,9 @@ those compartments directly.
 - Connectivity Check uses OCI Network Path Analyzer through the network monitoring API. It does not create Flow Logs or
   other persistent OCI telemetry resources. Network Path Analyzer also needs the service permissions shown above so the
   OCI service can read the network configuration snapshot for analysis.
+- In very large tenancies, OCI Network Path Analyzer can fail before analyzing the route because of its compartment-count
+  service limit. Meridian surfaces that as a clean "request a service limit increase" message instead of dumping the raw
+  OCI error on the customer.
 - Traffic Telemetry reads VCN Flow Logs through OCI Logging Search and needs `read log-content`.
 - The Traffic Telemetry enablement button is disabled unless `MERIDIAN_TRAFFIC_FLOW_LOGS_ENABLEMENT_ALLOWED=true`.
   If customers want the dashboard to create the required log group, service logs, and capture filters, the runtime
@@ -105,6 +108,17 @@ those compartments directly.
 - Config-file authentication requires a valid OCI config profile and API key on the host.
 - Instance principal authentication requires the Compute instance to match a dynamic group and for that dynamic group to
   have the policy statements above.
+
+## Cost Guardrails
+
+Keep this mental model: **Connectivity Check is read-only analysis; Traffic Telemetry is opt-in evidence collection.**
+
+- Page load does not call the Flow Log coverage scan.
+- Connectivity Check does not enable Flow Logs.
+- The telemetry enable button checks the runtime gate first.
+- The customer must choose the VCN and confirm the cost warning before Flow Logs are created.
+- The disable button is part of the normal workflow, not an emergency-only tool. Use it as soon as the investigation is
+  done.
 
 ## Recommended Production Adjustments
 

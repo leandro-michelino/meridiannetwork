@@ -6,7 +6,7 @@ Date: 2026-05-25
 
 Meridian is operational as a self-hosted OCI Network Monitor with Terraform provisioning, Ansible VM configuration,
 a FastAPI backend, a buildable dashboard artifact, async regional collection, topology, route analysis, security posture,
-deployment version metadata, and browser E2E coverage.
+exact-resource connectivity checks, cost-gated traffic telemetry, deployment version metadata, and browser E2E coverage.
 
 ## Implemented
 
@@ -28,6 +28,8 @@ deployment version metadata, and browser E2E coverage.
 - Topology graph derived from live inventory relationships.
 - Security posture checks across Security Lists and NSGs.
 - Security action history and workflow filtering support.
+- OCI Network Path Analyzer integration for exact source/destination connectivity checks.
+- Cost-gated VCN Flow Log telemetry status, enable, disable, and recent flow search APIs.
 - Async per-region collection pipeline with `ThreadPoolExecutor`.
 - In-memory snapshot cache with configurable TTL.
 - Persistent on-disk snapshot cache that survives restarts.
@@ -47,6 +49,8 @@ deployment version metadata, and browser E2E coverage.
 - Interactive topology graph with overview, layer, VCN focus, and quick filters.
 - Security posture panel with workflow filter, risky rule listings, action history, and OCI Console links.
 - Route issue analysis panel.
+- Connectivity Check panel with source/destination inputs, direction, NPA status, findings, next actions, and hop table.
+- Traffic Telemetry controls that are selected-VCN, confirm-before-enable, and reversible after troubleshooting.
 - Inventory tables for VCNs, subnets, gateways, route tables, security lists, and NSGs.
 - Region selector and compartment filter.
 - OCI preflight access validation in the topbar.
@@ -68,7 +72,6 @@ See [docs/module-map.md](docs/module-map.md) for the full planned feature list.
 
 Key planned areas:
 
-- VCN Flow Logs viewer.
 - OCI Audit change feed.
 - Metrics: gateway metrics, VNIC top consumers, inter-region latency.
 - Advanced modules: DRG route inspector, OKE network health, load balancer health, private DNS, FastConnect/VPN.

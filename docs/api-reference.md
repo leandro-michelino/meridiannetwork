@@ -151,8 +151,48 @@ also accept `vcn_id`.
 `subnet`), protocol (`TCP`, `UDP`, or `ICMP`), optional destination/source ports, region, compartment, and
 `bidirectional`. It does not enable VCN Flow Logs.
 
+Example request:
+
+```json
+{
+  "source": {
+    "type": "ip_address",
+    "value": "10.42.10.142"
+  },
+  "destination": {
+    "type": "ip_address",
+    "value": "10.42.20.44"
+  },
+  "protocol": "TCP",
+  "destination_port": 443,
+  "region": "me-abudhabi-1",
+  "compartment_id": "ocid1.compartment.oc1..example",
+  "bidirectional": true
+}
+```
+
+Useful response fields:
+
+- `status`: `reachable`, `blocked`, `running`, `failed`, `disabled`, `missing_scope`, or `unknown`.
+- `reachable`: boolean when OCI returns a final path answer; `null` while still running or when disabled.
+- `cost_impact`: currently `no_flow_logs_enabled` for Connectivity Check responses.
+- `findings`: the human-readable blockers or service-limit notes.
+- `next_actions`: the short "try this next" list shown in the dashboard.
+- `hops`: route/security actions from OCI Network Path Analyzer when a path result is available.
+
+If `status` is `running`, the API has returned before the OCI work request finished. Run the same check again after a
+moment. If `status` is `failed` and the message mentions the Network Path Analyzer compartment limit, the app has already
+cleaned up the raw OCI error into a customer-friendly explanation.
+
 `GET /api/traffic/flows` accepts `regions`, `compartment_ids`, `source_ip`, `destination_ip`, `port`, `action`,
 `lookback_minutes`, and `limit`.
+
+Traffic telemetry is intentionally separate from Connectivity Check:
+
+- `GET /api/traffic/telemetry/status` is lightweight by default and does not scan all VCNs.
+- Add `check_vcns=true` only when you want to verify VCN Flow Log coverage.
+- `POST /api/traffic/telemetry/enable` is blocked unless `MERIDIAN_TRAFFIC_FLOW_LOGS_ENABLEMENT_ALLOWED=true`.
+- `POST /api/traffic/telemetry/disable` removes Meridian-created Flow Logs for the selected VCNs.
 
 ---
 

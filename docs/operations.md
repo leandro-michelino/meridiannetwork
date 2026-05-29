@@ -161,18 +161,41 @@ If live inventory is empty or the preflight fails:
 - Confirm the instance principal dynamic group matches the Meridian Compute instance.
 - Confirm the dynamic group has `inspect compartments` and `read virtual-network-family` policies.
 
-If a customer is troubleshooting VM-to-VM or subnet-to-subnet reachability:
+If a customer is troubleshooting VM-to-VM, subnet-to-subnet, or VM-to-service reachability:
 
-- Use Connectivity Check first. It runs OCI Network Path Analyzer for the exact source, destination, protocol, and port
-  without enabling VCN Flow Logs.
-- Review the forward/return status, likely blockers, next actions, and hop table for denied security actions or missing
-  route targets.
+- Start with **Connectivity Check**. Put in the exact source, destination, protocol, port, and direction, then click
+  **Check connectivity**.
+- This runs OCI Network Path Analyzer. It does not enable VCN Flow Logs, does not collect packets, and the API response
+  should say `cost_impact: no_flow_logs_enabled`.
+- If the result is `blocked`, read the first finding and the hop table before changing anything. Most real issues are
+  still the classics: source egress blocked, destination ingress blocked, route table missing a target, DRG path missing,
+  or return traffic going a different way.
+- If the result is `running`, the UI is protecting the browser and proxy from a long OCI work request. Wait a moment and
+  run the check again, preferably with the most specific region and compartment you know.
+- If the result mentions "more compartments than the current OCI Network Path Analyzer service limit", the app is not
+  inventing that. Very large tenancies can hit OCI Network Path Analyzer's compartment-count limit. Try the exact target
+  region if you were using a broad scope, but expect to request an NPA service-limit increase if the tenancy itself is
+  over the limit.
 - Enable VCN Flow Logs only if packet-level evidence is still needed after path analysis.
-- Confirm the runtime principal can `read log-content`.
-- Use the dashboard Traffic Telemetry button only after setting `MERIDIAN_TRAFFIC_FLOW_LOGS_ENABLEMENT_ALLOWED=true`.
-- Confirm VCN Flow Logs are enabled for the selected VCN before querying flow records.
-- Confirm the source and destination IPs are private IPs visible from VNIC inventory.
+- Use **Enable telemetry** only for the selected VCN and only after setting
+  `MERIDIAN_TRAFFIC_FLOW_LOGS_ENABLEMENT_ALLOWED=true`.
+- Confirm the runtime principal can `read log-content`, and if the dashboard is allowed to create telemetry, confirm it
+  also has the optional Flow Log management policy.
+- When the customer has enough evidence, click **Disable telemetry** for that same VCN. This keeps the investigation
+  useful without leaving surprise log-ingestion costs behind.
 - Allow a short delay for newly enabled VCN Flow Logs to start producing records.
+
+Useful live checks from your laptop:
+
+```bash
+curl http://<dashboard-host>/api/regions/active
+curl http://<dashboard-host>/api/compartments | jq 'length'
+curl http://<dashboard-host>/api/traffic/telemetry/status
+curl 'http://<dashboard-host>/api/traffic/telemetry/status?check_vcns=true'
+```
+
+The lightweight telemetry status call should not scan every VCN. Use `check_vcns=true` only when you really want the
+coverage check.
 
 If the deployment badge or version endpoints show an old revision:
 

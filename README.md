@@ -30,6 +30,25 @@ It is intentionally small enough to understand and adapt, but structured enough 
 - **Operational validation**: use preflight checks to confirm instance principal access, tenancy configuration, compartment scope, and required OCI read permissions.
 - **Deployment traceability**: confirm the deployed Git revision through `/api/version` and `/version.json`.
 
+## Connectivity Checks, Without Surprise Bills
+
+When someone says "VM A cannot reach VM B", start with **Connectivity Check** in the dashboard.
+Enter the exact source, destination, protocol, port, and direction, then click **Check connectivity**.
+
+That button uses OCI Network Path Analyzer. It reads network configuration and asks OCI why the path works or fails.
+It does **not** enable VCN Flow Logs, does **not** start packet collection, and reports `cost_impact: no_flow_logs_enabled`.
+
+If the path is blocked, Meridian points you at the usual suspects first:
+
+- Security List or NSG ingress/egress rules.
+- Missing route rules, blackhole routes, DRG attachment gaps, or asymmetric return paths.
+- OCI Network Path Analyzer service-limit issues in very large tenancies.
+
+Use **Enable telemetry** only when path analysis is not enough and you need packet-level evidence.
+That flow is intentionally scoped to the VCN the customer picks, asks for confirmation, and can be turned off again with
+**Disable telemetry** after the investigation. By default, the dashboard cannot create Flow Logs unless the operator
+explicitly sets `MERIDIAN_TRAFFIC_FLOW_LOGS_ENABLEMENT_ALLOWED=true`.
+
 ## Interested in Implementing It?
 
 If you are interested in implementing, adapting, or discussing Meridian for an OCI environment, contact:
@@ -49,8 +68,8 @@ If you are interested in implementing, adapting, or discussing Meridian for an O
 
 - Terraform for OCI workload compartment, VCN, public subnet, internet gateway, optional NAT gateway, route table, security lists, optional Object Storage archive, and Compute host.
 - Optional OCI dynamic group and IAM policy for instance principal access.
-- FastAPI backend foundation with health, readiness, preflight, regions, and compartments endpoints.
-- Buildable frontend artifact for the API-aware dashboard with fallback demo data, live refresh, selected-region coverage, saved region views, draggable topology, quick topology filters, subnet access labels, NSG context, resource IDs, expanders, and pinned home-region navigation.
+- FastAPI backend foundation with health, readiness, preflight, regions, compartments, connectivity, and traffic telemetry endpoints.
+- Buildable frontend artifact for the API-aware dashboard with fallback demo data, live refresh, selected-region coverage, saved region views, draggable topology, quick topology filters, subnet access labels, NSG context, resource IDs, expanders, pinned home-region navigation, and exact-resource connectivity checks.
 - Dashboard topbar access validation button for runtime IAM, region, compartment, and network read validation.
 - Ansible bootstrap to configure Oracle Linux with Nginx, Podman-ready packages, firewall rules, cache-safe dashboard publishing, deployment version metadata, and the backend API service.
 - Inventory generation from Terraform outputs.
@@ -185,6 +204,11 @@ Local endpoints:
 - `GET /api/network-security-groups`
 - `GET /api/topology`
 - `GET /api/security/posture`
+- `POST /api/connectivity/check`
+- `GET /api/traffic/telemetry/status`
+- `POST /api/traffic/telemetry/enable`
+- `POST /api/traffic/telemetry/disable`
+- `GET /api/traffic/flows`
 - `GET /docs`
 
 ## OCI Authentication
@@ -220,6 +244,16 @@ runtime authentication, compartment discovery, configured regions, monitored com
 permissions on demand.
 
 Review [docs/security-and-iam.md](docs/security-and-iam.md) before enabling IAM creation in a shared tenancy.
+
+## Cost Safety Defaults
+
+Meridian is deliberately boring about costs:
+
+- The dashboard does not check or enable Flow Logs on page load.
+- Connectivity Check uses OCI Network Path Analyzer first.
+- Flow Log enablement is blocked unless `MERIDIAN_TRAFFIC_FLOW_LOGS_ENABLEMENT_ALLOWED=true`.
+- The telemetry buttons work on selected VCNs, not every VCN in the tenancy.
+- Customers can disable Meridian-created Flow Logs from the same panel when the troubleshooting window is done.
 
 ## Documentation
 

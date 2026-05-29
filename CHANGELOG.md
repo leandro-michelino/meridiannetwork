@@ -35,6 +35,8 @@
 - Fix Ansible group vars: correct home region, add all new variable defaults.
 - Harden systemd service unit: add restart limits, journal logging, and syslog identifier.
 - Add snapshot directory to Ansible bootstrap directory-creation loop.
+- Document the Connectivity Check first workflow, cost-gated Flow Log telemetry, large-tenancy NPA limit behavior, and
+  repeatable live validation commands.
 
 - Add FastAPI backend foundation.
 - Add health and readiness endpoints.
