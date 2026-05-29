@@ -76,9 +76,10 @@ terraform -chdir=terraform validate
 - `security_action_archive_enabled = false`
 - `enable_traffic_flow_log_management_policy = false`
 
-When `create_identity_policies = true`, the default runtime policy grants read-oriented inventory and logging access so
-Meridian can list VCNs, subnets, gateways, route tables, security lists, DRGs, network security groups, and existing VCN
-Flow Log records during preflight and live inventory.
+When `create_identity_policies = true`, the default runtime policy grants read-oriented inventory, logging access, and
+Network Path Analyzer permissions so Meridian can list VCNs, subnets, gateways, route tables, security lists, DRGs,
+network security groups, run exact connectivity checks, and read existing VCN Flow Log records during preflight and live
+inventory.
 
 Set `enable_traffic_flow_log_management_policy = true` only when the runtime principal should be allowed to create the
 log groups, log content, and capture filters needed by the dashboard Traffic Telemetry enablement button.

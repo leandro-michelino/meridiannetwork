@@ -12,13 +12,15 @@ Status key: **Implemented** · *Planned*
 | Security List and NSG inventory with rule summaries                  | **Implemented**     |
 | Interactive topology graph (Overview / Layers / VCN focus)           | **Implemented**     |
 | Security posture panel (risky ingress/egress rule detection)         | **Implemented**     |
+| Exact-resource Connectivity Check with OCI Network Path Analyzer     | **Implemented**     |
+| Cost-gated VCN Flow Logs evidence collection                         | **Implemented**     |
 | Async per-region collection with status panel                        | **Implemented**     |
 | Persistent on-disk snapshot cache                                    | **Implemented**     |
 | OCI runtime preflight checks                                         | **Implemented**     |
 | Deployment version metadata                                          | **Implemented**     |
 | CSV exports for inventory, completeness, and security posture        | **Implemented**     |
 | Optional Object Storage archive for security action history          | **Implemented**     |
-| VCN Flow Logs viewer                                                 | *Planned*           |
+| VCN Flow Logs viewer                                                 | **Implemented**     |
 | Inter-region latency                                                 | *Planned*           |
 | VNIC and Compute top consumers                                       | *Planned*           |
 | DR readiness panel                                                   | *Planned*           |
@@ -100,6 +102,11 @@ GET /api/topology
 GET /api/security/posture
 GET /api/security/finding-actions
 POST /api/security/finding-actions
+POST /api/connectivity/check
+GET /api/traffic/telemetry/status
+POST /api/traffic/telemetry/enable
+POST /api/traffic/telemetry/disable
+GET /api/traffic/flows
 GET /api/export/security-posture.csv
 GET /api/export/inventory.csv
 GET /api/export/completeness.csv

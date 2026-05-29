@@ -69,6 +69,13 @@ allow dynamic-group <meridian-dynamic-group> to read metrics in tenancy
 allow dynamic-group <meridian-dynamic-group> to read logging-family in tenancy
 allow dynamic-group <meridian-dynamic-group> to read log-content in tenancy
 allow dynamic-group <meridian-dynamic-group> to read alarms in tenancy
+allow dynamic-group <meridian-dynamic-group> to manage vn-path-analyzer-test in tenancy
+allow any-user to inspect compartments in tenancy where all { request.principal.type = 'vnpa-service' }
+allow any-user to read instances in tenancy where all { request.principal.type = 'vnpa-service' }
+allow any-user to read virtual-network-family in tenancy where all { request.principal.type = 'vnpa-service' }
+allow any-user to read load-balancers in tenancy where all { request.principal.type = 'vnpa-service' }
+allow any-user to read network-security-group in tenancy where all { request.principal.type = 'vnpa-service' }
+allow any-user to read zpr-family in tenancy where all { request.principal.type = 'vnpa-service' }
 ```
 
 Compartment-scoped example:
@@ -86,6 +93,9 @@ those compartments directly.
 
 - Network inventory requires OCI Networking APIs and `read virtual-network-family`.
 - Compartment names require Identity compartment discovery through `inspect compartments`.
+- Connectivity Check uses OCI Network Path Analyzer through the network monitoring API. It does not create Flow Logs or
+  other persistent OCI telemetry resources. Network Path Analyzer also needs the service permissions shown above so the
+  OCI service can read the network configuration snapshot for analysis.
 - Traffic Telemetry reads VCN Flow Logs through OCI Logging Search and needs `read log-content`.
 - The Traffic Telemetry enablement button is disabled unless `MERIDIAN_TRAFFIC_FLOW_LOGS_ENABLEMENT_ALLOWED=true`.
   If customers want the dashboard to create the required log group, service logs, and capture filters, the runtime

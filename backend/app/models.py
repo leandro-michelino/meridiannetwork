@@ -339,6 +339,47 @@ class TrafficFlowSummary(BaseModel):
     archive_error: str | None = None
 
 
+class ConnectivityEndpoint(BaseModel):
+    type: str = Field(default="ip_address", pattern="^(ip_address|compute_instance|vnic|subnet)$")
+    value: str
+    address: str | None = None
+
+
+class ConnectivityCheckRequest(BaseModel):
+    source: ConnectivityEndpoint
+    destination: ConnectivityEndpoint
+    protocol: str = Field(default="TCP", pattern="^(TCP|UDP|ICMP|tcp|udp|icmp|6|17|1)$")
+    destination_port: int | None = Field(default=None, ge=1, le=65535)
+    source_port: int | None = Field(default=None, ge=1, le=65535)
+    region: str | None = None
+    compartment_id: str | None = None
+    bidirectional: bool = True
+
+
+class ConnectivityHop(BaseModel):
+    index: int
+    entity_id: str | None = None
+    node_type: str | None = None
+    route_action: str | None = None
+    egress_action: str | None = None
+    ingress_action: str | None = None
+    description: str | None = None
+
+
+class ConnectivityCheckResponse(BaseModel):
+    status: str
+    reachable: bool | None = None
+    provider: str = "oci_network_path_analyzer"
+    cost_impact: str = "no_flow_logs_enabled"
+    work_request_id: str | None = None
+    forward_status: str | None = None
+    return_status: str | None = None
+    message: str
+    findings: list[str] = Field(default_factory=list)
+    next_actions: list[str] = Field(default_factory=list)
+    hops: list[ConnectivityHop] = Field(default_factory=list)
+
+
 class IdentityContext(BaseModel):
     enabled: bool = False
     source: str = "manual"

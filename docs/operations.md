@@ -161,11 +161,16 @@ If live inventory is empty or the preflight fails:
 - Confirm the instance principal dynamic group matches the Meridian Compute instance.
 - Confirm the dynamic group has `inspect compartments` and `read virtual-network-family` policies.
 
-If Traffic Telemetry does not show VM-to-VM flow records:
+If a customer is troubleshooting VM-to-VM or subnet-to-subnet reachability:
 
-- Confirm VCN Flow Logs are enabled for the selected VCNs.
+- Use Connectivity Check first. It runs OCI Network Path Analyzer for the exact source, destination, protocol, and port
+  without enabling VCN Flow Logs.
+- Review the forward/return status, likely blockers, next actions, and hop table for denied security actions or missing
+  route targets.
+- Enable VCN Flow Logs only if packet-level evidence is still needed after path analysis.
 - Confirm the runtime principal can `read log-content`.
 - Use the dashboard Traffic Telemetry button only after setting `MERIDIAN_TRAFFIC_FLOW_LOGS_ENABLEMENT_ALLOWED=true`.
+- Confirm VCN Flow Logs are enabled for the selected VCN before querying flow records.
 - Confirm the source and destination IPs are private IPs visible from VNIC inventory.
 - Allow a short delay for newly enabled VCN Flow Logs to start producing records.
 

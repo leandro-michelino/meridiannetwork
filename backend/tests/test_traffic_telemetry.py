@@ -2,7 +2,7 @@ from fastapi.testclient import TestClient
 
 from app.config import Settings
 from app.main import create_app
-from app.models import VcnSummary
+from app.models import TrafficEnableRequest, VcnSummary
 from app.services.traffic_telemetry import TrafficTelemetryService
 
 
@@ -222,6 +222,27 @@ def test_traffic_status_can_check_vcn_coverage_when_requested():
     assert result.status == "enabled"
     assert result.checked_vcns == 1
     assert result.enabled_vcns == 1
+
+
+def test_traffic_disable_is_allowed_when_enablement_gate_is_closed():
+    settings = Settings(
+        enable_live_oci=True,
+        traffic_flow_logs_enablement_allowed=False,
+        tenancy_ocid="tenancy-1",
+        compartment_ids=["compartment-1"],
+        active_regions=["eu-frankfurt-1"],
+    )
+    service = TrafficTelemetryService(
+        settings=settings,
+        client_factory=FakeFactory(),
+        network_inventory=FakeNetworkInventory(),
+    )
+
+    result = service.disable(TrafficEnableRequest(vcn_ids=["vcn-1"]))
+
+    assert result.status == "disabled"
+    assert result.skipped == 1
+    assert result.failed == 0
 
 
 def test_enablement_creates_log_group_capture_filter_and_flow_log():

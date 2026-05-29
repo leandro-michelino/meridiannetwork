@@ -141,10 +141,15 @@ also accept `vcn_id`.
 
 | Method | Path                            | Status                                                              |
 | ------ | ------------------------------- | ------------------------------------------------------------------- |
-| GET    | `/api/traffic/telemetry/status` | Implemented — checks VCN Flow Log coverage for the selected scope   |
+| POST   | `/api/connectivity/check`       | Implemented — exact source/destination check through OCI Network Path Analyzer |
+| GET    | `/api/traffic/telemetry/status` | Implemented — lightweight by default; VCN Flow Log coverage only with `check_vcns=true` |
 | POST   | `/api/traffic/telemetry/enable` | Implemented — opt-in VCN Flow Log setup, gated by runtime config    |
 | POST   | `/api/traffic/telemetry/disable` | Implemented — disables Meridian-created VCN Flow Logs for selected VCNs |
 | GET    | `/api/traffic/flows`            | Implemented — searches recent VCN Flow Log records with VM/IP filters |
+
+`POST /api/connectivity/check` accepts source and destination endpoints (`ip_address`, `compute_instance`, `vnic`, or
+`subnet`), protocol (`TCP`, `UDP`, or `ICMP`), optional destination/source ports, region, compartment, and
+`bidirectional`. It does not enable VCN Flow Logs.
 
 `GET /api/traffic/flows` accepts `regions`, `compartment_ids`, `source_ip`, `destination_ip`, `port`, `action`,
 `lookback_minutes`, and `limit`.

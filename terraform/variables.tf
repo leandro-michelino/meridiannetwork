@@ -155,7 +155,14 @@ variable "identity_policy_statements" {
     "allow dynamic-group {dynamic_group_name} to read metrics in tenancy",
     "allow dynamic-group {dynamic_group_name} to read logging-family in tenancy",
     "allow dynamic-group {dynamic_group_name} to read log-content in tenancy",
-    "allow dynamic-group {dynamic_group_name} to read alarms in tenancy"
+    "allow dynamic-group {dynamic_group_name} to read alarms in tenancy",
+    "allow dynamic-group {dynamic_group_name} to manage vn-path-analyzer-test in tenancy",
+    "allow any-user to inspect compartments in tenancy where all { request.principal.type = 'vnpa-service' }",
+    "allow any-user to read instances in tenancy where all { request.principal.type = 'vnpa-service' }",
+    "allow any-user to read virtual-network-family in tenancy where all { request.principal.type = 'vnpa-service' }",
+    "allow any-user to read load-balancers in tenancy where all { request.principal.type = 'vnpa-service' }",
+    "allow any-user to read network-security-group in tenancy where all { request.principal.type = 'vnpa-service' }",
+    "allow any-user to read zpr-family in tenancy where all { request.principal.type = 'vnpa-service' }"
   ]
 }
 

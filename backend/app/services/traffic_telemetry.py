@@ -136,10 +136,6 @@ class TrafficTelemetryService:
     def disable(self, request: TrafficEnableRequest) -> TrafficEnablementResponse:
         if not self.settings.enable_live_oci:
             raise PermissionError("Live OCI mode is disabled.")
-        if not self.settings.traffic_flow_logs_enablement_allowed:
-            raise PermissionError(
-                "Traffic telemetry enablement is disabled. Set MERIDIAN_TRAFFIC_FLOW_LOGS_ENABLEMENT_ALLOWED=true."
-            )
 
         vcns = self._selected_vcns(
             regions=request.regions,

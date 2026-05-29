@@ -2,7 +2,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 
 from app.config import get_settings
-from app.routers import export, health, identity, network, preflight, scope, security, traffic
+from app.routers import connectivity, export, health, identity, network, preflight, scope, security, traffic
 
 
 def create_app() -> FastAPI:
@@ -21,6 +21,7 @@ def create_app() -> FastAPI:
     app.include_router(export.router)
     app.include_router(preflight.router)
     app.include_router(traffic.router)
+    app.include_router(connectivity.router)
     return app
 
 

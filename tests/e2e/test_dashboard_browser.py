@@ -384,20 +384,41 @@ def test_regions_menu_controls_api_and_demo_scope(page, dashboard_url: str) -> N
 
 
 def test_traffic_telemetry_controls_are_scoped_and_cost_gated(page, dashboard_url: str) -> None:
+    startup_requests = []
+    fresh_page = page.context.new_page()
+    fresh_page.on(
+        "request",
+        lambda request: startup_requests.append(request.url)
+        if "/api/traffic/telemetry/status" in request.url
+        else None,
+    )
+    fresh_page.goto(dashboard_url, wait_until="networkidle")
+    assert startup_requests == []
+    fresh_page.close()
+
     expect(page.locator("#dataModeBadge")).to_have_text("api", timeout=10_000)
     page.locator("#trafficTelemetryPanel").scroll_into_view_if_needed()
-    expect(page.locator("#trafficTelemetryPanel")).to_contain_text("Traffic Telemetry")
-    expect(page.locator("#trafficTelemetryBadge")).to_contain_text("disabled")
+    expect(page.locator("#trafficTelemetryPanel")).to_contain_text("Connectivity Check")
+    expect(page.locator("#trafficTelemetryBadge")).to_contain_text("not checked")
+    expect(page.locator("#connectivityMessage")).to_contain_text("Network Path Analyzer")
     expect(page.locator("#trafficTelemetrySummary")).to_contain_text("not checked")
     expect(page.locator("#enableTrafficTelemetryBtn")).to_be_disabled()
     expect(page.locator("#disableTrafficTelemetryBtn")).to_be_disabled()
-    expect(page.locator("#trafficTelemetryMessage")).to_contain_text("Live OCI mode is disabled")
 
     page.goto(f"{dashboard_url}/demodata", wait_until="networkidle")
     expect(page.locator("#dataModeBadge")).to_contain_text("demo", timeout=10_000)
     page.click("#regionMenuBtn")
     page.click("#regionSelectAll")
     page.locator("#trafficTelemetryPanel").scroll_into_view_if_needed()
+    page.locator("#connectivitySource").fill("10.0.20.21")
+    page.locator("#connectivityDestination").fill("10.20.10.18")
+    page.locator("#connectivityPort").fill("1521")
+    page.click("#checkConnectivityBtn")
+    expect(page.locator("#connectivitySummary")).to_contain_text("blocked")
+    expect(page.locator("#connectivitySummary")).to_contain_text("no logs enabled")
+    expect(page.locator("#connectivityFindings")).to_contain_text("Ingress security rules")
+    expect(page.locator("#connectivityFindings")).to_contain_text("Flow Logs only")
+    expect(page.locator("#connectivityHopTable")).to_contain_text("DENY")
     expect(page.locator("#trafficVcnScope")).to_contain_text("vcn-prod-fra")
     page.locator("#trafficVcnScope").select_option("vcn-prod-fra")
     expect(page.locator("#enableTrafficTelemetryBtn")).to_be_disabled()

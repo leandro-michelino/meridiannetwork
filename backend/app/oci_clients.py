@@ -98,6 +98,13 @@ class OciClientFactory:
             return oci.loggingsearch.LogSearchClient(config=config, signer=signer)
         return oci.loggingsearch.LogSearchClient(config)
 
+    def vn_monitoring_client(self, region: str | None = None) -> Any:
+        oci = self._load_oci()
+        signer, config = self.signer_and_config(region=region)
+        if signer is not None:
+            return oci.vn_monitoring.VnMonitoringClient(config=config, signer=signer)
+        return oci.vn_monitoring.VnMonitoringClient(config)
+
     def logging_model(self, name: str, **kwargs: Any) -> Any:
         oci = self._load_oci()
         return getattr(oci.logging.models, name)(**kwargs)
@@ -109,6 +116,10 @@ class OciClientFactory:
     def loggingsearch_model(self, name: str, **kwargs: Any) -> Any:
         oci = self._load_oci()
         return getattr(oci.loggingsearch.models, name)(**kwargs)
+
+    def vn_monitoring_model(self, name: str, **kwargs: Any) -> Any:
+        oci = self._load_oci()
+        return getattr(oci.vn_monitoring.models, name)(**kwargs)
 
     def list_all(self, list_func: Any, *args: Any, **kwargs: Any) -> list[Any]:
         oci = self._load_oci()
