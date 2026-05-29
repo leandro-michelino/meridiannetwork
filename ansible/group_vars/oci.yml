@@ -30,9 +30,9 @@ meridian_inventory_snapshot_ttl: 900
 # override here to use a custom path:
 # meridian_inventory_snapshot_dir: /opt/meridian/data/snapshots
 
-# Traffic telemetry opt-in. Keep false unless the runtime principal has the
-# required OCI Logging and capture-filter permissions.
-meridian_traffic_flow_logs_enablement_allowed: "false"
+# Traffic telemetry opt-in. This environment allows selected-VCN telemetry, but
+# the API enforces a 60-minute maximum lease and sweeps expired Flow Logs.
+meridian_traffic_flow_logs_enablement_allowed: "true"
 meridian_traffic_flow_logs_max_enablement_minutes: 60
 meridian_traffic_flow_logs_expiry_sweep_seconds: 30
 meridian_traffic_flow_logs_lease_path: /opt/meridian/data/traffic-telemetry-leases.json

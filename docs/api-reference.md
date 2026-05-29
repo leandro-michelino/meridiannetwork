@@ -202,7 +202,7 @@ Example enable request:
 {
   "regions": ["me-abudhabi-1"],
   "compartment_ids": ["ocid1.compartment.oc1..example"],
-  "vcn_ids": ["ocid1.vcn.oc1..example"],
+  "vcn_ids": ["ocid1.vcn.oc1..example", "ocid1.vcn.oc1..example2"],
   "enablement_minutes": 30
 }
 ```

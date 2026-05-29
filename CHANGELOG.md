@@ -38,6 +38,7 @@
 - Document the Connectivity Check first workflow, cost-gated Flow Log telemetry, large-tenancy NPA limit behavior, and
   repeatable live validation commands.
 - Add a 60-minute max telemetry lease with automatic expired Flow Log cleanup.
+- Allow time-boxed telemetry from the dashboard and add explicit multi-VCN selection for cross-VCN investigations.
 
 - Add FastAPI backend foundation.
 - Add health and readiness endpoints.

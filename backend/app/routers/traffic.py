@@ -18,14 +18,18 @@ def traffic_telemetry_status(
     regions: str | None = Query(default=None, description="Comma-separated OCI region names."),
     compartment_ids: str | None = Query(default=None, description="Comma-separated compartment OCIDs."),
     vcn_id: str | None = Query(default=None, description="Optional VCN OCID filter."),
+    vcn_ids: str | None = Query(default=None, description="Optional comma-separated VCN OCID filter."),
     check_vcns: bool = Query(default=False, description="Perform the slower VCN Flow Log coverage check."),
     service: TrafficTelemetryService = Depends(get_traffic_telemetry_service),
 ) -> TrafficTelemetryStatus:
     try:
+        selected_vcn_ids = split_csv(vcn_ids)
+        if vcn_id:
+            selected_vcn_ids.append(vcn_id)
         return service.status(
             regions=split_csv(regions),
             compartment_ids=split_csv(compartment_ids),
-            vcn_id=vcn_id,
+            vcn_ids=selected_vcn_ids,
             check_vcns=check_vcns,
         )
     except OciClientError as exc:

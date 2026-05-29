@@ -50,6 +50,16 @@ That flow is intentionally scoped to the VCN the customer picks, asks for confir
 disables/cleans up expired Meridian-created Flow Logs even if the browser is closed. By default, the dashboard cannot
 create Flow Logs unless the operator explicitly sets `MERIDIAN_TRAFFIC_FLOW_LOGS_ENABLEMENT_ALLOWED=true`.
 
+Quick guide for the panel:
+
+- Pick source type: IP address is easiest; instance, VNIC, and subnet OCIDs are useful when you want OCI to reason from a resource.
+- Fill source and destination with exact values. Avoid broad CIDR guesses for the first pass.
+- Pick protocol and destination port. Use `ICMP` only when you are testing ping-style reachability.
+- Use **Bi-directional** for normal application traffic because return routing matters.
+- Read **Status**, **Forward**, **Return**, and the hop table after the check.
+- Treat the telemetry badge separately. `telemetry locked` means Flow Log creation is blocked for cost safety; it does not mean the network path is blocked.
+- Telemetry supports multiple explicitly selected VCNs. That is useful for VM-in-VCN-A to VM-in-VCN-B checks, while the 60-minute lease protects cleanup.
+
 ## Interested in Implementing It?
 
 If you are interested in implementing, adapting, or discussing Meridian for an OCI environment, contact:
@@ -252,7 +262,7 @@ Meridian is deliberately boring about costs:
 
 - The dashboard does not check or enable Flow Logs on page load.
 - Connectivity Check uses OCI Network Path Analyzer first.
-- Flow Log enablement is blocked unless `MERIDIAN_TRAFFIC_FLOW_LOGS_ENABLEMENT_ALLOWED=true`.
+- Flow Log enablement requires `MERIDIAN_TRAFFIC_FLOW_LOGS_ENABLEMENT_ALLOWED=true` and matching OCI IAM permissions.
 - The telemetry buttons work on selected VCNs, not every VCN in the tenancy.
 - Telemetry leases are capped at 60 minutes and automatically cleaned up by the VM.
 - Customers can disable Meridian-created Flow Logs from the same panel when the troubleshooting window is done.

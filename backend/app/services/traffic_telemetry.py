@@ -36,7 +36,7 @@ class TrafficTelemetryService:
         self,
         regions: list[str] | None = None,
         compartment_ids: list[str] | None = None,
-        vcn_id: str | None = None,
+        vcn_ids: list[str] | None = None,
         check_vcns: bool = False,
     ) -> TrafficTelemetryStatus:
         base = self._base_status()
@@ -60,7 +60,7 @@ class TrafficTelemetryService:
                 }
             )
 
-        vcns = self._selected_vcns(regions=regions, compartment_ids=compartment_ids, vcn_ids=[vcn_id] if vcn_id else [])
+        vcns = self._selected_vcns(regions=regions, compartment_ids=compartment_ids, vcn_ids=vcn_ids or [])
         if not vcns:
             return base.model_copy(
                 update={

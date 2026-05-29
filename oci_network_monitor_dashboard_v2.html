@@ -1830,13 +1830,16 @@ tr:last-child td { border-bottom: 0; }
       <summary class="card-header">
         <div class="card-title">Connectivity Check</div>
         <div class="card-header-tools">
-          <span class="badge neutral" id="trafficTelemetryBadge">not checked</span>
+          <span class="badge neutral" id="trafficTelemetryBadge">telemetry not checked</span>
           <button class="button primary" id="checkConnectivityBtn" type="button">Check connectivity</button>
           <button class="button primary" id="enableTrafficTelemetryBtn" type="button">Enable telemetry</button>
           <button class="button" id="disableTrafficTelemetryBtn" type="button">Disable telemetry</button>
         </div>
       </summary>
       <div class="traffic-panel">
+        <div class="traffic-message">
+          Use Check connectivity first: enter source, destination, protocol, port, and direction. This runs OCI Network Path Analyzer only, so no Flow Logs are created. Use telemetry later only when packet evidence is needed.
+        </div>
         <div class="traffic-toolbar connectivity-toolbar">
           <select id="connectivitySourceType" aria-label="Source resource type">
             <option value="ip_address">Source IP</option>
@@ -1884,7 +1887,7 @@ tr:last-child td { border-bottom: 0; }
         <div class="traffic-summary" id="trafficTelemetrySummary"></div>
         <div class="traffic-message" id="trafficTelemetryMessage"></div>
         <div class="traffic-toolbar">
-          <select id="trafficVcnScope" aria-label="Traffic telemetry VCN"></select>
+          <select id="trafficVcnScope" multiple size="3" aria-label="Traffic telemetry VCNs"></select>
           <select id="trafficTelemetryDuration" aria-label="Telemetry duration">
             <option value="15">15 min</option>
             <option value="30">30 min</option>
@@ -2304,7 +2307,7 @@ let coveragePanelOpen = true;
 let findingWorkflowFilter = '';
 let networkSearchQuery = '';
 let networkRegionFilter = '';
-let trafficVcnScope = '';
+let trafficVcnScopes = new Set();
 let trafficTelemetryStatus = defaultTrafficTelemetryStatus();
 let connectivityCheck = defaultConnectivityCheck();
 let trafficFlows = DEMO_DATA.trafficFlows;
@@ -5442,7 +5445,8 @@ function renderTrafficTelemetry(data) {
   const statusLabel = trafficStatusLabel(status.status);
   badge.textContent = statusLabel;
   badge.className = trafficStatusBadgeClass(status.status);
-  const hasSelectedVcn = Boolean(trafficVcnScope);
+  const selectedVcns = selectedTrafficVcns();
+  const hasSelectedVcn = selectedVcns.length > 0;
   const enableButton = byId('enableTrafficTelemetryBtn');
   enableButton.disabled = currentDashboardMode !== 'api' || !hasSelectedVcn || isCollectionBusy();
   enableButton.textContent = status.status === 'enabled' ? 'Telemetry enabled' : 'Enable telemetry';
@@ -5451,6 +5455,7 @@ function renderTrafficTelemetry(data) {
 
   byId('trafficTelemetrySummary').innerHTML = [
     collectionStat('Telemetry', statusLabel),
+    collectionStat('Selected VCNs', String(selectedVcns.length)),
     collectionStat('VCNs enabled', status.checked_vcns ? `${status.enabled_vcns || 0}/${status.checked_vcns}` : 'not checked'),
     collectionStat('Expires', status.expires_at ? relativeTime(status.expires_at) : 'not leased'),
     collectionStat('Flow records', String(summary.total_flows || 0)),
@@ -5548,12 +5553,13 @@ function renderTrafficVcnScope(vcns) {
   const scopedVcns = vcns
     .slice()
     .sort((left, right) => `${left.region}/${left.name}`.localeCompare(`${right.region}/${right.name}`));
-  if (trafficVcnScope && !scopedVcns.some((vcn) => vcn.id === trafficVcnScope)) trafficVcnScope = '';
-  select.innerHTML = [
-    '<option value="">Choose VCN for telemetry</option>',
-    ...scopedVcns.map((vcn) => `<option value="${escapeHtml(vcn.id)}">${escapeHtml(vcn.name || vcn.id)} / ${escapeHtml(vcn.region)}</option>`),
-  ].join('');
-  select.value = trafficVcnScope;
+  const validIds = new Set(scopedVcns.map((vcn) => vcn.id));
+  trafficVcnScopes = new Set([...trafficVcnScopes].filter((id) => validIds.has(id)));
+  select.innerHTML = scopedVcns.map((vcn) => `
+    <option value="${escapeHtml(vcn.id)}" ${trafficVcnScopes.has(vcn.id) ? 'selected' : ''}>
+      ${escapeHtml(vcn.name || vcn.id)} / ${escapeHtml(vcn.region)}
+    </option>
+  `).join('');
   select.disabled = !scopedVcns.length;
 }
 
@@ -5565,16 +5571,16 @@ function trafficTelemetryMessage(status, summary) {
 
 function trafficStatusLabel(status) {
   return {
-    idle: 'not checked',
+    idle: 'telemetry not checked',
     ready: 'ready',
-    blocked: 'blocked',
-    enabled: 'enabled',
-    partial: 'partial',
-    not_enabled: 'not enabled',
-    no_vcns: 'no VCNs',
-    disabled: 'disabled',
-    degraded: 'degraded',
-    failed: 'failed',
+    blocked: 'telemetry locked',
+    enabled: 'telemetry enabled',
+    partial: 'telemetry partial',
+    not_enabled: 'telemetry off',
+    no_vcns: 'no telemetry VCN',
+    disabled: 'telemetry disabled',
+    degraded: 'telemetry degraded',
+    failed: 'telemetry failed',
   }[status] || status || 'unknown';
 }
 
@@ -5782,9 +5788,9 @@ async function enableTrafficTelemetry() {
     alert('Switch to API mode to enable live traffic telemetry.');
     return;
   }
-  const vcn = selectedTrafficVcn();
-  if (!vcn) {
-    alert('Choose one VCN before enabling traffic telemetry.');
+  const vcns = selectedTrafficVcns();
+  if (!vcns.length) {
+    alert('Choose one or more VCNs before enabling traffic telemetry.');
     return;
   }
   const button = byId('enableTrafficTelemetryBtn');
@@ -5802,18 +5808,18 @@ async function enableTrafficTelemetry() {
       return;
     }
     const confirmed = window.confirm(
-      `Enable OCI VCN Flow Logs for ${vcn.name || vcn.id}?`
+      `Enable OCI VCN Flow Logs for ${vcns.length} selected VCN${vcns.length === 1 ? '' : 's'}?`
       + ` This can create billable log ingestion for up to ${selectedTelemetryMinutes()} minutes unless disabled sooner.`
     );
     if (!confirmed) return;
     text('lastUpdated', 'Enabling traffic telemetry...');
     const result = await postJson(API_PATHS.trafficEnable, {
-      regions: [vcn.region].filter(Boolean),
-      compartment_ids: [vcn.compartment_id].filter(Boolean),
-      vcn_ids: [vcn.id],
+      regions: uniqueValues(vcns.map((vcn) => vcn.region)),
+      compartment_ids: uniqueValues(vcns.map((vcn) => vcn.compartment_id)),
+      vcn_ids: vcns.map((vcn) => vcn.id),
       enablement_minutes: selectedTelemetryMinutes(),
     });
-    trafficTelemetryStatus = await safeGetJson(`${API_PATHS.trafficStatus}?check_vcns=true&vcn_id=${encodeURIComponent(vcn.id)}`, trafficTelemetryStatus);
+    trafficTelemetryStatus = await safeGetJson(selectedTrafficStatusUrl(), trafficTelemetryStatus);
     if (currentDashboardData) {
       currentDashboardData.trafficTelemetryStatus = trafficTelemetryStatus;
       renderDashboard(currentDashboardData, currentDashboardMode);
@@ -5837,14 +5843,14 @@ async function disableTrafficTelemetry() {
     alert('Switch to API mode to disable live traffic telemetry.');
     return;
   }
-  const vcn = selectedTrafficVcn();
-  if (!vcn) {
-    alert('Choose one VCN before disabling traffic telemetry.');
+  const vcns = selectedTrafficVcns();
+  if (!vcns.length) {
+    alert('Choose one or more VCNs before disabling traffic telemetry.');
     return;
   }
   const confirmed = window.confirm(
-    `Disable Meridian VCN Flow Logs for ${vcn.name || vcn.id}?`
-    + ' This stops the dashboard-created flow log for that VCN.'
+    `Disable Meridian VCN Flow Logs for ${vcns.length} selected VCN${vcns.length === 1 ? '' : 's'}?`
+    + ' This stops the dashboard-created flow logs for those VCNs.'
   );
   if (!confirmed) return;
   const button = byId('disableTrafficTelemetryBtn');
@@ -5852,11 +5858,11 @@ async function disableTrafficTelemetry() {
   text('lastUpdated', 'Disabling traffic telemetry...');
   try {
     const result = await postJson(API_PATHS.trafficDisable, {
-      regions: [vcn.region].filter(Boolean),
-      compartment_ids: [vcn.compartment_id].filter(Boolean),
-      vcn_ids: [vcn.id],
+      regions: uniqueValues(vcns.map((vcn) => vcn.region)),
+      compartment_ids: uniqueValues(vcns.map((vcn) => vcn.compartment_id)),
+      vcn_ids: vcns.map((vcn) => vcn.id),
     });
-    trafficTelemetryStatus = await safeGetJson(`${API_PATHS.trafficStatus}?check_vcns=true&vcn_id=${encodeURIComponent(vcn.id)}`, trafficTelemetryStatus);
+    trafficTelemetryStatus = await safeGetJson(selectedTrafficStatusUrl(), trafficTelemetryStatus);
     if (currentDashboardData) {
       currentDashboardData.trafficTelemetryStatus = trafficTelemetryStatus;
       renderDashboard(currentDashboardData, currentDashboardMode);
@@ -5869,10 +5875,26 @@ async function disableTrafficTelemetry() {
   }
 }
 
-function selectedTrafficVcn() {
+function selectedTrafficVcns() {
   const data = currentDashboardData || {};
   const viewData = filterDashboardDataByRegions(data);
-  return (viewData.vcns || []).find((vcn) => vcn.id === trafficVcnScope) || null;
+  return (viewData.vcns || []).filter((vcn) => trafficVcnScopes.has(vcn.id));
+}
+
+function selectedTrafficStatusUrl() {
+  const vcns = selectedTrafficVcns();
+  const params = new URLSearchParams({ check_vcns: 'true' });
+  const vcnIds = vcns.map((vcn) => vcn.id).filter(Boolean);
+  const regions = uniqueValues(vcns.map((vcn) => vcn.region));
+  const compartmentIds = uniqueValues(vcns.map((vcn) => vcn.compartment_id));
+  if (vcnIds.length) params.set('vcn_ids', vcnIds.join(','));
+  if (regions.length) params.set('regions', regions.join(','));
+  if (compartmentIds.length) params.set('compartment_ids', compartmentIds.join(','));
+  return `${API_PATHS.trafficStatus}?${params.toString()}`;
+}
+
+function uniqueValues(values) {
+  return [...new Set(values.filter(Boolean))];
 }
 
 function clearTrafficFilters() {
@@ -6383,7 +6405,7 @@ byId('disableTrafficTelemetryBtn').addEventListener('click', (event) => {
   disableTrafficTelemetry();
 });
 byId('trafficVcnScope').addEventListener('change', (event) => {
-  trafficVcnScope = event.target.value;
+  trafficVcnScopes = new Set([...event.target.selectedOptions].map((option) => option.value).filter(Boolean));
   if (currentDashboardData) renderDashboard(currentDashboardData, currentDashboardMode);
 });
 byId('queryTrafficFlowsBtn').addEventListener('click', queryTrafficFlows);

@@ -118,8 +118,9 @@ Operational recommendations:
 - Add HTTPS before exposing the dashboard beyond a trusted network.
 - Use `enable_nat_gateway = true` when you want default outbound traffic routed through NAT while keeping public ingress scoped.
 - Use `security_action_archive_enabled = true` only when the tenancy should retain security finding action history in Object Storage.
-- Keep `MERIDIAN_TRAFFIC_FLOW_LOGS_ENABLEMENT_ALLOWED=false` unless the customer has explicitly approved dashboard-driven
-  VCN Flow Log setup and the runtime principal has the matching OCI Logging and capture-filter permissions.
+- Keep `MERIDIAN_TRAFFIC_FLOW_LOGS_ENABLEMENT_ALLOWED=true` only after the customer has approved dashboard-driven VCN
+  Flow Log setup and the runtime principal has the matching OCI Logging and capture-filter permissions. Meridian still
+  caps telemetry at 60 minutes and sweeps expired Flow Logs.
 
 ## Troubleshooting
 
@@ -181,8 +182,13 @@ If a customer is troubleshooting VM-to-VM, subnet-to-subnet, or VM-to-service re
   `MERIDIAN_TRAFFIC_FLOW_LOGS_ENABLEMENT_ALLOWED=true`.
 - Confirm the runtime principal can `read log-content`, and if the dashboard is allowed to create telemetry, confirm it
   also has the optional Flow Log management policy.
+- If Terraform cannot create the optional Flow Log management policy because the tenancy is at the OCI policy statement
+  limit, consolidate an existing policy or ask the tenancy administrator for another policy path before relying on the
+  button in a customer session.
 - Telemetry enablement is leased for 60 minutes max. The backend clamps longer requests, records the lease, and the VM
   sweeper disables/deletes expired Meridian-created Flow Logs so log ingestion does not keep running.
+- Select every VCN that needs packet evidence. For a VM-in-VCN-A to VM-in-VCN-B issue, select both VCNs before enabling
+  telemetry so both sides of the path are covered. Avoid selecting unrelated VCNs.
 - When the customer has enough evidence, click **Disable telemetry** for that same VCN. Do not wait for the lease if the
   investigation is done early.
 - Allow a short delay for newly enabled VCN Flow Logs to start producing records.
