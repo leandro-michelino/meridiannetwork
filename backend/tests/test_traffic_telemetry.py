@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 import pytest
 
 from app.config import Settings, get_settings
+from app.dependencies import get_traffic_telemetry_service
 from app.main import create_app
 from app.models import TrafficEnableRequest, VcnSummary
 from app.services.traffic_telemetry import TrafficTelemetryService
@@ -245,6 +246,33 @@ def test_traffic_status_can_check_vcn_coverage_when_requested():
     assert result.status == "enabled"
     assert result.checked_vcns == 1
     assert result.enabled_vcns == 1
+
+
+def test_traffic_status_endpoint_rejects_malformed_vcn_filter():
+    class InventoryThatShouldNotBeCalled(FakeNetworkInventory):
+        def list_vcns(self, regions=None, compartment_ids=None):
+            raise AssertionError("inventory scan should not run for malformed VCN IDs")
+
+    settings = Settings(
+        enable_live_oci=True,
+        traffic_flow_logs_enablement_allowed=True,
+        tenancy_ocid="tenancy-1",
+        compartment_ids=["compartment-1"],
+        active_regions=["eu-frankfurt-1"],
+    )
+    service = TrafficTelemetryService(
+        settings=settings,
+        client_factory=FakeFactory(),
+        network_inventory=InventoryThatShouldNotBeCalled(),
+    )
+    app = create_app()
+    app.dependency_overrides[get_traffic_telemetry_service] = lambda: service
+    client = TestClient(app)
+
+    response = client.get("/api/traffic/telemetry/status?check_vcns=true&vcn_ids=dummy")
+
+    assert response.status_code == 422
+    assert response.json()["detail"]["code"] == "INVALID_TRAFFIC_SCOPE"
 
 
 def test_traffic_disable_is_allowed_when_enablement_gate_is_closed():

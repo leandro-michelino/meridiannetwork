@@ -32,6 +32,11 @@ def traffic_telemetry_status(
             vcn_ids=selected_vcn_ids,
             check_vcns=check_vcns,
         )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": "INVALID_TRAFFIC_SCOPE", "message": str(exc)},
+        ) from exc
     except OciClientError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
