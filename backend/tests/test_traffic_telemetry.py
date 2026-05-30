@@ -28,11 +28,15 @@ class OciResponse:
         self.data = data
 
 
+VCN_ID = "ocid1.vcn.oc1.eu-frankfurt-1.testvcn"
+UNKNOWN_VCN_ID = "ocid1.vcn.oc1.eu-frankfurt-1.unknown"
+
+
 class FakeNetworkInventory:
     def __init__(self):
         self.vcns = [
             VcnSummary(
-                id="vcn-1",
+                id=VCN_ID,
                 name="app-vcn",
                 cidr_blocks=["10.0.0.0/16"],
                 region="eu-frankfurt-1",
@@ -235,7 +239,7 @@ def test_traffic_status_can_check_vcn_coverage_when_requested():
         network_inventory=FakeNetworkInventory(),
     )
 
-    service.enable(request=OciObject(regions=["eu-frankfurt-1"], compartment_ids=[], vcn_ids=[]))
+    service.enable(request=OciObject(regions=["eu-frankfurt-1"], compartment_ids=[], vcn_ids=[VCN_ID]))
     result = service.status(check_vcns=True)
 
     assert result.status == "enabled"
@@ -257,7 +261,7 @@ def test_traffic_disable_is_allowed_when_enablement_gate_is_closed():
         network_inventory=FakeNetworkInventory(),
     )
 
-    result = service.disable(TrafficEnableRequest(vcn_ids=["vcn-1"]))
+    result = service.disable(TrafficEnableRequest(vcn_ids=[VCN_ID]))
 
     assert result.status == "disabled"
     assert result.skipped == 1
@@ -279,13 +283,13 @@ def test_enablement_creates_log_group_capture_filter_and_flow_log():
         network_inventory=FakeNetworkInventory(),
     )
 
-    result = service.enable(request=OciObject(regions=["eu-frankfurt-1"], compartment_ids=[], vcn_ids=[]))
+    result = service.enable(request=OciObject(regions=["eu-frankfurt-1"], compartment_ids=[], vcn_ids=[VCN_ID]))
 
     assert result.status == "enabled"
     assert result.enabled == 1
     assert factory.logging_client.log_groups[0].display_name == "meridian-traffic-flow-logs"
     assert factory.network_client.capture_filters[0].display_name == "meridian-traffic-capture-filter"
-    assert factory.logging_client.logs[0].configuration.source.resource == "vcn-1"
+    assert factory.logging_client.logs[0].configuration.source.resource == VCN_ID
     assert result.expires_at is not None
     assert factory.logging_client.logs[0].freeform_tags["expires_at"] == result.expires_at
 
@@ -305,7 +309,47 @@ def test_enablement_rejects_unknown_vcn():
     )
 
     with pytest.raises(ValueError, match="valid VCN"):
-        service.enable(TrafficEnableRequest(vcn_ids=["missing-vcn"]))
+        service.enable(TrafficEnableRequest(vcn_ids=[UNKNOWN_VCN_ID]))
+
+
+def test_enablement_requires_explicit_vcn_ids():
+    settings = Settings(
+        enable_live_oci=True,
+        traffic_flow_logs_enablement_allowed=True,
+        tenancy_ocid="tenancy-1",
+        compartment_ids=["compartment-1"],
+        active_regions=["eu-frankfurt-1"],
+    )
+    service = TrafficTelemetryService(
+        settings=settings,
+        client_factory=FakeFactory(),
+        network_inventory=FakeNetworkInventory(),
+    )
+
+    with pytest.raises(ValueError, match="VCN OCIDs"):
+        service.enable(TrafficEnableRequest(regions=["eu-frankfurt-1"], compartment_ids=[]))
+
+
+def test_malformed_vcn_id_is_rejected_before_inventory_scan():
+    class InventoryThatShouldNotBeCalled(FakeNetworkInventory):
+        def list_vcns(self, regions=None, compartment_ids=None):
+            raise AssertionError("inventory scan should not run for malformed VCN IDs")
+
+    settings = Settings(
+        enable_live_oci=True,
+        traffic_flow_logs_enablement_allowed=True,
+        tenancy_ocid="tenancy-1",
+        compartment_ids=["compartment-1"],
+        active_regions=["eu-frankfurt-1"],
+    )
+    service = TrafficTelemetryService(
+        settings=settings,
+        client_factory=FakeFactory(),
+        network_inventory=InventoryThatShouldNotBeCalled(),
+    )
+
+    with pytest.raises(ValueError, match="valid VCN OCIDs"):
+        service.enable(TrafficEnableRequest(vcn_ids=["dummy"]))
 
 
 def test_enablement_duration_is_clamped_to_one_hour():
@@ -323,7 +367,7 @@ def test_enablement_duration_is_clamped_to_one_hour():
         network_inventory=FakeNetworkInventory(),
     )
 
-    result = service.enable(TrafficEnableRequest(vcn_ids=["vcn-1"], enablement_minutes=240))
+    result = service.enable(TrafficEnableRequest(vcn_ids=[VCN_ID], enablement_minutes=240))
     expires_at = datetime.fromisoformat(result.expires_at.replace("Z", "+00:00"))
 
     assert result.status == "enabled"
@@ -347,7 +391,7 @@ def test_expired_enablement_disables_and_deletes_flow_log(monkeypatch, tmp_path)
         client_factory=factory,
         network_inventory=FakeNetworkInventory(),
     )
-    service.enable(TrafficEnableRequest(vcn_ids=["vcn-1"], enablement_minutes=1))
+    service.enable(TrafficEnableRequest(vcn_ids=[VCN_ID], enablement_minutes=1))
     assert factory.logging_client.logs
 
     monkeypatch.setattr(TrafficTelemetryService, "_now", lambda self: now + timedelta(minutes=61))
@@ -396,8 +440,8 @@ def test_disable_turns_existing_flow_log_off():
         network_inventory=FakeNetworkInventory(),
     )
 
-    service.enable(request=OciObject(regions=["eu-frankfurt-1"], compartment_ids=[], vcn_ids=[]))
-    result = service.disable(request=OciObject(regions=["eu-frankfurt-1"], compartment_ids=[], vcn_ids=[]))
+    service.enable(request=OciObject(regions=["eu-frankfurt-1"], compartment_ids=[], vcn_ids=[VCN_ID]))
+    result = service.disable(request=OciObject(regions=["eu-frankfurt-1"], compartment_ids=[], vcn_ids=[VCN_ID]))
 
     assert result.status == "disabled"
     assert result.enabled == 1

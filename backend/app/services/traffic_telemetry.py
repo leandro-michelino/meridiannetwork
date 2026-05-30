@@ -113,6 +113,8 @@ class TrafficTelemetryService:
                 "Traffic telemetry enablement is disabled. Set MERIDIAN_TRAFFIC_FLOW_LOGS_ENABLEMENT_ALLOWED=true."
             )
         self.disable_expired_leases()
+        if not request.vcn_ids:
+            raise ValueError("Choose one or more VCN OCIDs before enabling traffic telemetry.")
         expires_at = self._expires_at(getattr(request, "enablement_minutes", None))
 
         vcns = self._selected_vcns(
@@ -156,6 +158,8 @@ class TrafficTelemetryService:
         if not self.settings.enable_live_oci:
             raise PermissionError("Live OCI mode is disabled.")
         self.disable_expired_leases()
+        if not request.vcn_ids:
+            raise ValueError("Choose one or more VCN OCIDs before disabling traffic telemetry.")
 
         vcns = self._selected_vcns(
             regions=request.regions,
@@ -311,10 +315,16 @@ class TrafficTelemetryService:
         vcn_ids: list[str] | None = None,
     ) -> list[VcnSummary]:
         selected_ids = {item for item in (vcn_ids or []) if item}
+        invalid_ids = sorted(item for item in selected_ids if not self._is_vcn_ocid(item))
+        if invalid_ids:
+            raise ValueError("Choose one or more valid VCN OCIDs before changing traffic telemetry.")
         vcns = self.network_inventory.list_vcns(regions=regions or None, compartment_ids=compartment_ids or None)
         if selected_ids:
             vcns = [vcn for vcn in vcns if vcn.id in selected_ids]
         return vcns
+
+    def _is_vcn_ocid(self, value: str) -> bool:
+        return value.startswith("ocid1.vcn.")
 
     def _enable_vcn(self, vcn: VcnSummary, expires_at: str) -> TrafficEnablementItem:
         existing_log = self._flow_log_for_vcn(vcn, require_enabled=True)

@@ -9,6 +9,9 @@ class OciClientError(RuntimeError):
     """Raised when OCI client setup or calls fail."""
 
 
+OCI_CLIENT_TIMEOUT = (5, 15)
+
+
 @dataclass(frozen=True)
 class OciClientFactory:
     settings: Settings
@@ -47,30 +50,31 @@ class OciClientFactory:
     def identity_client(self) -> Any:
         oci = self._load_oci()
         signer, config = self.signer_and_config()
+        kwargs = self._client_kwargs(signer)
         if signer is not None:
-            return oci.identity.IdentityClient(config=config, signer=signer)
-        return oci.identity.IdentityClient(config)
+            return oci.identity.IdentityClient(config=config, **kwargs)
+        return oci.identity.IdentityClient(config, **kwargs)
 
     def virtual_network_client(self, region: str | None = None) -> Any:
         oci = self._load_oci()
         signer, config = self.signer_and_config(region=region)
+        kwargs = self._client_kwargs(signer)
         if signer is not None:
-            return oci.core.VirtualNetworkClient(config=config, signer=signer)
-        return oci.core.VirtualNetworkClient(config)
+            return oci.core.VirtualNetworkClient(config=config, **kwargs)
+        return oci.core.VirtualNetworkClient(config, **kwargs)
 
     def compute_client(self, region: str | None = None) -> Any:
         oci = self._load_oci()
         signer, config = self.signer_and_config(region=region)
+        kwargs = self._client_kwargs(signer)
         if signer is not None:
-            return oci.core.ComputeClient(config=config, signer=signer)
-        return oci.core.ComputeClient(config)
+            return oci.core.ComputeClient(config=config, **kwargs)
+        return oci.core.ComputeClient(config, **kwargs)
 
     def resource_search_client(self, region: str | None = None) -> Any:
         oci = self._load_oci()
         signer, config = self.signer_and_config(region=region)
-        kwargs: dict[str, Any] = {"timeout": (3, 6)}
-        if signer is not None:
-            kwargs["signer"] = signer
+        kwargs = self._client_kwargs(signer, timeout=(3, 6))
         return oci.resource_search.ResourceSearchClient(config, **kwargs)
 
     def structured_search_details(self, query: str) -> Any:
@@ -80,31 +84,38 @@ class OciClientFactory:
     def object_storage_client(self) -> Any:
         oci = self._load_oci()
         signer, config = self.signer_and_config()
+        kwargs = self._client_kwargs(signer)
         if signer is not None:
-            return oci.object_storage.ObjectStorageClient(config=config, signer=signer)
-        return oci.object_storage.ObjectStorageClient(config)
+            return oci.object_storage.ObjectStorageClient(config=config, **kwargs)
+        return oci.object_storage.ObjectStorageClient(config, **kwargs)
 
     def logging_management_client(self, region: str | None = None) -> Any:
         oci = self._load_oci()
         signer, config = self.signer_and_config(region=region)
+        kwargs = self._client_kwargs(signer)
         if signer is not None:
-            return oci.logging.LoggingManagementClient(config=config, signer=signer)
-        return oci.logging.LoggingManagementClient(config)
+            return oci.logging.LoggingManagementClient(config=config, **kwargs)
+        return oci.logging.LoggingManagementClient(config, **kwargs)
 
     def logging_search_client(self, region: str | None = None) -> Any:
         oci = self._load_oci()
         signer, config = self.signer_and_config(region=region)
+        kwargs = self._client_kwargs(signer)
         if signer is not None:
-            return oci.loggingsearch.LogSearchClient(config=config, signer=signer)
-        return oci.loggingsearch.LogSearchClient(config)
+            return oci.loggingsearch.LogSearchClient(config=config, **kwargs)
+        return oci.loggingsearch.LogSearchClient(config, **kwargs)
 
     def vn_monitoring_client(self, region: str | None = None) -> Any:
         oci = self._load_oci()
         signer, config = self.signer_and_config(region=region)
-        kwargs: dict[str, Any] = {"timeout": (5, 10)}
+        kwargs = self._client_kwargs(signer, timeout=(5, 10))
+        return oci.vn_monitoring.VnMonitoringClient(config, **kwargs)
+
+    def _client_kwargs(self, signer: Any | None, timeout: tuple[int, int] = OCI_CLIENT_TIMEOUT) -> dict[str, Any]:
+        kwargs: dict[str, Any] = {"timeout": timeout}
         if signer is not None:
             kwargs["signer"] = signer
-        return oci.vn_monitoring.VnMonitoringClient(config, **kwargs)
+        return kwargs
 
     def logging_model(self, name: str, **kwargs: Any) -> Any:
         oci = self._load_oci()
