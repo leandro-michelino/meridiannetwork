@@ -1921,6 +1921,7 @@ tr:last-child td { border-bottom: 0; }
         </div>
         <datalist id="connectivitySourceResourceList"></datalist>
         <datalist id="connectivityDestinationResourceList"></datalist>
+        <div class="traffic-message" id="connectivityPickerHint"></div>
         <div class="traffic-summary" id="connectivitySummary"></div>
         <div class="traffic-message" id="connectivityMessage"></div>
         <div class="connectivity-findings" id="connectivityFindings"></div>
@@ -5608,6 +5609,7 @@ function renderConnectivityResourceOptions(data) {
   renderConnectivityDatalist('destination', data);
   updateConnectivityInputHints('source');
   updateConnectivityInputHints('destination');
+  updateConnectivityPickerHint(data);
 }
 
 function renderConnectivityDatalist(role, data) {
@@ -5646,6 +5648,41 @@ function connectivityOptionsForType(data, type) {
     });
   }
   return options;
+}
+
+function updateConnectivityPickerHint(data) {
+  const hint = byId('connectivityPickerHint');
+  if (!hint) return;
+  const source = connectivityPickerRoleHint('source', data);
+  const destination = connectivityPickerRoleHint('destination', data);
+  hint.textContent = `${source} ${destination} Check connectivity still runs without enabling Flow Logs.`;
+}
+
+function connectivityPickerRoleHint(role, data) {
+  const type = byId(`connectivity${titleCase(role)}Type`).value;
+  const count = connectivityOptionsForType(data, type)
+    .filter((option, index, all) => option.value && all.findIndex((item) => item.value === option.value) === index)
+    .length;
+  const roleLabel = titleCase(role);
+  if (type === 'subnet') {
+    return `${roleLabel} subnet: ${count} selectable subnet${count === 1 ? '' : 's'} loaded from inventory.`;
+  }
+  if (type === 'ip_address') {
+    return count
+      ? `${roleLabel} IP: ${count} saved endpoint${count === 1 ? '' : 's'} available, or type an exact IP.`
+      : `${roleLabel} IP: type an exact IP; suggestions appear when captured endpoints exist.`;
+  }
+  if (type === 'compute_instance') {
+    return count
+      ? `${roleLabel} VM: ${count} saved endpoint${count === 1 ? '' : 's'} available, or paste the instance OCID.`
+      : `${roleLabel} VM: paste the instance OCID; suggestions appear when captured endpoints exist.`;
+  }
+  if (type === 'vnic') {
+    return count
+      ? `${roleLabel} VNIC: ${count} saved endpoint${count === 1 ? '' : 's'} available, or paste the VNIC OCID.`
+      : `${roleLabel} VNIC: paste the VNIC OCID; suggestions appear when captured endpoints exist.`;
+  }
+  return `${roleLabel}: enter the exact endpoint value.`;
 }
 
 function updateConnectivityInputHints(role) {
@@ -6557,8 +6594,7 @@ byId('checkConnectivityBtn').addEventListener('click', (event) => {
 });
 ['source', 'destination'].forEach((role) => {
   byId(`connectivity${titleCase(role)}Type`).addEventListener('change', () => {
-    renderConnectivityDatalist(role, filterDashboardDataByRegions(currentDashboardData || DEMO_DATA));
-    updateConnectivityInputHints(role);
+    renderConnectivityResourceOptions(filterDashboardDataByRegions(currentDashboardData || DEMO_DATA));
   });
 });
 byId('enableTrafficTelemetryBtn').addEventListener('click', (event) => {

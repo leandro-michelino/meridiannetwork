@@ -493,10 +493,13 @@ def test_connectivity_endpoint_picker_filters_by_type(page, dashboard_url: str) 
     )
 
     page.locator("#connectivitySourceType").select_option("ip_address")
+    expect(page.locator("#connectivityPickerHint")).to_contain_text("Source IP:")
+    expect(page.locator("#connectivityPickerHint")).to_contain_text("Check connectivity still runs without enabling Flow Logs.")
     assert "10.0.20.21" in source_values()
     assert "subnet-app" not in source_values()
 
     page.locator("#connectivitySourceType").select_option("subnet")
+    expect(page.locator("#connectivityPickerHint")).to_contain_text("Source subnet:")
     assert "subnet-app" in source_values()
     assert "10.0.20.21" not in source_values()
 
