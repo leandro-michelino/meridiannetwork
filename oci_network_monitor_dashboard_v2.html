@@ -1127,6 +1127,12 @@ body {
   padding: 8px 10px;
 }
 
+.traffic-message.limit {
+  border-color: #f3cf8a;
+  background: #fff8e8;
+  color: #6f4a05;
+}
+
 .connectivity-findings {
   display: grid;
   gap: 6px;
@@ -5468,6 +5474,7 @@ function renderTrafficTelemetry(data) {
 
 function renderConnectivityCheck(data) {
   const result = data.connectivityCheck || defaultConnectivityCheck();
+  const serviceLimit = isConnectivityServiceLimit(result);
   renderConnectivityResourceOptions(data);
   byId('connectivitySummary').innerHTML = [
     collectionStat('Analyzer', 'OCI Network Path Analyzer'),
@@ -5477,8 +5484,13 @@ function renderConnectivityCheck(data) {
     collectionStat('Cost action', result.cost_impact === 'no_flow_logs_enabled' ? 'no logs enabled' : result.cost_impact || 'none'),
   ].join('');
   const message = result.message || DEFAULT_CONNECTIVITY_CHECK.message;
-  byId('connectivityMessage').textContent = message;
+  const messageEl = byId('connectivityMessage');
+  messageEl.className = `traffic-message${serviceLimit ? ' limit' : ''}`;
+  messageEl.textContent = serviceLimit
+    ? 'Connectivity Check reached OCI Network Path Analyzer, but OCI needs a compartment-count service limit increase before it can complete this tenancy.'
+    : message;
   const findings = [
+    ...(serviceLimit ? ['OCI returned a Network Path Analyzer service-limit response, so no route or security decision was produced yet.'] : []),
     ...(result.findings || []).filter((finding) => finding && finding !== message),
     ...(result.next_actions || []).map((action) => `Next: ${action}`),
   ];
@@ -5522,11 +5534,25 @@ function connectivityStatusLabel(status) {
     reachable: 'reachable',
     running: 'running',
     blocked: 'blocked',
+    service_limit: 'OCI limit',
     disabled: 'disabled',
     missing_scope: 'missing scope',
     failed: 'failed',
     unknown: 'unknown',
   }[status] || status || 'not checked';
+}
+
+function isConnectivityServiceLimit(result) {
+  const text = [
+    result.status,
+    result.message,
+    ...(result.findings || []),
+    ...(result.next_actions || []),
+  ].join(' ').toLowerCase();
+  return result.status === 'service_limit'
+    || (text.includes('network path analyzer') && text.includes('service limit'))
+    || (text.includes('network path analyzer') && text.includes('more than 100 compartments'))
+    || (text.includes('compartment-count') && text.includes('limit increase'));
 }
 
 function renderConnectivityResourceOptions(data) {

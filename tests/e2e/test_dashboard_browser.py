@@ -437,6 +437,50 @@ def test_traffic_telemetry_controls_are_scoped_and_cost_gated(page, dashboard_ur
     expect(page.locator("#trafficLookback")).to_have_value("60")
 
 
+def test_connectivity_check_shows_oci_service_limit(page) -> None:
+    page.route(
+        "**/api/connectivity/check",
+        lambda route: route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=json.dumps(
+                {
+                    "status": "service_limit",
+                    "reachable": False,
+                    "provider": "oci_network_path_analyzer",
+                    "cost_impact": "no_flow_logs_enabled",
+                    "work_request_id": "ocid1.pathanalysisworkrequest.oc1.test",
+                    "message": (
+                        "Connectivity Check reached OCI Network Path Analyzer, but OCI needs a "
+                        "compartment-count service limit increase before it can complete this tenancy."
+                    ),
+                    "findings": [
+                        "Connectivity Check reached OCI Network Path Analyzer, but OCI needs a compartment-count service limit increase."
+                    ],
+                    "next_actions": [
+                        "Request an OCI Network Path Analyzer service limit increase for the tenancy compartment count, then rerun the check.",
+                        "Enable Flow Logs only if packet-level evidence is still needed after this path analysis.",
+                    ],
+                    "hops": [],
+                }
+            ),
+        ),
+    )
+    expect(page.locator("#dataModeBadge")).to_have_text("api", timeout=10_000)
+    page.locator("#trafficTelemetryPanel").scroll_into_view_if_needed()
+    page.locator("#connectivitySource").fill("10.42.10.142")
+    page.locator("#connectivityDestination").fill("8.8.8.8")
+    page.locator("#connectivityPort").fill("443")
+    page.click("#checkConnectivityBtn")
+
+    expect(page.locator("#connectivitySummary")).to_contain_text("OCI limit", timeout=10_000)
+    expect(page.locator("#connectivitySummary")).to_contain_text("no logs enabled")
+    expect(page.locator("#connectivityMessage")).to_contain_text("reached OCI Network Path Analyzer")
+    expect(page.locator("#connectivityMessage")).to_contain_text("compartment-count service limit increase")
+    expect(page.locator("#connectivityFindings")).to_contain_text("service-limit response")
+    expect(page.locator("#connectivityFindings")).to_contain_text("Enable Flow Logs only")
+
+
 def test_topology_layout_modes_do_not_clip_horizontally(page, dashboard_url: str) -> None:
     expect(page.locator("#dataModeBadge")).to_have_text("api", timeout=10_000)
     page.goto(f"{dashboard_url}/demodata", wait_until="networkidle")

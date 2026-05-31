@@ -84,10 +84,11 @@ class ConnectivityService:
                 )
             if work_status != "SUCCEEDED":
                 errors = self._work_request_errors(client, work_request_id)
-                message = self._primary_message(errors) or f"OCI Network Path Analyzer work request ended with {work_status or 'unknown status'}."
+                primary_message = self._primary_message(errors)
+                message = primary_message or f"OCI Network Path Analyzer work request ended with {work_status or 'unknown status'}."
                 findings = self._user_findings(errors)
                 return ConnectivityCheckResponse(
-                    status="failed",
+                    status="service_limit" if primary_message else "failed",
                     reachable=False,
                     work_request_id=work_request_id,
                     message=message,
@@ -98,9 +99,10 @@ class ConnectivityService:
             return self._result_response(client, work_request_id)
         except Exception as exc:  # pragma: no cover - specific OCI exceptions vary by SDK/client version
             message = self._error_message(exc)
-            user_message = self._primary_message([message]) or f"OCI Network Path Analyzer failed: {message}"
+            primary_message = self._primary_message([message])
+            user_message = primary_message or f"OCI Network Path Analyzer failed: {message}"
             return ConnectivityCheckResponse(
-                status="failed",
+                status="service_limit" if primary_message else "failed",
                 reachable=False,
                 message=user_message,
                 findings=self._user_findings([message]),
@@ -279,11 +281,14 @@ class ConnectivityService:
         normalized = text.lower()
         if "network path analyzer" in normalized and "more than 100 compartments" in normalized:
             return (
-                "Connectivity check could not complete because this tenancy has more compartments than the current "
-                "OCI Network Path Analyzer service limit."
+                "Connectivity Check reached OCI Network Path Analyzer, but OCI needs a compartment-count service "
+                "limit increase before it can complete this tenancy."
             )
         if "limit increase" in normalized and "compartment" in normalized:
-            return "Connectivity check could not complete because OCI Network Path Analyzer needs a service limit increase."
+            return (
+                "Connectivity Check reached OCI Network Path Analyzer, but OCI needs a compartment-count service "
+                "limit increase before it can complete this tenancy."
+            )
         return None
 
     def _user_findings(self, findings: list[str]) -> list[str]:

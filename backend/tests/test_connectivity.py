@@ -19,10 +19,11 @@ class OciResponse:
 
 
 class FakeVnMonitoringClient:
-    def __init__(self, reachable=True, fail=False, work_status="SUCCEEDED"):
+    def __init__(self, reachable=True, fail=False, work_status="SUCCEEDED", errors=None):
         self.reachable = reachable
         self.fail = fail
         self.work_status = work_status
+        self.errors = errors or []
         self.path_analysis_details = None
 
     def get_path_analysis(self, get_path_analysis_details):
@@ -59,12 +60,17 @@ class FakeVnMonitoringClient:
         return OciResponse([OciObject(paths=[path])])
 
     def list_work_request_errors(self, work_request_id):
-        return OciResponse([])
+        return OciResponse([OciObject(message=message) for message in self.errors])
 
 
 class FakeFactory:
-    def __init__(self, reachable=True, fail=False, work_status="SUCCEEDED"):
-        self.client = FakeVnMonitoringClient(reachable=reachable, fail=fail, work_status=work_status)
+    def __init__(self, reachable=True, fail=False, work_status="SUCCEEDED", errors=None):
+        self.client = FakeVnMonitoringClient(
+            reachable=reachable,
+            fail=fail,
+            work_status=work_status,
+            errors=errors,
+        )
 
     def vn_monitoring_client(self, region=None):
         return self.client
@@ -191,6 +197,33 @@ def test_connectivity_service_suggests_limit_increase_for_large_tenancy():
     assert any("service limit increase" in action for action in actions)
 
 
+def test_connectivity_service_labels_network_path_analyzer_limit():
+    raw_message = (
+        "The tenancy ocid1.tenancy.oc1..example has more than 100 compartments. "
+        "Network Path Analyzer default limits does not support tenancies that have more than 100 compartments. "
+        "Submit a limit increase request for Network Path Analyzer to the number of compartments in tenancy."
+    )
+    service = ConnectivityService(
+        settings=Settings(enable_live_oci=True, tenancy_ocid="tenancy-1", compartment_ids=["compartment-1"]),
+        client_factory=FakeFactory(work_status="FAILED", errors=[raw_message]),
+    )
+
+    result = service.check(
+        ConnectivityCheckRequest(
+            source=ConnectivityEndpoint(type="ip_address", value="10.0.0.10"),
+            destination=ConnectivityEndpoint(type="ip_address", value="10.0.1.20"),
+            protocol="TCP",
+            destination_port=443,
+        )
+    )
+
+    assert result.status == "service_limit"
+    assert result.work_request_id == "wr-1"
+    assert "reached OCI Network Path Analyzer" in result.message
+    assert "compartment-count service limit increase" in result.message
+    assert any("service limit increase" in action for action in result.next_actions)
+
+
 def test_connectivity_service_compacts_large_tenancy_limit_message():
     service = ConnectivityService(
         settings=Settings(enable_live_oci=True, tenancy_ocid="tenancy-1", compartment_ids=["compartment-1"]),
@@ -203,8 +236,8 @@ def test_connectivity_service_compacts_large_tenancy_limit_message():
     )
 
     assert service._primary_message([raw_message]) == (
-        "Connectivity check could not complete because this tenancy has more compartments than the current "
-        "OCI Network Path Analyzer service limit."
+        "Connectivity Check reached OCI Network Path Analyzer, but OCI needs a compartment-count service "
+        "limit increase before it can complete this tenancy."
     )
     assert service._user_findings([raw_message]) == [service._primary_message([raw_message])]
 
