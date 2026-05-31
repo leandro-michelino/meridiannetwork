@@ -1853,14 +1853,14 @@ tr:last-child td { border-bottom: 0; }
             <option value="vnic">Source VNIC OCID</option>
             <option value="subnet">Source subnet OCID</option>
           </select>
-          <input id="connectivitySource" type="search" list="connectivityResourceList" placeholder="Source resource or IP" aria-label="Source resource or IP">
+          <input id="connectivitySource" type="search" list="connectivitySourceResourceList" placeholder="Source IP" aria-label="Source resource or IP">
           <select id="connectivityDestinationType" aria-label="Destination resource type">
             <option value="ip_address">Destination IP</option>
             <option value="compute_instance">Destination instance OCID</option>
             <option value="vnic">Destination VNIC OCID</option>
             <option value="subnet">Destination subnet OCID</option>
           </select>
-          <input id="connectivityDestination" type="search" list="connectivityResourceList" placeholder="Destination resource or IP" aria-label="Destination resource or IP">
+          <input id="connectivityDestination" type="search" list="connectivityDestinationResourceList" placeholder="Destination IP" aria-label="Destination resource or IP">
           <select id="connectivityProtocol" aria-label="Connectivity protocol">
             <option value="TCP" selected>TCP</option>
             <option value="UDP">UDP</option>
@@ -1872,7 +1872,8 @@ tr:last-child td { border-bottom: 0; }
             <option value="false">Forward only</option>
           </select>
         </div>
-        <datalist id="connectivityResourceList"></datalist>
+        <datalist id="connectivitySourceResourceList"></datalist>
+        <datalist id="connectivityDestinationResourceList"></datalist>
         <div class="traffic-summary" id="connectivitySummary"></div>
         <div class="traffic-message" id="connectivityMessage"></div>
         <div class="connectivity-findings" id="connectivityFindings"></div>
@@ -5556,22 +5557,68 @@ function isConnectivityServiceLimit(result) {
 }
 
 function renderConnectivityResourceOptions(data) {
-  const datalist = byId('connectivityResourceList');
-  const options = [];
-  (data.vcns || []).forEach((vcn) => {
-    options.push({ value: vcn.id, label: `${vcn.name || vcn.id} VCN` });
-  });
-  (data.subnets || []).forEach((subnet) => {
-    if (subnet.cidr_block) options.push({ value: subnet.cidr_block.split('/')[0], label: `${subnet.name || subnet.id} first IP` });
-    options.push({ value: subnet.id, label: `${subnet.name || subnet.id} subnet` });
-  });
-  (data.trafficFlows?.endpoints || []).forEach((endpoint) => {
-    if (endpoint.ip_address) options.push({ value: endpoint.ip_address, label: trafficEndpointName(endpoint) });
-  });
+  renderConnectivityDatalist('source', data);
+  renderConnectivityDatalist('destination', data);
+  updateConnectivityInputHints('source');
+  updateConnectivityInputHints('destination');
+}
+
+function renderConnectivityDatalist(role, data) {
+  const type = byId(`connectivity${titleCase(role)}Type`).value;
+  const datalist = byId(`connectivity${titleCase(role)}ResourceList`);
+  const options = connectivityOptionsForType(data, type);
   datalist.innerHTML = options
     .filter((option, index, all) => option.value && all.findIndex((item) => item.value === option.value) === index)
     .map((option) => `<option value="${escapeHtml(option.value)}" label="${escapeHtml(option.label)}"></option>`)
     .join('');
+}
+
+function connectivityOptionsForType(data, type) {
+  const options = [];
+  if (type === 'ip_address') {
+    (data.trafficFlows?.endpoints || []).forEach((endpoint) => {
+      if (endpoint.ip_address) options.push({ value: endpoint.ip_address, label: trafficEndpointName(endpoint) });
+    });
+    return options;
+  }
+  if (type === 'compute_instance') {
+    (data.trafficFlows?.endpoints || []).forEach((endpoint) => {
+      if (endpoint.instance_id) options.push({ value: endpoint.instance_id, label: endpoint.instance_name || trafficEndpointName(endpoint) });
+    });
+    return options;
+  }
+  if (type === 'vnic') {
+    (data.trafficFlows?.endpoints || []).forEach((endpoint) => {
+      if (endpoint.vnic_id) options.push({ value: endpoint.vnic_id, label: trafficEndpointName(endpoint) });
+    });
+    return options;
+  }
+  if (type === 'subnet') {
+    (data.subnets || []).forEach((subnet) => {
+      options.push({ value: subnet.id, label: `${subnet.name || subnet.id} / ${subnet.region || 'region'}` });
+    });
+  }
+  return options;
+}
+
+function updateConnectivityInputHints(role) {
+  const type = byId(`connectivity${titleCase(role)}Type`).value;
+  const input = byId(`connectivity${titleCase(role)}`);
+  input.placeholder = `${titleCase(role)} ${connectivityTypeInputLabel(type)}`;
+  input.setAttribute('aria-label', `${titleCase(role)} ${connectivityTypeInputLabel(type)}`);
+}
+
+function titleCase(value) {
+  return String(value || '').charAt(0).toUpperCase() + String(value || '').slice(1);
+}
+
+function connectivityTypeInputLabel(type) {
+  return {
+    ip_address: 'IP',
+    compute_instance: 'instance OCID',
+    vnic: 'VNIC OCID',
+    subnet: 'subnet OCID',
+  }[type] || 'endpoint';
 }
 
 function renderTrafficVcnScope(vcns) {
@@ -5724,6 +5771,11 @@ async function checkConnectivity() {
     alert('Enter a source and destination before checking connectivity.');
     return;
   }
+  const validationError = validateConnectivityEndpoint('source') || validateConnectivityEndpoint('destination');
+  if (validationError) {
+    alert(validationError);
+    return;
+  }
   const demoConnectivityResult = useDemoData ? cloneConnectivityCheck(DEMO_DATA.connectivityCheck) : null;
   const button = byId('checkConnectivityBtn');
   button.disabled = true;
@@ -5785,6 +5837,42 @@ function connectivityPayload() {
   if (compartmentId) payload.compartment_id = compartmentId;
   if (protocol !== 'ICMP' && port) payload.destination_port = Number(port);
   return payload;
+}
+
+function validateConnectivityEndpoint(role) {
+  const type = byId(`connectivity${titleCase(role)}Type`).value;
+  const value = byId(`connectivity${titleCase(role)}`).value.trim();
+  if (!value) return `${titleCase(role)} is required.`;
+  const detectedType = detectConnectivityValueType(value);
+  if (detectedType === 'vcn') {
+    return `${titleCase(role)} is a VCN OCID. Choose a subnet, compute instance, VNIC, or IP inside that VCN instead.`;
+  }
+  if (detectedType && detectedType !== type) {
+    return `${titleCase(role)} is set to ${connectivityTypeInputLabel(type)}, but the value looks like ${connectivityTypeInputLabel(detectedType)}. Change the type or use the matching value.`;
+  }
+  if (type !== 'ip_address' && !value.startsWith(connectivityTypePrefix(type))) {
+    return `${titleCase(role)} must be a ${connectivityTypeInputLabel(type)}.`;
+  }
+  if (type === 'ip_address' && value.startsWith('ocid1.')) {
+    return `${titleCase(role)} is set to IP, but the value is an OCI OCID. Change the type first.`;
+  }
+  return '';
+}
+
+function detectConnectivityValueType(value) {
+  if (value.startsWith('ocid1.instance.')) return 'compute_instance';
+  if (value.startsWith('ocid1.vnic.')) return 'vnic';
+  if (value.startsWith('ocid1.subnet.')) return 'subnet';
+  if (value.startsWith('ocid1.vcn.')) return 'vcn';
+  return '';
+}
+
+function connectivityTypePrefix(type) {
+  return {
+    compute_instance: 'ocid1.instance.',
+    vnic: 'ocid1.vnic.',
+    subnet: 'ocid1.subnet.',
+  }[type] || '';
 }
 
 function connectivityRegion() {
@@ -6419,6 +6507,12 @@ byId('checkConnectivityBtn').addEventListener('click', (event) => {
   event.preventDefault();
   event.stopPropagation();
   checkConnectivity();
+});
+['source', 'destination'].forEach((role) => {
+  byId(`connectivity${titleCase(role)}Type`).addEventListener('change', () => {
+    renderConnectivityDatalist(role, filterDashboardDataByRegions(currentDashboardData || DEMO_DATA));
+    updateConnectivityInputHints(role);
+  });
 });
 byId('enableTrafficTelemetryBtn').addEventListener('click', (event) => {
   event.preventDefault();

@@ -481,6 +481,36 @@ def test_connectivity_check_shows_oci_service_limit(page) -> None:
     expect(page.locator("#connectivityFindings")).to_contain_text("Enable Flow Logs only")
 
 
+def test_connectivity_endpoint_picker_filters_by_type(page, dashboard_url: str) -> None:
+    page.goto(f"{dashboard_url}/demodata", wait_until="networkidle")
+    expect(page.locator("#dataModeBadge")).to_contain_text("demo", timeout=10_000)
+    page.click("#regionMenuBtn")
+    page.click("#regionSelectAll")
+    page.locator("#trafficTelemetryPanel").scroll_into_view_if_needed()
+
+    source_values = lambda: page.evaluate(
+        """() => [...document.querySelectorAll('#connectivitySourceResourceList option')].map((option) => option.value)"""
+    )
+
+    page.locator("#connectivitySourceType").select_option("ip_address")
+    assert "10.0.20.21" in source_values()
+    assert "subnet-app" not in source_values()
+
+    page.locator("#connectivitySourceType").select_option("subnet")
+    assert "subnet-app" in source_values()
+    assert "10.0.20.21" not in source_values()
+
+    page.locator("#connectivitySourceType").select_option("ip_address")
+    page.locator("#connectivitySource").fill("ocid1.subnet.oc1.eu-frankfurt-1.example")
+    page.locator("#connectivityDestinationType").select_option("ip_address")
+    page.locator("#connectivityDestination").fill("10.20.10.18")
+    page.locator("#connectivityPort").fill("1521")
+    dialog_messages = []
+    page.once("dialog", lambda dialog: (dialog_messages.append(dialog.message), dialog.accept()))
+    page.click("#checkConnectivityBtn")
+    assert any("looks like subnet OCID" in message for message in dialog_messages)
+
+
 def test_topology_layout_modes_do_not_clip_horizontally(page, dashboard_url: str) -> None:
     expect(page.locator("#dataModeBadge")).to_have_text("api", timeout=10_000)
     page.goto(f"{dashboard_url}/demodata", wait_until="networkidle")
