@@ -518,6 +518,10 @@ def test_topology_layout_modes_do_not_clip_horizontally(page, dashboard_url: str
     page.locator("#topologyPanel").scroll_into_view_if_needed()
 
     expect(page.locator("#topologyBadge")).to_contain_text("overview / 8 nodes / 6 links")
+    expect(page.locator(".topology-legend")).to_contain_text("Line colors")
+    expect(page.locator(".topology-legend")).to_contain_text("Containment")
+    expect(page.locator(".topology-legend")).to_contain_text("Route table")
+    expect(page.locator(".topology-legend")).to_contain_text("Security / rejected")
     assert horizontally_clipped_topology_nodes(page) == []
     start_left = page.locator('[data-node-id="vcn-prod-fra"]').evaluate("node => parseFloat(node.style.left)")
     node_box = page.locator('[data-node-id="vcn-prod-fra"]').bounding_box()

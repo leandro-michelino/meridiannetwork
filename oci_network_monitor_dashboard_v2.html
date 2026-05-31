@@ -1442,6 +1442,45 @@ tr:last-child td { border-bottom: 0; }
   position: relative;
 }
 
+.topology-legend {
+  position: sticky;
+  top: 10px;
+  left: calc(100% - 176px);
+  z-index: 4;
+  width: 154px;
+  margin: 10px 10px 0 auto;
+  padding: 7px 8px;
+  border: 1px solid var(--mn-border-soft);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 6px 18px rgba(22, 34, 51, 0.08);
+  color: var(--mn-muted);
+  font-size: 10px;
+  pointer-events: none;
+}
+
+.topology-legend-title {
+  margin-bottom: 5px;
+  color: var(--mn-text);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.topology-legend-item {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  align-items: center;
+  gap: 6px;
+  min-height: 18px;
+}
+
+.topology-legend-line {
+  width: 26px;
+  height: 0;
+  border-top: 2px dashed currentColor;
+}
+
 .topology svg {
   position: absolute;
   inset: 0;
@@ -1775,6 +1814,14 @@ tr:last-child td { border-bottom: 0; }
         </div>
         <div class="topology" id="topology">
           <div class="topology-canvas" id="topologyCanvas">
+            <div class="topology-legend" role="note" aria-label="Topology line colors">
+              <div class="topology-legend-title">Line colors</div>
+              <div class="topology-legend-item" style="color:#185fa5"><span class="topology-legend-line"></span><span>Containment</span></div>
+              <div class="topology-legend-item" style="color:#2f6b2f"><span class="topology-legend-line"></span><span>Gateways / accepted</span></div>
+              <div class="topology-legend-item" style="color:#8a5a00"><span class="topology-legend-line"></span><span>Route table</span></div>
+              <div class="topology-legend-item" style="color:#534ab7"><span class="topology-legend-line"></span><span>Route target</span></div>
+              <div class="topology-legend-item" style="color:#a32d2d"><span class="topology-legend-line"></span><span>Security / rejected</span></div>
+            </div>
             <svg id="topologyLines" aria-hidden="true"></svg>
             <div class="topology-nodes" id="topologyNodes"></div>
           </div>
