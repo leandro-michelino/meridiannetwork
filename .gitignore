@@ -22,6 +22,7 @@ ansible/vault.yml
 # Local tooling
 .env
 .venv/
+.vscode/
 __pycache__/
 .pytest_cache/
 .ruff_cache/
